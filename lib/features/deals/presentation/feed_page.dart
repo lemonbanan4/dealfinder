@@ -15,30 +15,38 @@ class FeedPage extends ConsumerWidget {
     final feedAsync = ref.watch(dealFeedNotifierProvider);
     final settings = ref.watch(appSettingsNotifierProvider);
     final ratesAsync = ref.watch(exchangeRatesNotifierProvider);
+    final isRefreshing = feedAsync.isLoading;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Deal Feed'),
+        title: const Text(
+          'Deal Feed',
+          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.3),
+        ),
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: feedAsync.isLoading
+            onPressed: isRefreshing
                 ? null
-                : () => ref.read(dealFeedNotifierProvider.notifier).refresh(),
-            icon: feedAsync.isLoading
+                : () => ref
+                    .read(dealFeedNotifierProvider.notifier)
+                    .refresh(),
+            icon: isRefreshing
                 ? const SizedBox.square(
                     dimension: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.refresh),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: feedAsync.when(
-        loading: () => const _LoadingList(),
+        loading: () => const _ShimmerGrid(),
         error: (err, _) => _ErrorState(
           message: err.toString(),
-          onRetry: () => ref.read(dealFeedNotifierProvider.notifier).refresh(),
+          onRetry: () =>
+              ref.read(dealFeedNotifierProvider.notifier).refresh(),
         ),
         data: (deals) {
           if (deals.isEmpty) {
@@ -50,24 +58,35 @@ class FeedPage extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () =>
                 ref.read(dealFeedNotifierProvider.notifier).refresh(),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: deals.length,
-              itemBuilder: (context, index) {
-                final deal = deals[index];
-                final displayPrice = ratesAsync.maybeWhen(
-                  data: (rates) => ref
-                      .read(currencyServiceProvider)
-                      .convert(deal.priceEur, settings.displayCurrency, rates),
-                  orElse: () => deal.priceEur,
-                );
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: DealCard(
-                    deal: deal,
-                    displayPrice: displayPrice,
-                    currency: settings.displayCurrency,
-                  ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 600;
+                return CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: EdgeInsets.all(isWide ? 20 : 14),
+                      sliver: isWide
+                          ? SliverGrid.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                mainAxisExtent: 130,
+                              ),
+                              itemCount: deals.length,
+                              itemBuilder: (context, index) =>
+                                  _buildCard(ref, deals[index], settings.displayCurrency, ratesAsync),
+                            )
+                          : SliverList.separated(
+                              itemCount: deals.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, index) =>
+                                  _buildCard(ref, deals[index], settings.displayCurrency, ratesAsync),
+                            ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -76,51 +95,177 @@ class FeedPage extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _buildCard(WidgetRef ref, dynamic deal, String currency, dynamic ratesAsync) {
+    final displayPrice = ratesAsync.maybeWhen(
+      data: (rates) => ref
+          .read(currencyServiceProvider)
+          .convert(deal.priceEur, currency, rates),
+      orElse: () => deal.priceEur,
+    );
+    return DealCard(
+      deal: deal,
+      displayPrice: displayPrice,
+      currency: currency,
+    );
+  }
 }
 
-class _LoadingList extends StatelessWidget {
-  const _LoadingList();
+// ─── Shimmer skeleton loading ─────────────────────────────────────────────────
+
+class _ShimmerGrid extends StatefulWidget {
+  const _ShimmerGrid();
+
+  @override
+  State<_ShimmerGrid> createState() => _ShimmerGridState();
+}
+
+class _ShimmerGridState extends State<_ShimmerGrid>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.25, end: 0.6).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: 5,
-      itemBuilder: (_, __) => const Padding(
-        padding: EdgeInsets.only(bottom: 8),
-        child: _SkeletonCard(),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 600;
+        return AnimatedBuilder(
+          animation: _opacity,
+          builder: (context, _) => CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: EdgeInsets.all(isWide ? 20 : 14),
+                sliver: isWide
+                    ? SliverGrid.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          mainAxisExtent: 130,
+                        ),
+                        itemCount: 6,
+                        itemBuilder: (_, _) =>
+                            _SkeletonCard(opacity: _opacity.value),
+                      )
+                    : SliverList.separated(
+                        itemCount: 5,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (_, _) =>
+                            _SkeletonCard(opacity: _opacity.value),
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
 class _SkeletonCard extends StatelessWidget {
-  const _SkeletonCard();
+  const _SkeletonCard({required this.opacity});
+  final double opacity;
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
-    return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(height: 140, color: color),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(height: 14, color: color),
-                const SizedBox(height: 6),
-                Container(height: 14, width: 100, color: color),
-              ],
-            ),
+    final shimmer = const Color(0xFF272839).withAlpha((opacity * 255).round());
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF12131A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF252638)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: SizedBox(
+          height: 130,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 110, color: shimmer),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 13,
+                        decoration: BoxDecoration(
+                          color: shimmer,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Container(
+                        height: 13,
+                        width: 140,
+                        decoration: BoxDecoration(
+                          color: shimmer,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        height: 10,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: shimmer,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: shimmer,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Container(
+                        height: 16,
+                        width: 90,
+                        decoration: BoxDecoration(
+                          color: shimmer,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
+
+// ─── Empty / Error states ─────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onRefresh});
@@ -134,10 +279,15 @@ class _EmptyState extends StatelessWidget {
         children: [
           const Icon(Icons.storefront_outlined, size: 64),
           const SizedBox(height: 16),
-          Text('No deals yet', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'No deals yet',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
           const SizedBox(height: 8),
           const Text('Enable sources in Settings, then tap Refresh.'),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           FilledButton.icon(
             onPressed: onRefresh,
             icon: const Icon(Icons.refresh),
@@ -169,7 +319,7 @@ class _ErrorState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),

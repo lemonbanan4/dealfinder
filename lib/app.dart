@@ -22,6 +22,7 @@ class DealFinderApp extends ConsumerWidget {
           seedColor: const Color(0xFF006EFF),
           brightness: Brightness.dark,
         ),
+        scaffoldBackgroundColor: const Color(0xFF0A0B10),
         useMaterial3: true,
       ),
       home: const AppShell(),
