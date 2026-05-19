@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/alerts/presentation/alerts_page.dart';
+import '../features/auth/presentation/login_page.dart';
+import '../features/auth/providers/auth_provider.dart';
 import '../features/deals/presentation/feed_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
   int _selectedIndex = 0;
 
   static const _pages = <Widget>[
@@ -26,6 +29,19 @@ class _AppShellState extends State<AppShell> {
     ('Settings', Icons.settings_outlined, Icons.settings),
   ];
 
+  Future<void> _onDestinationSelected(int index) async {
+    if (index == 1 && ref.read(authNotifierProvider) == null) {
+      final signedIn = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(builder: (_) => const LoginPage()),
+      );
+      if (signedIn == true && mounted) {
+        setState(() => _selectedIndex = 1);
+      }
+      return;
+    }
+    setState(() => _selectedIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -39,15 +55,12 @@ class _AppShellState extends State<AppShell> {
             NavigationRail(
               extended: isExtended,
               selectedIndex: _selectedIndex,
-              onDestinationSelected: (i) =>
-                  setState(() => _selectedIndex = i),
+              onDestinationSelected: _onDestinationSelected,
               labelType: isExtended
                   ? NavigationRailLabelType.none
                   : NavigationRailLabelType.all,
-              backgroundColor:
-                  isDark ? const Color(0xFF0C0D15) : null,
-              indicatorColor:
-                  isDark ? const Color(0xFF1E2035) : null,
+              backgroundColor: isDark ? const Color(0xFF0C0D15) : null,
+              indicatorColor: isDark ? const Color(0xFF1E2035) : null,
               selectedIconTheme: isDark
                   ? const IconThemeData(color: Color(0xFF00B4FF))
                   : null,
@@ -62,10 +75,7 @@ class _AppShellState extends State<AppShell> {
                     )
                   : null,
               unselectedLabelTextStyle: isDark
-                  ? const TextStyle(
-                      color: Color(0xFF5A5A78),
-                      fontSize: 11,
-                    )
+                  ? const TextStyle(color: Color(0xFF5A5A78), fontSize: 11)
                   : null,
               leading: _BrandHeader(extended: isExtended, isDark: isDark),
               destinations: [
@@ -93,7 +103,7 @@ class _AppShellState extends State<AppShell> {
       body: _pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+        onDestinationSelected: _onDestinationSelected,
         backgroundColor: isDark ? const Color(0xFF0C0D15) : null,
         indicatorColor: isDark ? const Color(0xFF1E2035) : null,
         destinations: [
@@ -128,7 +138,9 @@ class _BrandHeader extends StatelessWidget {
                 Text(
                   'DealFinder',
                   style: TextStyle(
-                    color: isDark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                    color: isDark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                     letterSpacing: -0.5,
@@ -159,7 +171,11 @@ class _BrandHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: const Icon(Icons.local_offer_rounded, color: Colors.white, size: 20),
+      child: const Icon(
+        Icons.local_offer_rounded,
+        color: Colors.white,
+        size: 20,
+      ),
     );
   }
 }

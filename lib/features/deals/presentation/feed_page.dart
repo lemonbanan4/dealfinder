@@ -107,6 +107,7 @@ class FeedPage extends ConsumerWidget {
       deal: deal,
       displayPrice: displayPrice,
       currency: currency,
+      onTap: () => ref.read(affiliateRouterProvider).launch(deal.url),
     );
   }
 }

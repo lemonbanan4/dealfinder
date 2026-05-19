@@ -2,10 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../features/alerts/data/alert_repository.dart';
+import '../features/alerts/data/firestore_alert_repository.dart';
 import '../features/currency/data/currency_repository.dart';
 import '../features/currency/data/ecb_client.dart';
 import '../features/deals/data/deal_repository.dart';
 import '../features/settings/data/settings_repository.dart';
+import '../services/affiliate_router.dart';
 import '../services/currency_service.dart';
 import '../services/scraper_service.dart';
 import '../services/scraper_strategy.dart';
@@ -58,4 +60,14 @@ final scraperServiceProvider = Provider<ScraperService>(
     return ScraperService(strategy, ref.watch(currencyServiceProvider));
   },
   name: 'scraperServiceProvider',
+);
+
+final firestoreAlertRepositoryProvider = Provider<FirestoreAlertRepository>(
+  (_) => FirestoreAlertRepository(),
+  name: 'firestoreAlertRepositoryProvider',
+);
+
+final affiliateRouterProvider = Provider<AffiliateRouter>(
+  (_) => const AffiliateRouter(),
+  name: 'affiliateRouterProvider',
 );

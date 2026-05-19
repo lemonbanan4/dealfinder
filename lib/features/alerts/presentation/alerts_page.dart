@@ -17,7 +17,7 @@ class AlertsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final alerts = ref.watch(alertsNotifierProvider);
+    final alertsAsync = ref.watch(alertsNotifierProvider);
     final settings = ref.watch(appSettingsNotifierProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -28,23 +28,46 @@ class AlertsPage extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.3),
         ),
       ),
-      body: alerts.isEmpty
-          ? const _EmptyState()
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-              itemCount: alerts.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final alert = alerts[index];
-                return _AlertCard(
-                  key: ValueKey(alert.id),
-                  alert: alert,
-                  isDark: isDark,
-                  onDismiss: () =>
-                      ref.read(alertsNotifierProvider.notifier).remove(alert.id),
-                );
-              },
+      body: alertsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.cloud_off_outlined, size: 48),
+                const SizedBox(height: 16),
+                Text(e.toString(), textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () => ref.invalidate(alertsNotifierProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
             ),
+          ),
+        ),
+        data: (alerts) => alerts.isEmpty
+            ? const _EmptyState()
+            : ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                itemCount: alerts.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final alert = alerts[index];
+                  return _AlertCard(
+                    key: ValueKey(alert.id),
+                    alert: alert,
+                    isDark: isDark,
+                    onDismiss: () => ref
+                        .read(alertsNotifierProvider.notifier)
+                        .remove(alert.id),
+                  );
+                },
+              ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         tooltip: 'Add price alert',
         icon: const Icon(Icons.add_alert_outlined),
@@ -226,7 +249,7 @@ class _AlertCard extends StatelessWidget {
     final s = price.round().toString();
     final buf = StringBuffer();
     for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
       buf.write(s[i]);
     }
     return buf.toString();

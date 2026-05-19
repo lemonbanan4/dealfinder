@@ -31,11 +31,13 @@ class DealCard extends StatelessWidget {
     required this.deal,
     required this.displayPrice,
     required this.currency,
+    this.onTap,
   });
 
   final Deal deal;
   final double displayPrice;
   final String currency;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +61,7 @@ class DealCard extends StatelessWidget {
             child: InkWell(
               splashColor: _kAccentBlue.withAlpha(20),
               highlightColor: _kAccentBlue.withAlpha(10),
-              onTap: () => _copyLink(context),
+              onTap: onTap ?? () => _copyLink(context),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
