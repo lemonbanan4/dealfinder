@@ -26,6 +26,9 @@ dependencies:
   freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
 
+  # XML parsing (ECB rate feed)
+  xml: ^6.5.0
+
   # Notifications
   flutter_local_notifications: ^19.0.0
 
