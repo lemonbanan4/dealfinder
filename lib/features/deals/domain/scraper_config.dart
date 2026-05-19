@@ -4,7 +4,7 @@ part 'scraper_config.freezed.dart';
 part 'scraper_config.g.dart';
 
 @freezed
-class ScraperConfig with _$ScraperConfig {
+abstract class ScraperConfig with _$ScraperConfig {
   const factory ScraperConfig({
     required String id,
     required String name,
@@ -15,6 +15,7 @@ class ScraperConfig with _$ScraperConfig {
     required String linkSelector,
     String? imageSelector,
     String? nextPageSelector,
+    @Default('EUR') String currencyCode,
     @Default(true) bool isEnabled,
   }) = _ScraperConfig;
 

@@ -4,7 +4,7 @@ part 'price_alert.freezed.dart';
 part 'price_alert.g.dart';
 
 @freezed
-class PriceAlert with _$PriceAlert {
+abstract class PriceAlert with _$PriceAlert {
   const factory PriceAlert({
     required String id,
     required String title,

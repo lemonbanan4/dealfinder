@@ -7,6 +7,8 @@ import '../features/currency/data/ecb_client.dart';
 import '../features/deals/data/deal_repository.dart';
 import '../features/settings/data/settings_repository.dart';
 import '../services/currency_service.dart';
+import '../services/scraper_service.dart';
+import '../services/scraper_strategy.dart';
 
 final httpClientProvider = Provider<http.Client>(
   (ref) {
@@ -48,4 +50,12 @@ final currencyServiceProvider = Provider<CurrencyService>(
     ref.watch(ecbClientProvider),
   ),
   name: 'currencyServiceProvider',
+);
+
+final scraperServiceProvider = Provider<ScraperService>(
+  (ref) {
+    final strategy = buildScraperStrategy(client: ref.watch(httpClientProvider));
+    return ScraperService(strategy, ref.watch(currencyServiceProvider));
+  },
+  name: 'scraperServiceProvider',
 );

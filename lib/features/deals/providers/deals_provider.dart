@@ -8,14 +8,43 @@ part 'deals_provider.g.dart';
 @Riverpod(keepAlive: true)
 class DealFeedNotifier extends _$DealFeedNotifier {
   @override
-  AsyncValue<List<Deal>> build() {
-    // Scraper integration added in Phase 3.
-    final cached = ref.read(dealRepositoryProvider).getAll();
-    return AsyncData(cached);
+  Future<List<Deal>> build() async {
+    return ref.read(dealRepositoryProvider).getAll();
   }
 
+  /// Scrapes all enabled sources and persists the merged results.
   Future<void> refresh() async {
-    // Phase 3: invoke ScraperService here.
-    state = AsyncData(ref.read(dealRepositoryProvider).getAll());
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_scrapeAll);
+  }
+
+  Future<List<Deal>> _scrapeAll() async {
+    final configs = ref
+        .read(dealRepositoryProvider)
+        .getConfigs()
+        .where((c) => c.isEnabled)
+        .toList();
+
+    if (configs.isEmpty) {
+      return ref.read(dealRepositoryProvider).getAll();
+    }
+
+    final service = ref.read(scraperServiceProvider);
+    final settled = await Future.wait<List<Deal>>([
+      for (final c in configs)
+        service
+            .scrape(c)
+            .catchError((Object e, StackTrace s) => <Deal>[]),
+    ]);
+
+    final merged = _deduplicate(settled.expand((l) => l).toList());
+    await ref.read(dealRepositoryProvider).saveAll(merged);
+    return merged;
+  }
+
+  List<Deal> _deduplicate(List<Deal> deals) {
+    final seen = <String>{};
+    return deals.where((d) => seen.add(d.url)).toList()
+      ..sort((a, b) => a.priceEur.compareTo(b.priceEur));
   }
 }

@@ -4,7 +4,7 @@ part 'exchange_rates.freezed.dart';
 part 'exchange_rates.g.dart';
 
 @freezed
-class ExchangeRates with _$ExchangeRates {
+abstract class ExchangeRates with _$ExchangeRates {
   const factory ExchangeRates({
     @Default('EUR') String base,
     required Map<String, double> rates,

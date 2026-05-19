@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ScraperConfig {
 
- String get id; String get name; String get baseUrl; String get listSelector; String get titleSelector; String get priceSelector; String get linkSelector; String? get imageSelector; String? get nextPageSelector; bool get isEnabled;
+ String get id; String get name; String get baseUrl; String get listSelector; String get titleSelector; String get priceSelector; String get linkSelector; String? get imageSelector; String? get nextPageSelector; String get currencyCode; bool get isEnabled;
 /// Create a copy of ScraperConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ScraperConfigCopyWith<ScraperConfig> get copyWith => _$ScraperConfigCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScraperConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.listSelector, listSelector) || other.listSelector == listSelector)&&(identical(other.titleSelector, titleSelector) || other.titleSelector == titleSelector)&&(identical(other.priceSelector, priceSelector) || other.priceSelector == priceSelector)&&(identical(other.linkSelector, linkSelector) || other.linkSelector == linkSelector)&&(identical(other.imageSelector, imageSelector) || other.imageSelector == imageSelector)&&(identical(other.nextPageSelector, nextPageSelector) || other.nextPageSelector == nextPageSelector)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ScraperConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.listSelector, listSelector) || other.listSelector == listSelector)&&(identical(other.titleSelector, titleSelector) || other.titleSelector == titleSelector)&&(identical(other.priceSelector, priceSelector) || other.priceSelector == priceSelector)&&(identical(other.linkSelector, linkSelector) || other.linkSelector == linkSelector)&&(identical(other.imageSelector, imageSelector) || other.imageSelector == imageSelector)&&(identical(other.nextPageSelector, nextPageSelector) || other.nextPageSelector == nextPageSelector)&&(identical(other.currencyCode, currencyCode) || other.currencyCode == currencyCode)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,baseUrl,listSelector,titleSelector,priceSelector,linkSelector,imageSelector,nextPageSelector,isEnabled);
+int get hashCode => Object.hash(runtimeType,id,name,baseUrl,listSelector,titleSelector,priceSelector,linkSelector,imageSelector,nextPageSelector,currencyCode,isEnabled);
 
 @override
 String toString() {
-  return 'ScraperConfig(id: $id, name: $name, baseUrl: $baseUrl, listSelector: $listSelector, titleSelector: $titleSelector, priceSelector: $priceSelector, linkSelector: $linkSelector, imageSelector: $imageSelector, nextPageSelector: $nextPageSelector, isEnabled: $isEnabled)';
+  return 'ScraperConfig(id: $id, name: $name, baseUrl: $baseUrl, listSelector: $listSelector, titleSelector: $titleSelector, priceSelector: $priceSelector, linkSelector: $linkSelector, imageSelector: $imageSelector, nextPageSelector: $nextPageSelector, currencyCode: $currencyCode, isEnabled: $isEnabled)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ScraperConfigCopyWith<$Res>  {
   factory $ScraperConfigCopyWith(ScraperConfig value, $Res Function(ScraperConfig) _then) = _$ScraperConfigCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String baseUrl, String listSelector, String titleSelector, String priceSelector, String linkSelector, String? imageSelector, String? nextPageSelector, bool isEnabled
+ String id, String name, String baseUrl, String listSelector, String titleSelector, String priceSelector, String linkSelector, String? imageSelector, String? nextPageSelector, String currencyCode, bool isEnabled
 });
 
 
@@ -65,7 +65,7 @@ class _$ScraperConfigCopyWithImpl<$Res>
 
 /// Create a copy of ScraperConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? listSelector = null,Object? titleSelector = null,Object? priceSelector = null,Object? linkSelector = null,Object? imageSelector = freezed,Object? nextPageSelector = freezed,Object? isEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? listSelector = null,Object? titleSelector = null,Object? priceSelector = null,Object? linkSelector = null,Object? imageSelector = freezed,Object? nextPageSelector = freezed,Object? currencyCode = null,Object? isEnabled = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -76,7 +76,8 @@ as String,priceSelector: null == priceSelector ? _self.priceSelector : priceSele
 as String,linkSelector: null == linkSelector ? _self.linkSelector : linkSelector // ignore: cast_nullable_to_non_nullable
 as String,imageSelector: freezed == imageSelector ? _self.imageSelector : imageSelector // ignore: cast_nullable_to_non_nullable
 as String?,nextPageSelector: freezed == nextPageSelector ? _self.nextPageSelector : nextPageSelector // ignore: cast_nullable_to_non_nullable
-as String?,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
+as String?,currencyCode: null == currencyCode ? _self.currencyCode : currencyCode // ignore: cast_nullable_to_non_nullable
+as String,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -162,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String listSelector,  String titleSelector,  String priceSelector,  String linkSelector,  String? imageSelector,  String? nextPageSelector,  bool isEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String listSelector,  String titleSelector,  String priceSelector,  String linkSelector,  String? imageSelector,  String? nextPageSelector,  String currencyCode,  bool isEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ScraperConfig() when $default != null:
-return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.titleSelector,_that.priceSelector,_that.linkSelector,_that.imageSelector,_that.nextPageSelector,_that.isEnabled);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.titleSelector,_that.priceSelector,_that.linkSelector,_that.imageSelector,_that.nextPageSelector,_that.currencyCode,_that.isEnabled);case _:
   return orElse();
 
 }
@@ -183,10 +184,10 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.title
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String listSelector,  String titleSelector,  String priceSelector,  String linkSelector,  String? imageSelector,  String? nextPageSelector,  bool isEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String baseUrl,  String listSelector,  String titleSelector,  String priceSelector,  String linkSelector,  String? imageSelector,  String? nextPageSelector,  String currencyCode,  bool isEnabled)  $default,) {final _that = this;
 switch (_that) {
 case _ScraperConfig():
-return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.titleSelector,_that.priceSelector,_that.linkSelector,_that.imageSelector,_that.nextPageSelector,_that.isEnabled);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.titleSelector,_that.priceSelector,_that.linkSelector,_that.imageSelector,_that.nextPageSelector,_that.currencyCode,_that.isEnabled);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +204,10 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.title
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String baseUrl,  String listSelector,  String titleSelector,  String priceSelector,  String linkSelector,  String? imageSelector,  String? nextPageSelector,  bool isEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String baseUrl,  String listSelector,  String titleSelector,  String priceSelector,  String linkSelector,  String? imageSelector,  String? nextPageSelector,  String currencyCode,  bool isEnabled)?  $default,) {final _that = this;
 switch (_that) {
 case _ScraperConfig() when $default != null:
-return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.titleSelector,_that.priceSelector,_that.linkSelector,_that.imageSelector,_that.nextPageSelector,_that.isEnabled);case _:
+return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.titleSelector,_that.priceSelector,_that.linkSelector,_that.imageSelector,_that.nextPageSelector,_that.currencyCode,_that.isEnabled);case _:
   return null;
 
 }
@@ -218,7 +219,7 @@ return $default(_that.id,_that.name,_that.baseUrl,_that.listSelector,_that.title
 @JsonSerializable()
 
 class _ScraperConfig implements ScraperConfig {
-  const _ScraperConfig({required this.id, required this.name, required this.baseUrl, required this.listSelector, required this.titleSelector, required this.priceSelector, required this.linkSelector, this.imageSelector, this.nextPageSelector, this.isEnabled = true});
+  const _ScraperConfig({required this.id, required this.name, required this.baseUrl, required this.listSelector, required this.titleSelector, required this.priceSelector, required this.linkSelector, this.imageSelector, this.nextPageSelector, this.currencyCode = 'EUR', this.isEnabled = true});
   factory _ScraperConfig.fromJson(Map<String, dynamic> json) => _$ScraperConfigFromJson(json);
 
 @override final  String id;
@@ -230,6 +231,7 @@ class _ScraperConfig implements ScraperConfig {
 @override final  String linkSelector;
 @override final  String? imageSelector;
 @override final  String? nextPageSelector;
+@override@JsonKey() final  String currencyCode;
 @override@JsonKey() final  bool isEnabled;
 
 /// Create a copy of ScraperConfig
@@ -245,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ScraperConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.listSelector, listSelector) || other.listSelector == listSelector)&&(identical(other.titleSelector, titleSelector) || other.titleSelector == titleSelector)&&(identical(other.priceSelector, priceSelector) || other.priceSelector == priceSelector)&&(identical(other.linkSelector, linkSelector) || other.linkSelector == linkSelector)&&(identical(other.imageSelector, imageSelector) || other.imageSelector == imageSelector)&&(identical(other.nextPageSelector, nextPageSelector) || other.nextPageSelector == nextPageSelector)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ScraperConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.baseUrl, baseUrl) || other.baseUrl == baseUrl)&&(identical(other.listSelector, listSelector) || other.listSelector == listSelector)&&(identical(other.titleSelector, titleSelector) || other.titleSelector == titleSelector)&&(identical(other.priceSelector, priceSelector) || other.priceSelector == priceSelector)&&(identical(other.linkSelector, linkSelector) || other.linkSelector == linkSelector)&&(identical(other.imageSelector, imageSelector) || other.imageSelector == imageSelector)&&(identical(other.nextPageSelector, nextPageSelector) || other.nextPageSelector == nextPageSelector)&&(identical(other.currencyCode, currencyCode) || other.currencyCode == currencyCode)&&(identical(other.isEnabled, isEnabled) || other.isEnabled == isEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,baseUrl,listSelector,titleSelector,priceSelector,linkSelector,imageSelector,nextPageSelector,isEnabled);
+int get hashCode => Object.hash(runtimeType,id,name,baseUrl,listSelector,titleSelector,priceSelector,linkSelector,imageSelector,nextPageSelector,currencyCode,isEnabled);
 
 @override
 String toString() {
-  return 'ScraperConfig(id: $id, name: $name, baseUrl: $baseUrl, listSelector: $listSelector, titleSelector: $titleSelector, priceSelector: $priceSelector, linkSelector: $linkSelector, imageSelector: $imageSelector, nextPageSelector: $nextPageSelector, isEnabled: $isEnabled)';
+  return 'ScraperConfig(id: $id, name: $name, baseUrl: $baseUrl, listSelector: $listSelector, titleSelector: $titleSelector, priceSelector: $priceSelector, linkSelector: $linkSelector, imageSelector: $imageSelector, nextPageSelector: $nextPageSelector, currencyCode: $currencyCode, isEnabled: $isEnabled)';
 }
 
 
@@ -265,7 +267,7 @@ abstract mixin class _$ScraperConfigCopyWith<$Res> implements $ScraperConfigCopy
   factory _$ScraperConfigCopyWith(_ScraperConfig value, $Res Function(_ScraperConfig) _then) = __$ScraperConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String baseUrl, String listSelector, String titleSelector, String priceSelector, String linkSelector, String? imageSelector, String? nextPageSelector, bool isEnabled
+ String id, String name, String baseUrl, String listSelector, String titleSelector, String priceSelector, String linkSelector, String? imageSelector, String? nextPageSelector, String currencyCode, bool isEnabled
 });
 
 
@@ -282,7 +284,7 @@ class __$ScraperConfigCopyWithImpl<$Res>
 
 /// Create a copy of ScraperConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? listSelector = null,Object? titleSelector = null,Object? priceSelector = null,Object? linkSelector = null,Object? imageSelector = freezed,Object? nextPageSelector = freezed,Object? isEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? baseUrl = null,Object? listSelector = null,Object? titleSelector = null,Object? priceSelector = null,Object? linkSelector = null,Object? imageSelector = freezed,Object? nextPageSelector = freezed,Object? currencyCode = null,Object? isEnabled = null,}) {
   return _then(_ScraperConfig(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -293,7 +295,8 @@ as String,priceSelector: null == priceSelector ? _self.priceSelector : priceSele
 as String,linkSelector: null == linkSelector ? _self.linkSelector : linkSelector // ignore: cast_nullable_to_non_nullable
 as String,imageSelector: freezed == imageSelector ? _self.imageSelector : imageSelector // ignore: cast_nullable_to_non_nullable
 as String?,nextPageSelector: freezed == nextPageSelector ? _self.nextPageSelector : nextPageSelector // ignore: cast_nullable_to_non_nullable
-as String?,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
+as String?,currencyCode: null == currencyCode ? _self.currencyCode : currencyCode // ignore: cast_nullable_to_non_nullable
+as String,isEnabled: null == isEnabled ? _self.isEnabled : isEnabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

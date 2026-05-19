@@ -17,6 +17,7 @@ _ScraperConfig _$ScraperConfigFromJson(Map<String, dynamic> json) =>
       linkSelector: json['linkSelector'] as String,
       imageSelector: json['imageSelector'] as String?,
       nextPageSelector: json['nextPageSelector'] as String?,
+      currencyCode: json['currencyCode'] as String? ?? 'EUR',
       isEnabled: json['isEnabled'] as bool? ?? true,
     );
 
@@ -31,5 +32,6 @@ Map<String, dynamic> _$ScraperConfigToJson(_ScraperConfig instance) =>
       'linkSelector': instance.linkSelector,
       'imageSelector': instance.imageSelector,
       'nextPageSelector': instance.nextPageSelector,
+      'currencyCode': instance.currencyCode,
       'isEnabled': instance.isEnabled,
     };
