@@ -10,6 +10,8 @@ abstract final class ApiUrls {
   static const ecbRates =
       'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml';
   static const erApiRates = 'https://open.er-api.com/v6/latest/EUR';
+  // BFF proxy used by the web/WASM build (configure to your deployed shelf service).
+  static const bffBase = 'http://localhost:8080';
 }
 
 abstract final class CurrencyCode {
