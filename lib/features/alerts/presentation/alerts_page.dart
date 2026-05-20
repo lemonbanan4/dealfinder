@@ -23,10 +23,7 @@ class AlertsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Price Alerts',
-          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
+        title: Image.asset('assets/images/logo.png', height: 40, fit: BoxFit.contain),
       ),
       body: alertsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

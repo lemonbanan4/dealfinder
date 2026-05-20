@@ -21,10 +21,7 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Settings',
-          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
+        title: Image.asset('assets/images/logo.png', height: 40, fit: BoxFit.contain),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),

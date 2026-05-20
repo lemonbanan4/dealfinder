@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../providers/repositories.dart';
+import '../../../providers/repositories.dart' show currencyServiceProvider;
 import '../../../widgets/deal_card.dart';
+import '../../currency/domain/exchange_rates.dart';
 import '../../currency/providers/currency_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../domain/deal.dart';
 import '../providers/deals_provider.dart';
 
 class FeedPage extends ConsumerWidget {
@@ -19,10 +21,7 @@ class FeedPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Deal Feed',
-          style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: -0.3),
-        ),
+        title: Image.asset('assets/images/logo.png', height: 40, fit: BoxFit.contain),
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -71,14 +70,14 @@ class FeedPage extends ConsumerWidget {
                               ),
                               itemCount: deals.length,
                               itemBuilder: (context, index) =>
-                                  _buildCard(ref, deals[index], settings.displayCurrency, ratesAsync),
+                                  _buildCard(context, ref, deals[index], settings.displayCurrency, ratesAsync),
                             )
                           : SliverList.separated(
                               itemCount: deals.length,
                               separatorBuilder: (_, _) =>
                                   const SizedBox(height: 10),
                               itemBuilder: (context, index) =>
-                                  _buildCard(ref, deals[index], settings.displayCurrency, ratesAsync),
+                                  _buildCard(context, ref, deals[index], settings.displayCurrency, ratesAsync),
                             ),
                     ),
                   ],
@@ -91,7 +90,7 @@ class FeedPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildCard(WidgetRef ref, dynamic deal, String currency, dynamic ratesAsync) {
+  Widget _buildCard(BuildContext context, WidgetRef ref, Deal deal, String currency, AsyncValue<ExchangeRates> ratesAsync) {
     final displayPrice = ratesAsync.maybeWhen(
       data: (rates) => ref
           .read(currencyServiceProvider)
@@ -102,7 +101,13 @@ class FeedPage extends ConsumerWidget {
       deal: deal,
       displayPrice: displayPrice,
       currency: currency,
-      onTap: () => ref.read(affiliateRouterProvider).launch(deal.url),
+      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Redirecting to merchant...'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      ),
     );
   }
 }

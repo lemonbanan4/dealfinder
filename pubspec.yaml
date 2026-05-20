@@ -54,5 +54,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
   shaders:
     - assets/shaders/liquid_glass.frag
