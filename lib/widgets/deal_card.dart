@@ -257,26 +257,34 @@ class _DetailsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                _MerchantRow(
+                    sourceName: sourceName, merchantHost: merchantHost),
+              ],
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
-          _MerchantRow(sourceName: sourceName, merchantHost: merchantHost),
-          const Spacer(),
           _PriceTrend(dealId: dealId),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           _PriceRow(vatPrice: vatPrice, currency: currency, vatLabel: vatLabel),
         ],
       ),
