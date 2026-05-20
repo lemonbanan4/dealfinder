@@ -45,9 +45,9 @@ class DealCard extends StatelessWidget {
     final vatLabel = _vatLabel(currency);
     final host = Uri.tryParse(deal.url)?.host ?? '';
 
-    return LiquidGlassBackground(
-      child: SizedBox(
-        height: 130,
+    return SizedBox(
+      height: 130,
+      child: LiquidGlassBackground(
         child: Material(
           color: Colors.transparent,
           child: InkWell(
