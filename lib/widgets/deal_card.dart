@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../features/deals/domain/deal.dart';
+import 'liquid_glass_background.dart';
 
 // Design tokens
-const _kBg = Color(0xFF12131A);
-const _kBorder = Color(0xFF252638);
 const _kPriceGreen = Color(0xFF00E676);
 const _kAccentBlue = Color(0xFF00B4FF);
 const _kDiscountRed = Color(0xFFFF4757);
@@ -46,39 +45,31 @@ class DealCard extends StatelessWidget {
     final vatLabel = _vatLabel(currency);
     final host = Uri.tryParse(deal.url)?.host ?? '';
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: _kBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _kBorder),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: SizedBox(
-          height: 130,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              splashColor: _kAccentBlue.withAlpha(20),
-              highlightColor: _kAccentBlue.withAlpha(10),
-              onTap: onTap ?? () => _copyLink(context),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _ImagePanel(imageUrl: deal.imageUrl, discountPct: discountPct),
-                  Expanded(
-                    child: _DetailsPanel(
-                      dealId: deal.id,
-                      title: deal.title,
-                      sourceName: deal.sourceName,
-                      merchantHost: host,
-                      vatPrice: vatPrice,
-                      currency: currency,
-                      vatLabel: vatLabel,
-                    ),
+    return LiquidGlassBackground(
+      child: SizedBox(
+        height: 130,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            splashColor: _kAccentBlue.withAlpha(20),
+            highlightColor: _kAccentBlue.withAlpha(10),
+            onTap: onTap ?? () => _copyLink(context),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ImagePanel(imageUrl: deal.imageUrl, discountPct: discountPct),
+                Expanded(
+                  child: _DetailsPanel(
+                    dealId: deal.id,
+                    title: deal.title,
+                    sourceName: deal.sourceName,
+                    merchantHost: host,
+                    vatPrice: vatPrice,
+                    currency: currency,
+                    vatLabel: vatLabel,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
