@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'widgets/adaptive_scaffold.dart';
 
-class DealFinderApp extends ConsumerWidget {
-  const DealFinderApp({super.key});
+class PrisPulsApp extends ConsumerWidget {
+  const PrisPulsApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      title: 'DealFinder Pro',
+      title: 'PrisPuls',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF006EFF),

@@ -6,6 +6,7 @@ import '../features/auth/presentation/login_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/deals/presentation/feed_page.dart';
 import '../features/settings/presentation/settings_page.dart';
+import 'app_logo.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -129,35 +130,11 @@ class _BrandHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: extended
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(width: 4),
-                _logoMark(),
-                const SizedBox(width: 10),
-                Text(
-                  'DealFinder',
-                  style: TextStyle(
-                    color: isDark
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
+          ? const Padding(
+              padding: EdgeInsets.only(left: 4),
+              child: AppLogo(iconSize: 20, fontSize: 15),
             )
-          : _logoMark(),
-    );
-  }
-
-  Widget _logoMark() {
-    return Image.asset(
-      'assets/images/logo.png',
-      width: 36,
-      height: 36,
-      fit: BoxFit.contain,
+          : const Icon(Icons.radar, color: Color(0xFF00B4FF), size: 24),
     );
   }
 }

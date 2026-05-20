@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants.dart';
+import '../../../widgets/app_logo.dart';
 import '../../deals/providers/scraper_configs_provider.dart';
 import '../providers/settings_provider.dart';
 
@@ -21,7 +22,7 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset('assets/images/logo.png', height: 40, fit: BoxFit.contain),
+        title: const AppLogo(),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),

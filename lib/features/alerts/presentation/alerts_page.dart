@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../widgets/app_logo.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../domain/price_alert.dart';
 import '../providers/alerts_provider.dart';
@@ -23,7 +24,7 @@ class AlertsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset('assets/images/logo.png', height: 40, fit: BoxFit.contain),
+        title: const AppLogo(),
       ),
       body: alertsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/repositories.dart' show currencyServiceProvider;
+import '../../../widgets/app_logo.dart';
 import '../../../widgets/deal_card.dart';
 import '../../currency/domain/exchange_rates.dart';
 import '../../currency/providers/currency_provider.dart';
@@ -21,7 +22,7 @@ class FeedPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset('assets/images/logo.png', height: 40, fit: BoxFit.contain),
+        title: const AppLogo(),
         actions: [
           IconButton(
             tooltip: 'Refresh',

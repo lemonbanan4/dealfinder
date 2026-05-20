@@ -131,6 +131,28 @@ class _ImagePanel extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          // Deep dark-blue base — matches the glass fill tone.
+          const ColoredBox(color: Color(0xFF060919)),
+          // Faint electric-blue refractive glow behind the product image.
+          Positioned(
+            top: 15,
+            left: 5,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _kAccentBlue.withAlpha(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: _kAccentBlue.withAlpha(55),
+                    blurRadius: 40,
+                    spreadRadius: 10,
+                  ),
+                ],
+              ),
+            ),
+          ),
           _buildImage(),
           if (discountPct != null)
             Positioned(
@@ -235,7 +257,7 @@ class _DetailsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

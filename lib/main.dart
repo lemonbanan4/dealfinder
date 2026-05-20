@@ -25,14 +25,14 @@ void main() async {
     // Populate Firestore with premium mock deals exactly once per project.
     // DatabaseSeeder is a no-op when the collection already has documents.
     final seeder = DatabaseSeeder(FirestoreDealRepository());
-    await seeder.seedOnce();
+    await seeder.reseed();
   } catch (e) {
     // Firebase unavailable until `flutterfire configure` is run.
     // Auth and Firestore features will be disabled at runtime.
     debugPrint('[Firebase] init skipped: $e');
   }
 
-  runApp(const ProviderScope(child: DealFinderApp()));
+  runApp(const ProviderScope(child: PrisPulsApp()));
 }
 
 Future<void> _openBoxes() async {
