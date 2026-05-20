@@ -7,7 +7,9 @@ import 'app.dart';
 import 'core/constants.dart';
 import 'features/deals/data/deal_repository.dart';
 import 'features/deals/data/default_scraper_configs.dart';
+import 'features/deals/data/firestore_deal_repository.dart';
 import 'firebase_options.dart';
+import 'tools/database_seeder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +22,10 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Populate Firestore with premium mock deals exactly once per project.
+    // DatabaseSeeder is a no-op when the collection already has documents.
+    final seeder = DatabaseSeeder(FirestoreDealRepository());
+    await seeder.seedOnce();
   } catch (e) {
     // Firebase unavailable until `flutterfire configure` is run.
     // Auth and Firestore features will be disabled at runtime.

@@ -12,7 +12,7 @@ class FeedPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final feedAsync = ref.watch(dealFeedNotifierProvider);
+    final feedAsync = ref.watch(firestoreDealFeedProvider);
     final settings = ref.watch(appSettingsNotifierProvider);
     final ratesAsync = ref.watch(exchangeRatesNotifierProvider);
     final isRefreshing = feedAsync.isLoading;
@@ -28,9 +28,7 @@ class FeedPage extends ConsumerWidget {
             tooltip: 'Refresh',
             onPressed: isRefreshing
                 ? null
-                : () => ref
-                    .read(dealFeedNotifierProvider.notifier)
-                    .refresh(),
+                : () => ref.invalidate(firestoreDealFeedProvider),
             icon: isRefreshing
                 ? const SizedBox.square(
                     dimension: 20,
@@ -45,19 +43,16 @@ class FeedPage extends ConsumerWidget {
         loading: () => const _ShimmerGrid(),
         error: (err, _) => _ErrorState(
           message: err.toString(),
-          onRetry: () =>
-              ref.read(dealFeedNotifierProvider.notifier).refresh(),
+          onRetry: () => ref.invalidate(firestoreDealFeedProvider),
         ),
         data: (deals) {
           if (deals.isEmpty) {
             return _EmptyState(
-              onRefresh: () =>
-                  ref.read(dealFeedNotifierProvider.notifier).refresh(),
+              onRefresh: () => ref.invalidate(firestoreDealFeedProvider),
             );
           }
           return RefreshIndicator(
-            onRefresh: () =>
-                ref.read(dealFeedNotifierProvider.notifier).refresh(),
+            onRefresh: () async => ref.invalidate(firestoreDealFeedProvider),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth >= 600;

@@ -48,3 +48,9 @@ class DealFeedNotifier extends _$DealFeedNotifier {
       ..sort((a, b) => a.priceEur.compareTo(b.priceEur));
   }
 }
+
+/// Live stream of deals from Firestore — auto-updates when the collection
+/// changes. FeedPage uses this as its primary data source.
+final firestoreDealFeedProvider = StreamProvider<List<Deal>>((ref) {
+  return ref.read(firestoreDealRepositoryProvider).watchAll();
+});

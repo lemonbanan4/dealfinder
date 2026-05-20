@@ -6,6 +6,7 @@ import '../features/alerts/data/firestore_alert_repository.dart';
 import '../features/currency/data/currency_repository.dart';
 import '../features/currency/data/ecb_client.dart';
 import '../features/deals/data/deal_repository.dart';
+import '../features/deals/data/firestore_deal_repository.dart';
 import '../features/settings/data/settings_repository.dart';
 import '../services/affiliate_router.dart';
 import '../services/currency_service.dart';
@@ -65,6 +66,11 @@ final scraperServiceProvider = Provider<ScraperService>(
 final firestoreAlertRepositoryProvider = Provider<FirestoreAlertRepository>(
   (_) => FirestoreAlertRepository(),
   name: 'firestoreAlertRepositoryProvider',
+);
+
+final firestoreDealRepositoryProvider = Provider<FirestoreDealRepository>(
+  (_) => FirestoreDealRepository(),
+  name: 'firestoreDealRepositoryProvider',
 );
 
 final affiliateRouterProvider = Provider<AffiliateRouter>(
