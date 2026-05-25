@@ -5,8 +5,10 @@ import '../features/alerts/presentation/alerts_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/deals/presentation/feed_page.dart';
+import '../features/legal/presentation/about_us_page.dart';
+import '../features/legal/presentation/privacy_policy_page.dart';
+import '../features/legal/presentation/terms_of_service_page.dart';
 import '../features/settings/presentation/settings_page.dart';
-import 'app_footer.dart';
 import 'app_logo.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -80,6 +82,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ? const TextStyle(color: Color(0xFF5A5A78), fontSize: 11)
                   : null,
               leading: _BrandHeader(extended: isExtended, isDark: isDark),
+              trailing: _SidebarLegalLinks(extended: isExtended),
               destinations: [
                 for (final (label, icon, selected) in _destinations)
                   NavigationRailDestination(
@@ -95,26 +98,14 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ? const Color(0xFF252638)
                   : Theme.of(context).dividerColor,
             ),
-            Expanded(
-              child: Column(
-                children: [
-                  Expanded(child: _pages[_selectedIndex]),
-                  const AppFooter(),
-                ],
-              ),
-            ),
+            Expanded(child: _pages[_selectedIndex]),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: Column(
-        children: [
-          Expanded(child: _pages[_selectedIndex]),
-          const AppFooter(),
-        ],
-      ),
+      body: _pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onDestinationSelected,
@@ -133,6 +124,8 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 
+// ─── Brand header (NavigationRail leading) ────────────────────────────────────
+
 class _BrandHeader extends StatelessWidget {
   const _BrandHeader({required this.extended, required this.isDark});
   final bool extended;
@@ -148,6 +141,93 @@ class _BrandHeader extends StatelessWidget {
               child: AppLogo(iconSize: 20, fontSize: 15),
             )
           : const Icon(Icons.radar, color: Color(0xFF00B4FF), size: 24),
+    );
+  }
+}
+
+// ─── Sidebar legal links (NavigationRail trailing) ───────────────────────────
+//
+// Rendered only when the rail is extended (≥ 1200 px). NavigationRail
+// automatically wraps `trailing` in an Expanded widget, which pushes this
+// section to the very bottom of the sidebar.
+
+class _SidebarLegalLinks extends StatelessWidget {
+  const _SidebarLegalLinks({required this.extended});
+  final bool extended;
+
+  static const _kMuted = Color(0xFF5A5A78);
+  static const _kDimmer = Color(0xFF3A3A52);
+  static const _kBorder = Color(0xFF252638);
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show in full extended sidebar — nothing to display in the compact rail.
+    if (!extended) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(color: _kBorder, height: 20, thickness: 1),
+          _LegalLink(
+            label: 'About Us',
+            onTap: () => _push(context, const AboutUsPage()),
+          ),
+          const SizedBox(height: 7),
+          _LegalLink(
+            label: 'Privacy Policy',
+            onTap: () => _push(context, const PrivacyPolicyPage()),
+          ),
+          const SizedBox(height: 7),
+          _LegalLink(
+            label: 'Terms of Service',
+            onTap: () => _push(context, const TermsOfServicePage()),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '© ${DateTime.now().year} PrisPuls',
+            style: const TextStyle(
+              color: _kDimmer,
+              fontSize: 10,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _push(BuildContext context, Widget page) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => page),
+    );
+  }
+}
+
+class _LegalLink extends StatelessWidget {
+  const _LegalLink({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: _SidebarLegalLinks._kMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w400,
+            height: 1.4,
+          ),
+        ),
+      ),
     );
   }
 }
