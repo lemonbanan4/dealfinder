@@ -6,6 +6,7 @@ import '../features/auth/presentation/login_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/deals/presentation/feed_page.dart';
 import '../features/settings/presentation/settings_page.dart';
+import 'app_footer.dart';
 import 'app_logo.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -94,14 +95,26 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ? const Color(0xFF252638)
                   : Theme.of(context).dividerColor,
             ),
-            Expanded(child: _pages[_selectedIndex]),
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(child: _pages[_selectedIndex]),
+                  const AppFooter(),
+                ],
+              ),
+            ),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: Column(
+        children: [
+          Expanded(child: _pages[_selectedIndex]),
+          const AppFooter(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onDestinationSelected,
