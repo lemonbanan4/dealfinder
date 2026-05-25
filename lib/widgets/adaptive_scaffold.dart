@@ -11,6 +11,13 @@ import '../features/legal/presentation/terms_of_service_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import 'app_logo.dart';
 
+// Top-level nav destinations — shared by the custom sidebar and the mobile bar.
+const _navDestinations = <(String, IconData, IconData)>[
+  ('Feed', Icons.storefront_outlined, Icons.storefront),
+  ('Alerts', Icons.notifications_outlined, Icons.notifications),
+  ('Settings', Icons.settings_outlined, Icons.settings),
+];
+
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
@@ -25,12 +32,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     FeedPage(),
     AlertsPage(),
     SettingsPage(),
-  ];
-
-  static const _destinations = <(String, IconData, IconData)>[
-    ('Feed', Icons.storefront_outlined, Icons.storefront),
-    ('Alerts', Icons.notifications_outlined, Icons.notifications),
-    ('Settings', Icons.settings_outlined, Icons.settings),
   ];
 
   Future<void> _onDestinationSelected(int index) async {
@@ -56,41 +57,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       return Scaffold(
         body: Row(
           children: [
-            NavigationRail(
-              extended: isExtended,
+            _CustomSidebar(
               selectedIndex: _selectedIndex,
               onDestinationSelected: _onDestinationSelected,
-              labelType: isExtended
-                  ? NavigationRailLabelType.none
-                  : NavigationRailLabelType.all,
-              backgroundColor: isDark ? const Color(0xFF0C0D15) : null,
-              indicatorColor: isDark ? const Color(0xFF1E2035) : null,
-              selectedIconTheme: isDark
-                  ? const IconThemeData(color: Color(0xFF00B4FF))
-                  : null,
-              unselectedIconTheme: isDark
-                  ? const IconThemeData(color: Color(0xFF5A5A78))
-                  : null,
-              selectedLabelTextStyle: isDark
-                  ? const TextStyle(
-                      color: Color(0xFF00B4FF),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    )
-                  : null,
-              unselectedLabelTextStyle: isDark
-                  ? const TextStyle(color: Color(0xFF5A5A78), fontSize: 11)
-                  : null,
-              leading: _BrandHeader(extended: isExtended, isDark: isDark),
-              trailing: _SidebarLegalLinks(extended: isExtended),
-              destinations: [
-                for (final (label, icon, selected) in _destinations)
-                  NavigationRailDestination(
-                    icon: Icon(icon),
-                    selectedIcon: Icon(selected),
-                    label: Text(label),
-                  ),
-              ],
+              extended: isExtended,
+              isDark: isDark,
             ),
             Container(
               width: 1,
@@ -112,7 +83,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         backgroundColor: isDark ? const Color(0xFF0C0D15) : null,
         indicatorColor: isDark ? const Color(0xFF1E2035) : null,
         destinations: [
-          for (final (label, icon, selected) in _destinations)
+          for (final (label, icon, selected) in _navDestinations)
             NavigationDestination(
               icon: Icon(icon),
               selectedIcon: Icon(selected),
@@ -124,76 +95,101 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 }
 
-// ─── Brand header (NavigationRail leading) ────────────────────────────────────
+// ─── Custom sidebar ───────────────────────────────────────────────────────────
+//
+// Replaces NavigationRail so we have full layout control. Legal links sit
+// directly below the Settings item in the same Column — no Spacer, no
+// Expanded, no trailing tricks. They are always visible regardless of height.
 
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({required this.extended, required this.isDark});
+class _CustomSidebar extends StatelessWidget {
+  const _CustomSidebar({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.extended,
+    required this.isDark,
+  });
+
+  final int selectedIndex;
+  final void Function(int) onDestinationSelected;
   final bool extended;
   final bool isDark;
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: extended
-          ? const Padding(
-              padding: EdgeInsets.only(left: 4),
-              child: AppLogo(iconSize: 20, fontSize: 15),
-            )
-          : const Icon(Icons.radar, color: Color(0xFF00B4FF), size: 24),
-    );
-  }
-}
-
-// ─── Sidebar legal links (NavigationRail trailing) ───────────────────────────
-//
-// Rendered only when the rail is extended (≥ 1200 px). NavigationRail
-// automatically wraps `trailing` in an Expanded widget, which pushes this
-// section to the very bottom of the sidebar.
-
-class _SidebarLegalLinks extends StatelessWidget {
-  const _SidebarLegalLinks({required this.extended});
-  final bool extended;
-
-  static const _kMuted = Color(0xFF5A5A78);
-  static const _kDimmer = Color(0xFF3A3A52);
+  static const _kBg = Color(0xFF0C0D15);
   static const _kBorder = Color(0xFF252638);
+  static const _kDimmer = Color(0xFF3A3A52);
 
   @override
   Widget build(BuildContext context) {
-    // Only show in full extended sidebar — nothing to display in the compact rail.
-    if (!extended) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+    return Container(
+      width: extended ? 256 : 80,
+      color: isDark ? _kBg : Theme.of(context).colorScheme.surface,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(color: _kBorder, height: 20, thickness: 1),
-          _LegalLink(
-            label: 'About Us',
-            onTap: () => _push(context, const AboutUsPage()),
+          // ── Brand header ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: extended
+                ? const Padding(
+                    padding: EdgeInsets.only(left: 20),
+                    child: AppLogo(iconSize: 20, fontSize: 15),
+                  )
+                : const Center(
+                    child: Icon(Icons.radar, color: Color(0xFF00B4FF), size: 24),
+                  ),
           ),
-          const SizedBox(height: 7),
-          _LegalLink(
-            label: 'Privacy Policy',
-            onTap: () => _push(context, const PrivacyPolicyPage()),
-          ),
-          const SizedBox(height: 7),
-          _LegalLink(
-            label: 'Terms of Service',
-            onTap: () => _push(context, const TermsOfServicePage()),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '© ${DateTime.now().year} PrisPuls',
-            style: const TextStyle(
-              color: _kDimmer,
-              fontSize: 10,
-              letterSpacing: 0.1,
+          const SizedBox(height: 4),
+          // ── Nav items ────────────────────────────────────────────────────────
+          for (int i = 0; i < _navDestinations.length; i++)
+            _SidebarNavItem(
+              label: _navDestinations[i].$1,
+              icon: _navDestinations[i].$2,
+              selectedIcon: _navDestinations[i].$3,
+              selected: selectedIndex == i,
+              onTap: () => onDestinationSelected(i),
+              extended: extended,
+              isDark: isDark,
             ),
-          ),
+          // ── Legal links — right below Settings, no spacer ────────────────────
+          if (extended) ...[
+            const SizedBox(height: 12),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Divider(color: _kBorder, height: 1, thickness: 1),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _LegalLink(
+                    label: 'About Us',
+                    onTap: () => _push(context, const AboutUsPage()),
+                  ),
+                  const SizedBox(height: 6),
+                  _LegalLink(
+                    label: 'Privacy Policy',
+                    onTap: () => _push(context, const PrivacyPolicyPage()),
+                  ),
+                  const SizedBox(height: 6),
+                  _LegalLink(
+                    label: 'Terms of Service',
+                    onTap: () => _push(context, const TermsOfServicePage()),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '© ${DateTime.now().year} PrisPuls',
+                    style: const TextStyle(
+                      color: _kDimmer,
+                      fontSize: 10,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -205,6 +201,125 @@ class _SidebarLegalLinks extends StatelessWidget {
     );
   }
 }
+
+// ─── Sidebar nav item ─────────────────────────────────────────────────────────
+
+class _SidebarNavItem extends StatelessWidget {
+  const _SidebarNavItem({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.selected,
+    required this.onTap,
+    required this.extended,
+    required this.isDark,
+  });
+
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool extended;
+  final bool isDark;
+
+  static const _kSelected = Color(0xFF00B4FF);
+  static const _kUnselected = Color(0xFF5A5A78);
+  static const _kIndicator = Color(0xFF1E2035);
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = isDark ? (selected ? _kSelected : _kUnselected) : null;
+    final textColor = iconColor;
+
+    final iconWidget = Icon(
+      selected ? selectedIcon : icon,
+      color: iconColor,
+      size: 22,
+    );
+
+    if (extended) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: selected && isDark
+                  ? BoxDecoration(
+                      color: _kIndicator,
+                      borderRadius: BorderRadius.circular(8),
+                    )
+                  : null,
+              child: Row(
+                children: [
+                  iconWidget,
+                  const SizedBox(width: 12),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Compact: icon pill + label stacked
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: 80,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 5,
+                  ),
+                  decoration: selected && isDark
+                      ? BoxDecoration(
+                          color: _kIndicator,
+                          borderRadius: BorderRadius.circular(16),
+                        )
+                      : null,
+                  child: iconWidget,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 11,
+                    fontWeight:
+                        selected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Legal link text button ───────────────────────────────────────────────────
 
 class _LegalLink extends StatelessWidget {
   const _LegalLink({required this.label, required this.onTap});
@@ -221,7 +336,7 @@ class _LegalLink extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
-            color: _SidebarLegalLinks._kMuted,
+            color: Color(0xFF5A5A78),
             fontSize: 11,
             fontWeight: FontWeight.w400,
             height: 1.4,
