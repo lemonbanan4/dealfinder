@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../providers/repositories.dart';
+import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';
 
 part 'deals_provider.g.dart';
@@ -45,7 +46,8 @@ class DealFeedNotifier extends _$DealFeedNotifier {
   List<Deal> _deduplicate(List<Deal> deals) {
     final seen = <String>{};
     return deals.where((d) => seen.add(d.url)).toList()
-      ..sort((a, b) => a.priceEur.compareTo(b.priceEur));
+      ..sort((a, b) => CurrencyConverter.toEur(a.currentPrice, a.currency)
+            .compareTo(CurrencyConverter.toEur(b.currentPrice, b.currency)));
   }
 }
 
