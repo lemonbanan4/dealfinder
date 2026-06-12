@@ -40,11 +40,24 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Public deal feed — anyone can browse, only authenticated users write
+    // (writes come from the Workmanager background scraper on signed-in devices).
+    match /deals/{dealId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
     match /users/{userId} {
       // A user can only read, write, and modify their own document
       allow read: if isOwner(userId);
       allow create, update: if isOwner(userId) && isEmailVerified() && isValidUserDoc();
       allow delete: if isOwner(userId);
+
+      // Price-alert configs — created/deleted by the owner, never patched
+      match /alert_configs/{configId} {
+        allow read, create, delete: if isOwner(userId) && isEmailVerified();
+        allow update: if false;
+      }
     }
   }
 }

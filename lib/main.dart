@@ -31,7 +31,9 @@ void main() async {
       await FirebaseAppCheck.instance.activate(
         providerAndroid: const AndroidPlayIntegrityProvider(),
         providerApple: const AppleDeviceCheckProvider(),
-        providerWeb: ReCaptchaV3Provider('YOUR_RECAPTCHA_V3_SITE_KEY'),
+        providerWeb: ReCaptchaV3Provider(
+          '6LcFXRotAAAAAKe8n2KrlfimK8pjRVLlT2xbI9VU',
+        ),
       );
     }
 

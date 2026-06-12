@@ -461,6 +461,8 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                       child: CustomScrollView(
                         key: ValueKey(isGrid),
                         slivers: [
+                          if (searchQuery.isEmpty && !showFavoritesOnly)
+                            const _TopDealsSliver(),
                           SliverPadding(
                             padding: EdgeInsets.all(isGrid ? 20 : 14),
                             sliver: isGrid
@@ -821,6 +823,208 @@ class _DealCardState extends ConsumerState<_DealCard> {
         );
       },
       child: cardContent,
+    );
+  }
+}
+
+// ─── Top deals section ────────────────────────────────────────────────────────
+
+class _TopDealsSliver extends ConsumerWidget {
+  const _TopDealsSliver();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final topDeals = ref.watch(topDealsProvider).value ?? [];
+    if (topDeals.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Color(0xFFFF6B35),
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'Insane Deals',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Color.fromRGBO(0, 230, 118, 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    '≥ 25% off',
+                    style: TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 192,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: topDeals.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (_, i) => _TopDealCard(deal: topDeals[i]),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Color(0xFF252638)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopDealCard extends StatelessWidget {
+  const _TopDealCard({required this.deal});
+  final Deal deal;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = deal.discountPercent?.round() ?? 0;
+
+    return GestureDetector(
+      onTap: () async {
+        final uri = Uri.tryParse(deal.url);
+        if (uri != null && await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Container(
+        width: 148,
+        decoration: BoxDecoration(
+          color: const Color(0xFF12131A),
+          border: Border.all(color: const Color(0xFF252638)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Image + discount badge ──────────────────────────────────
+            Stack(
+              children: [
+                SizedBox(
+                  height: 100,
+                  width: double.infinity,
+                  child: deal.imageUrl != null && deal.imageUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: deal.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, err) => const ColoredBox(
+                            color: Color(0xFF060919),
+                            child: Center(
+                              child: Icon(
+                                Icons.shopping_bag_outlined,
+                                color: Color(0xFF3A3A58),
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                        )
+                      : const ColoredBox(
+                          color: Color(0xFF060919),
+                          child: Center(
+                            child: Icon(
+                              Icons.shopping_bag_outlined,
+                              color: Color(0xFF3A3A58),
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                ),
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF6B35),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '-$pct%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // ── Details ─────────────────────────────────────────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      deal.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_formatAmount(deal.currentPrice)} ${deal.currency}',
+                      style: const TextStyle(
+                        color: Color(0xFF00E676),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    if (deal.originalPrice != null) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        '${_formatAmount(deal.originalPrice!)} ${deal.currency}',
+                        style: const TextStyle(
+                          color: Color(0xFF5A5A78),
+                          fontSize: 10,
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: Color(0xFF5A5A78),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
