@@ -40,7 +40,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               '• Right to object – You may object to processing based on '
               'legitimate interests or for direct marketing.\n\n'
               'To exercise any of these rights, contact us at '
-              'privacy@prispuls.no. We will respond within 30 days.',
+              'privacy@prispuls.com. We will respond within 30 days.',
         ),
         LegalSection(
           heading: 'Data We Collect',
@@ -132,7 +132,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               'PrisPuls is not directed at children under the age of 16. We '
               'do not knowingly collect personal data from children. If you '
               'believe a child has provided us with personal data, please '
-              'contact privacy@prispuls.no and we will delete it promptly.',
+              'contact privacy@prispuls.com and we will delete it promptly.',
         ),
         LegalSection(
           heading: 'Changes to This Policy',
@@ -149,7 +149,8 @@ class PrivacyPolicyPage extends StatelessWidget {
               'The data controller for PrisPuls is:\n\n'
               'PrisPuls AS\n'
               'Norway\n'
-              'Email: privacy@prispuls.no\n\n'
+              'Email: privacy@prispuls.com\n'
+              'Website: www.prispuls.com\n'
               'You also have the right to lodge a complaint with your local '
               'supervisory authority. In Norway, this is Datatilsynet '
               '(www.datatilsynet.no).',

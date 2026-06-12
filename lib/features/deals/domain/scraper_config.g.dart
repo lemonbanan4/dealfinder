@@ -19,6 +19,10 @@ _ScraperConfig _$ScraperConfigFromJson(Map<String, dynamic> json) =>
       nextPageSelector: json['nextPageSelector'] as String?,
       currencyCode: json['currencyCode'] as String? ?? 'EUR',
       isEnabled: json['isEnabled'] as bool? ?? true,
+      lastError: json['lastError'] as String?,
+      lastErrorAt: json['lastErrorAt'] == null
+          ? null
+          : DateTime.parse(json['lastErrorAt'] as String),
     );
 
 Map<String, dynamic> _$ScraperConfigToJson(_ScraperConfig instance) =>
@@ -34,4 +38,6 @@ Map<String, dynamic> _$ScraperConfigToJson(_ScraperConfig instance) =>
       'nextPageSelector': instance.nextPageSelector,
       'currencyCode': instance.currencyCode,
       'isEnabled': instance.isEnabled,
+      'lastError': instance.lastError,
+      'lastErrorAt': instance.lastErrorAt?.toIso8601String(),
     };

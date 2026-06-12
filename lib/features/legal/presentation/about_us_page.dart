@@ -58,8 +58,8 @@ class AboutUsPage extends StatelessWidget {
           body:
               'Have a question, found an incorrect price, or want to partner '
               'with us?\n\n'
-              'Email: support@prispuls.no\n'
-              'Website: www.prispuls.no\n\n'
+              'Email: support@prispuls.com\n'
+              'Website: www.prispuls.com\n\n'
               'We typically respond within two business days.',
         ),
       ],

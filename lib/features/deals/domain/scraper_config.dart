@@ -17,6 +17,8 @@ abstract class ScraperConfig with _$ScraperConfig {
     String? nextPageSelector,
     @Default('EUR') String currencyCode,
     @Default(true) bool isEnabled,
+    String? lastError,
+    DateTime? lastErrorAt,
   }) = _ScraperConfig;
 
   factory ScraperConfig.fromJson(Map<String, dynamic> json) =>

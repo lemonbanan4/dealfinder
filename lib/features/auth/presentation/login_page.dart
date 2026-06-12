@@ -40,7 +40,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     try {
-      final auth = ref.read(authNotifierProvider.notifier);
+      final auth = ref.read(authProvider.notifier);
       if (_isLogin) {
         await auth.signInWithEmail(_emailCtrl.text.trim(), _passCtrl.text);
       } else {

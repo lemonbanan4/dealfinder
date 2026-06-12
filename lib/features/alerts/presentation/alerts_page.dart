@@ -2,237 +2,237 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../widgets/app_logo.dart';
-import '../../settings/providers/settings_provider.dart';
-import '../domain/price_alert.dart';
 import '../providers/alerts_provider.dart';
-
-const _kCardBg = Color(0xFF12131A);
-const _kBorder = Color(0xFF252638);
-const _kAccent = Color(0xFF00B4FF);
-const _kGreen = Color(0xFF00E676);
-const _kRed = Color(0xFFFF4757);
-const _kMuted = Color(0xFF5A5A78);
+import '../providers/alert_configs_provider.dart';
+import '../domain/alert_config.dart';
+import 'edit_alert_sheet.dart';
 
 class AlertsPage extends ConsumerWidget {
   const AlertsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final alertsAsync = ref.watch(alertsNotifierProvider);
-    final settings = ref.watch(appSettingsNotifierProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final alerts = ref.watch(alertsProvider);
+    final hasUnread = alerts.any((a) => !a.isRead);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const AppLogo(),
-      ),
-      body: alertsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.cloud_off_outlined, size: 48),
-                const SizedBox(height: 16),
-                Text(e.toString(), textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => ref.invalidate(alertsNotifierProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const AppLogo(),
+          actions: [
+            if (alerts.isNotEmpty)
+              IconButton(
+                tooltip: 'Mark all as read',
+                icon: Icon(
+                  Icons.mark_email_read_outlined,
+                  color: hasUnread
+                      ? const Color(0xFF00B4FF)
+                      : const Color(0xFF5A5A78),
                 ),
-              ],
-            ),
+                onPressed: hasUnread
+                    ? () => ref.read(alertsProvider.notifier).markAllAsRead()
+                    : null,
+              ),
+            const SizedBox(width: 8),
+          ],
+          bottom: const TabBar(
+            indicatorColor: Color(0xFF00B4FF),
+            labelColor: Color(0xFF00B4FF),
+            unselectedLabelColor: Color(0xFF5A5A78),
+            tabs: [
+              Tab(text: 'Triggered'),
+              Tab(text: 'Active Targets'),
+            ],
           ),
         ),
-        data: (alerts) => alerts.isEmpty
-            ? const _EmptyState()
-            : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                itemCount: alerts.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final alert = alerts[index];
-                  return _AlertCard(
-                    key: ValueKey(alert.id),
-                    alert: alert,
-                    isDark: isDark,
-                    onDismiss: () => ref
-                        .read(alertsNotifierProvider.notifier)
-                        .remove(alert.id),
-                  );
-                },
-              ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        tooltip: 'Add price alert',
-        icon: const Icon(Icons.add_alert_outlined),
-        label: const Text('New Alert'),
-        onPressed: () {
-          final notifier = ref.read(alertsNotifierProvider.notifier);
-          final currency = settings.displayCurrency;
-          showDialog<void>(
-            context: context,
-            builder: (ctx) => _AddAlertDialog(
-              displayCurrency: currency,
-              onAdd: ({
-                required String title,
-                required String searchQuery,
-                required double price,
-              }) {
-                notifier.add(
-                  title: title,
-                  targetPrice: price,
-                  displayCurrency: currency,
-                  searchQuery: searchQuery,
-                );
-              },
-            ),
-          );
-        },
+        body: const TabBarView(
+          children: [_TriggeredAlertsTab(), _ActiveTargetsTab()],
+        ),
       ),
     );
   }
 }
 
-// ── Alert card ────────────────────────────────────────────────────────────────
-
-class _AlertCard extends StatelessWidget {
-  const _AlertCard({
-    super.key,
-    required this.alert,
-    required this.isDark,
-    required this.onDismiss,
-  });
-
-  final PriceAlert alert;
-  final bool isDark;
-  final VoidCallback onDismiss;
+class _TriggeredAlertsTab extends ConsumerWidget {
+  const _TriggeredAlertsTab();
 
   @override
-  Widget build(BuildContext context) {
-    final accentColor = alert.isTriggered ? _kGreen : _kAccent;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final alerts = ref.watch(alertsProvider);
 
+    if (alerts.isEmpty) return const _EmptyAlertsState();
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: alerts.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final alert = alerts[index];
+        return Dismissible(
+          key: ValueKey(alert.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF4757),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.delete_outline,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          onDismissed: (direction) {
+            ref.read(alertsProvider.notifier).deleteAlert(alert.id);
+          },
+          child: _AlertCard(
+            title: alert.title,
+            message: alert.message,
+            time: _formatTime(alert.time),
+            isRead: alert.isRead,
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatTime(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inDays > 0)
+      return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+    if (diff.inHours > 0)
+      return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
+    if (diff.inMinutes > 0)
+      return '${diff.inMinutes} minute${diff.inMinutes > 1 ? 's' : ''} ago';
+    return 'Just now';
+  }
+}
+
+class _ActiveTargetsTab extends ConsumerWidget {
+  const _ActiveTargetsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final configsAsync = ref.watch(alertConfigsProvider);
+
+    return configsAsync.when(
+      data: (configs) {
+        if (configs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.track_changes_outlined,
+                  size: 64,
+                  color: Color(0xFF5A5A78),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No active targets',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Add price targets from products to see them here.',
+                  style: TextStyle(color: Color(0xFF8A8AA0)),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: configs.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final config = configs[index];
+            return _ActiveTargetCard(config: config);
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error loading alerts')),
+    );
+  }
+}
+
+class _ActiveTargetCard extends ConsumerWidget {
+  const _ActiveTargetCard({required this.config});
+  final AlertConfig config;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return Dismissible(
-      key: ValueKey('dismiss_${alert.id}'),
+      key: ValueKey(config.id),
       direction: DismissDirection.endToStart,
       background: Container(
-        decoration: BoxDecoration(
-          color: _kRed,
-          borderRadius: BorderRadius.circular(12),
-        ),
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
-      ),
-      onDismissed: (_) => onDismiss(),
-      child: DecoratedBox(
+        padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
-          color: isDark
-              ? _kCardBg
-              : Theme.of(context).colorScheme.surface,
+          color: const Color(0xFFFF4757),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark
-                ? _kBorder
-                : Theme.of(context).colorScheme.outlineVariant,
-          ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(11),
-          child: IntrinsicHeight(
+        child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+      ),
+      onDismissed: (_) {
+        ref.read(alertRepositoryProvider).deleteAlertConfig(config.id);
+      },
+      child: Material(
+        color: const Color(0xFF12131A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFF252638)),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => EditAlertSheet.show(context, config),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(width: 4, color: accentColor),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF252638),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.track_changes,
+                    color: Color(0xFF00B4FF),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: accentColor.withAlpha(20),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            alert.isTriggered
-                                ? Icons.notifications_active_outlined
-                                : Icons.notifications_none_outlined,
-                            color: accentColor,
-                            size: 20,
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        config.productTitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                alert.title,
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : null,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.3,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 3),
-                              Row(
-                                children: [
-                                  Text(
-                                    'Target ≤ ',
-                                    style: TextStyle(
-                                      color: isDark ? _kMuted : null,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${_fmt(alert.targetPrice)} ${alert.displayCurrency}',
-                                    style: TextStyle(
-                                      color: accentColor,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Target: ${config.targetPrice.round()} SEK',
+                        style: const TextStyle(
+                          color: Color(0xFF00E676),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
-                        if (alert.isTriggered)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _kGreen.withAlpha(20),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: _kGreen.withAlpha(80),
-                              ),
-                            ),
-                            child: const Text(
-                              'Triggered',
-                              style: TextStyle(
-                                color: _kGreen,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -242,22 +242,98 @@ class _AlertCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  static String _fmt(double price) {
-    final s = price.round().toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-      buf.write(s[i]);
-    }
-    return buf.toString();
+class _AlertCard extends StatelessWidget {
+  const _AlertCard({
+    required this.title,
+    required this.message,
+    required this.time,
+    required this.isRead,
+  });
+
+  final String title;
+  final String message;
+  final String time;
+  final bool isRead;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF12131A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isRead
+              ? const Color(0xFF252638)
+              : const Color(0xFF00B4FF).withAlpha(100),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isRead
+                    ? const Color(0xFF252638)
+                    : const Color(0xFF00B4FF).withAlpha(30),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.notifications_active_outlined,
+                color: isRead
+                    ? const Color(0xFF8A8AA0)
+                    : const Color(0xFF00B4FF),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isRead ? const Color(0xFF8A8AA0) : Colors.white,
+                      fontSize: 14,
+                      fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: isRead
+                          ? const Color(0xFF5A5A78)
+                          : const Color(0xFF8A8AA0),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    time,
+                    style: const TextStyle(
+                      color: Color(0xFF5A5A78),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+class _EmptyAlertsState extends StatelessWidget {
+  const _EmptyAlertsState();
 
   @override
   Widget build(BuildContext context) {
@@ -265,117 +341,25 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.notifications_outlined, size: 64),
+          const Icon(
+            Icons.notifications_off_outlined,
+            size: 64,
+            color: Color(0xFF5A5A78),
+          ),
           const SizedBox(height: 16),
           Text(
-            'No price alerts yet',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            'No alerts yet',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          const Text('Tap New Alert to start tracking a deal.'),
+          const Text(
+            'You will be notified here when prices drop.',
+            style: TextStyle(color: Color(0xFF8A8AA0)),
+          ),
         ],
       ),
-    );
-  }
-}
-
-// ── Add alert dialog ──────────────────────────────────────────────────────────
-
-class _AddAlertDialog extends StatefulWidget {
-  const _AddAlertDialog({
-    required this.displayCurrency,
-    required this.onAdd,
-  });
-
-  final String displayCurrency;
-  final void Function({
-    required String title,
-    required String searchQuery,
-    required double price,
-  }) onAdd;
-
-  @override
-  State<_AddAlertDialog> createState() => _AddAlertDialogState();
-}
-
-class _AddAlertDialogState extends State<_AddAlertDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _keywordCtrl = TextEditingController();
-  final _priceCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _keywordCtrl.dispose();
-    _priceCtrl.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    final keyword = _keywordCtrl.text.trim();
-    widget.onAdd(
-      title: keyword,
-      searchQuery: keyword,
-      price: double.parse(_priceCtrl.text),
-    );
-    Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('New Price Alert'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _keywordCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Keyword',
-                hintText: 'e.g. Tempur, RTX 4080, iPhone',
-                prefixIcon: Icon(Icons.search),
-              ),
-              textInputAction: TextInputAction.next,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _priceCtrl,
-              decoration: InputDecoration(
-                labelText: 'Target price',
-                hintText: '0',
-                suffixText: widget.displayCurrency,
-                helperText:
-                    'Alert fires when a match drops to or below this price',
-              ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Required';
-                final n = double.tryParse(v);
-                if (n == null) return 'Enter a valid number';
-                if (n <= 0) return 'Must be greater than 0';
-                return null;
-              },
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Add Alert'),
-        ),
-      ],
     );
   }
 }

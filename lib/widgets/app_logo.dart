@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-const _kElectricBlue = Color(0xFF00B4FF);
-
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.iconSize = 22, this.fontSize = 18});
 
@@ -14,12 +12,28 @@ class AppLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.radar, color: _kElectricBlue, size: iconSize),
+        Image.asset(
+          'assets/images/app_icon.png',
+          width: iconSize,
+          height: iconSize,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded) return child;
+
+            return AnimatedOpacity(
+              opacity: frame == null ? 0 : 1,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOut,
+              child: child,
+            );
+          },
+        ),
         const SizedBox(width: 6),
         Text(
           'PrisPuls',
           style: TextStyle(
-            color: isDark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+            color: isDark
+                ? Colors.white
+                : Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w800,
             fontSize: fontSize,
             letterSpacing: -0.5,

@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+beautifulsoup4
+# We'll upgrade to httpx instead of requests for async support!
+httpx
+firebase-admin

@@ -1,4 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -7,9 +9,9 @@ import 'app.dart';
 import 'core/constants.dart';
 import 'features/deals/data/deal_repository.dart';
 import 'features/deals/data/default_scraper_configs.dart';
-import 'features/deals/data/firestore_deal_repository.dart';
 import 'firebase_options.dart';
-import 'tools/database_seeder.dart';
+import 'services/background_refresh_service.dart';
+import 'services/notification/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,10 +24,22 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    // Populate Firestore with premium mock deals exactly once per project.
-    // DatabaseSeeder is a no-op when the collection already has documents.
-    final seeder = DatabaseSeeder(FirestoreDealRepository());
-    await seeder.reseed();
+
+    // On web debug builds skip App Check activation — register a debug
+    // token in the Firebase console for local development instead.
+    if (!kIsWeb || !kDebugMode) {
+      await FirebaseAppCheck.instance.activate(
+        providerAndroid: const AndroidPlayIntegrityProvider(),
+        providerApple: const AppleDeviceCheckProvider(),
+        providerWeb: ReCaptchaV3Provider('YOUR_RECAPTCHA_V3_SITE_KEY'),
+      );
+    }
+
+    // Initialize Firebase Cloud Messaging
+    await FCMService.initialize();
+
+    // Initialize Workmanager for background tasks
+    initializeBackgroundTasks();
   } catch (e) {
     // Firebase unavailable until `flutterfire configure` is run.
     // Auth and Firestore features will be disabled at runtime.

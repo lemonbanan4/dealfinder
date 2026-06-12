@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../features/deals/domain/deal.dart';
 import 'liquid_glass_background.dart';
+// Import the model we made!
 
 // Design tokens
 const _kPriceGreen = Color(0xFF00E676);
@@ -62,7 +63,7 @@ class DealCard extends StatelessWidget {
                   child: _DetailsPanel(
                     dealId: deal.id,
                     title: deal.title,
-                    sourceName: deal.sourceName,
+                    sourceName: deal.source,
                     merchantHost: host,
                     vatPrice: vatPrice,
                     currency: currency,
@@ -80,12 +81,10 @@ class DealCard extends StatelessWidget {
   int? _computeDiscount() {
     final orig = deal.originalPrice;
     if (orig == null || orig <= 0) return null;
-    final effectiveCurrency = deal.originalCurrency ?? 'EUR';
+    final effectiveCurrency = deal.currency;
     final double current;
     if (effectiveCurrency == currency && displayPrice > 0) {
       current = displayPrice;
-    } else if (effectiveCurrency == 'EUR') {
-      current = deal.priceEur;
     } else {
       return null;
     }
@@ -111,10 +110,10 @@ class DealCard extends StatelessWidget {
   }
 
   static String _vatLabel(String currency) => switch (currency) {
-        'NOK' => 'inkl. MVA',
-        'SEK' => 'inkl. moms',
-        _ => '',
-      };
+    'NOK' => 'inkl. MVA',
+    'SEK' => 'inkl. moms',
+    _ => '',
+  };
 }
 
 // ─── Image panel (left 110 px) ────────────────────────────────────────────────
@@ -279,7 +278,9 @@ class _DetailsPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 _MerchantRow(
-                    sourceName: sourceName, merchantHost: merchantHost),
+                  sourceName: sourceName,
+                  merchantHost: merchantHost,
+                ),
               ],
             ),
           ),
@@ -293,10 +294,7 @@ class _DetailsPanel extends StatelessWidget {
 }
 
 class _MerchantRow extends StatelessWidget {
-  const _MerchantRow({
-    required this.sourceName,
-    required this.merchantHost,
-  });
+  const _MerchantRow({required this.sourceName, required this.merchantHost});
   final String sourceName;
   final String merchantHost;
 
@@ -384,11 +382,7 @@ class _PriceRow extends StatelessWidget {
         if (vatLabel.isNotEmpty)
           Text(
             vatLabel,
-            style: const TextStyle(
-              color: _kMuted,
-              fontSize: 10,
-              height: 1.4,
-            ),
+            style: const TextStyle(color: _kMuted, fontSize: 10, height: 1.4),
           ),
       ],
     );
@@ -442,8 +436,7 @@ class _SparklinePainter extends CustomPainter {
             i / (data.length - 1) * size.width,
             size.height -
                 verticalPadding -
-                ((data[i] - min) / range) *
-                    (size.height - verticalPadding * 2),
+                ((data[i] - min) / range) * (size.height - verticalPadding * 2),
           ),
       ];
     }

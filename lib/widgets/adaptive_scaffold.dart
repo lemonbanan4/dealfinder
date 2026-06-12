@@ -10,6 +10,7 @@ import '../features/legal/presentation/privacy_policy_page.dart';
 import '../features/legal/presentation/terms_of_service_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import 'app_logo.dart';
+import '../features/alerts/providers/unread_alerts_provider.dart';
 
 // Top-level nav destinations — shared by the custom sidebar and the mobile bar.
 const _navDestinations = <(String, IconData, IconData)>[
@@ -28,29 +29,30 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   int _selectedIndex = 0;
 
-  static const _pages = <Widget>[
-    FeedPage(),
-    AlertsPage(),
-    SettingsPage(),
-  ];
+  static const _pages = <Widget>[FeedPage(), AlertsPage(), SettingsPage()];
 
   Future<void> _onDestinationSelected(int index) async {
-    if (index == 1 && ref.read(authNotifierProvider) == null) {
-      final signedIn = await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(builder: (_) => const LoginPage()),
-      );
+    if (index == 1 && ref.read(authProvider) == null) {
+      final signedIn = await Navigator.of(
+        context,
+      ).push<bool>(MaterialPageRoute<bool>(builder: (_) => const LoginPage()));
       if (signedIn == true && mounted) {
         setState(() => _selectedIndex = 1);
+        ref.read(unreadAlertsProvider.notifier).updateCount(0);
       }
       return;
     }
     setState(() => _selectedIndex = index);
+    if (index == 1) {
+      ref.read(unreadAlertsProvider.notifier).updateCount(0);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unreadAlerts = ref.watch(unreadAlertsProvider);
 
     if (width >= 720) {
       final isExtended = width >= 1200;
@@ -62,6 +64,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               onDestinationSelected: _onDestinationSelected,
               extended: isExtended,
               isDark: isDark,
+              unreadAlerts: unreadAlerts,
             ),
             Container(
               width: 1,
@@ -85,8 +88,18 @@ class _AppShellState extends ConsumerState<AppShell> {
         destinations: [
           for (final (label, icon, selected) in _navDestinations)
             NavigationDestination(
-              icon: Icon(icon),
-              selectedIcon: Icon(selected),
+              icon: label == 'Alerts' && unreadAlerts > 0
+                  ? Badge(
+                      label: Text(unreadAlerts.toString()),
+                      child: Icon(icon),
+                    )
+                  : Icon(icon),
+              selectedIcon: label == 'Alerts' && unreadAlerts > 0
+                  ? Badge(
+                      label: Text(unreadAlerts.toString()),
+                      child: Icon(selected),
+                    )
+                  : Icon(selected),
               label: label,
             ),
         ],
@@ -107,12 +120,14 @@ class _CustomSidebar extends StatelessWidget {
     required this.onDestinationSelected,
     required this.extended,
     required this.isDark,
+    required this.unreadAlerts,
   });
 
   final int selectedIndex;
   final void Function(int) onDestinationSelected;
   final bool extended;
   final bool isDark;
+  final int unreadAlerts;
 
   static const _kBg = Color(0xFF0C0D15);
   static const _kBorder = Color(0xFF252638);
@@ -135,7 +150,11 @@ class _CustomSidebar extends StatelessWidget {
                     child: AppLogo(iconSize: 20, fontSize: 15),
                   )
                 : const Center(
-                    child: Icon(Icons.radar, color: Color(0xFF00B4FF), size: 24),
+                    child: Icon(
+                      Icons.radar,
+                      color: Color(0xFF00B4FF),
+                      size: 24,
+                    ),
                   ),
           ),
           const SizedBox(height: 4),
@@ -149,6 +168,7 @@ class _CustomSidebar extends StatelessWidget {
               onTap: () => onDestinationSelected(i),
               extended: extended,
               isDark: isDark,
+              badgeCount: _navDestinations[i].$1 == 'Alerts' ? unreadAlerts : 0,
             ),
           // ── Legal links — right below Settings, no spacer ────────────────────
           if (extended) ...[
@@ -196,9 +216,9 @@ class _CustomSidebar extends StatelessWidget {
   }
 
   void _push(BuildContext context, Widget page) {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => page),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute<void>(builder: (_) => page));
   }
 }
 
@@ -213,6 +233,7 @@ class _SidebarNavItem extends StatelessWidget {
     required this.onTap,
     required this.extended,
     required this.isDark,
+    required this.badgeCount,
   });
 
   final String label;
@@ -222,6 +243,7 @@ class _SidebarNavItem extends StatelessWidget {
   final VoidCallback onTap;
   final bool extended;
   final bool isDark;
+  final int badgeCount;
 
   static const _kSelected = Color(0xFF00B4FF);
   static const _kUnselected = Color(0xFF5A5A78);
@@ -232,11 +254,15 @@ class _SidebarNavItem extends StatelessWidget {
     final iconColor = isDark ? (selected ? _kSelected : _kUnselected) : null;
     final textColor = iconColor;
 
-    final iconWidget = Icon(
+    Widget iconWidget = Icon(
       selected ? selectedIcon : icon,
       color: iconColor,
       size: 22,
     );
+
+    if (badgeCount > 0) {
+      iconWidget = Badge(label: Text(badgeCount.toString()), child: iconWidget);
+    }
 
     if (extended) {
       return Padding(
@@ -262,8 +288,7 @@ class _SidebarNavItem extends StatelessWidget {
                     label,
                     style: TextStyle(
                       color: textColor,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                       fontSize: 13,
                     ),
                   ),
@@ -306,8 +331,7 @@ class _SidebarNavItem extends StatelessWidget {
                   style: TextStyle(
                     color: textColor,
                     fontSize: 11,
-                    fontWeight:
-                        selected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ],

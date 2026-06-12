@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isEmailVerified() {
+      return isAuthenticated() && request.auth.token.email_verified == true;
+    }
+
+    function isValidFavoritesList(favorites) {
+      // Must be a list and capped at a maximum size to prevent Resource Exhaustion / DoS attacks
+      return favorites is list && favorites.size() <= 500;
+    }
+
+    function isValidUserDoc() {
+      let data = request.resource.data;
+      // Strict Schema: Ensure no unexpected fields can be injected
+      return data.keys().hasOnly(['favorites', 'fcmTokens']) &&
+             (!('favorites' in data) || isValidFavoritesList(data.favorites)) &&
+             (!('fcmTokens' in data) || (data.fcmTokens is list && data.fcmTokens.size() <= 10));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId} {
+      // A user can only read, write, and modify their own document
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isEmailVerified() && isValidUserDoc();
+      allow delete: if isOwner(userId);
+    }
+  }
+}

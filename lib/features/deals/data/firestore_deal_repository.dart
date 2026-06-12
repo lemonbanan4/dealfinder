@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../domain/deal.dart';
@@ -22,6 +24,35 @@ class FirestoreDealRepository {
   Future<bool> hasDeals() async {
     final snap = await _col.limit(1).get();
     return snap.docs.isNotEmpty;
+  }
+
+  Future<void> clearDeals() async {
+    final snap = await _col.get();
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  /// Writes scraped deals to Firestore, stamping each with the current time.
+  /// Uses 500-document batches to stay within Firestore limits.
+  /// Safe to call repeatedly — `set` is an upsert keyed on deal ID.
+  Future<void> upsertDeals(List<Deal> deals) async {
+    if (deals.isEmpty) return;
+    const batchLimit = 500;
+    final now = Timestamp.now();
+    for (var i = 0; i < deals.length; i += batchLimit) {
+      final chunk = deals.sublist(i, min(i + batchLimit, deals.length));
+      final batch = _db.batch();
+      for (final deal in chunk) {
+        batch.set(_col.doc(deal.id), {
+          ...deal.toJson(),
+          'scrapedAt': now,
+        });
+      }
+      await batch.commit();
+    }
   }
 
   Future<void> seedDeals(List<Deal> deals) async {

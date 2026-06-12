@@ -13,8 +13,7 @@ class DealRepository {
   List<Deal> getAll() {
     return _dealBox.values
         .map((v) => Deal.fromJson(jsonDecode(v) as Map<String, dynamic>))
-        .toList()
-      ..sort((a, b) => b.scrapedAt.compareTo(a.scrapedAt));
+        .toList();
   }
 
   Future<void> saveAll(List<Deal> deals) async {

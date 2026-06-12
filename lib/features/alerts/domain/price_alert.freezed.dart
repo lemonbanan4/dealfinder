@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PriceAlert {
 
- String get id; String get title; String? get dealId; String? get searchQuery; double get targetPrice; String get displayCurrency; bool get isTriggered; DateTime get createdAt;
+ String get id; String get title; String get message; DateTime get time; bool get isRead;
 /// Create a copy of PriceAlert
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $PriceAlertCopyWith<PriceAlert> get copyWith => _$PriceAlertCopyWithImpl<PriceAl
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PriceAlert&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.dealId, dealId) || other.dealId == dealId)&&(identical(other.searchQuery, searchQuery) || other.searchQuery == searchQuery)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.displayCurrency, displayCurrency) || other.displayCurrency == displayCurrency)&&(identical(other.isTriggered, isTriggered) || other.isTriggered == isTriggered)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PriceAlert&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.time, time) || other.time == time)&&(identical(other.isRead, isRead) || other.isRead == isRead));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,dealId,searchQuery,targetPrice,displayCurrency,isTriggered,createdAt);
+int get hashCode => Object.hash(runtimeType,id,title,message,time,isRead);
 
 @override
 String toString() {
-  return 'PriceAlert(id: $id, title: $title, dealId: $dealId, searchQuery: $searchQuery, targetPrice: $targetPrice, displayCurrency: $displayCurrency, isTriggered: $isTriggered, createdAt: $createdAt)';
+  return 'PriceAlert(id: $id, title: $title, message: $message, time: $time, isRead: $isRead)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $PriceAlertCopyWith<$Res>  {
   factory $PriceAlertCopyWith(PriceAlert value, $Res Function(PriceAlert) _then) = _$PriceAlertCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String? dealId, String? searchQuery, double targetPrice, String displayCurrency, bool isTriggered, DateTime createdAt
+ String id, String title, String message, DateTime time, bool isRead
 });
 
 
@@ -65,17 +65,14 @@ class _$PriceAlertCopyWithImpl<$Res>
 
 /// Create a copy of PriceAlert
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? dealId = freezed,Object? searchQuery = freezed,Object? targetPrice = null,Object? displayCurrency = null,Object? isTriggered = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? message = null,Object? time = null,Object? isRead = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,dealId: freezed == dealId ? _self.dealId : dealId // ignore: cast_nullable_to_non_nullable
-as String?,searchQuery: freezed == searchQuery ? _self.searchQuery : searchQuery // ignore: cast_nullable_to_non_nullable
-as String?,targetPrice: null == targetPrice ? _self.targetPrice : targetPrice // ignore: cast_nullable_to_non_nullable
-as double,displayCurrency: null == displayCurrency ? _self.displayCurrency : displayCurrency // ignore: cast_nullable_to_non_nullable
-as String,isTriggered: null == isTriggered ? _self.isTriggered : isTriggered // ignore: cast_nullable_to_non_nullable
-as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String,time: null == time ? _self.time : time // ignore: cast_nullable_to_non_nullable
+as DateTime,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -160,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? dealId,  String? searchQuery,  double targetPrice,  String displayCurrency,  bool isTriggered,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String message,  DateTime time,  bool isRead)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PriceAlert() when $default != null:
-return $default(_that.id,_that.title,_that.dealId,_that.searchQuery,_that.targetPrice,_that.displayCurrency,_that.isTriggered,_that.createdAt);case _:
+return $default(_that.id,_that.title,_that.message,_that.time,_that.isRead);case _:
   return orElse();
 
 }
@@ -181,10 +178,10 @@ return $default(_that.id,_that.title,_that.dealId,_that.searchQuery,_that.target
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? dealId,  String? searchQuery,  double targetPrice,  String displayCurrency,  bool isTriggered,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String message,  DateTime time,  bool isRead)  $default,) {final _that = this;
 switch (_that) {
 case _PriceAlert():
-return $default(_that.id,_that.title,_that.dealId,_that.searchQuery,_that.targetPrice,_that.displayCurrency,_that.isTriggered,_that.createdAt);case _:
+return $default(_that.id,_that.title,_that.message,_that.time,_that.isRead);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +198,10 @@ return $default(_that.id,_that.title,_that.dealId,_that.searchQuery,_that.target
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? dealId,  String? searchQuery,  double targetPrice,  String displayCurrency,  bool isTriggered,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String message,  DateTime time,  bool isRead)?  $default,) {final _that = this;
 switch (_that) {
 case _PriceAlert() when $default != null:
-return $default(_that.id,_that.title,_that.dealId,_that.searchQuery,_that.targetPrice,_that.displayCurrency,_that.isTriggered,_that.createdAt);case _:
+return $default(_that.id,_that.title,_that.message,_that.time,_that.isRead);case _:
   return null;
 
 }
@@ -216,17 +213,14 @@ return $default(_that.id,_that.title,_that.dealId,_that.searchQuery,_that.target
 @JsonSerializable()
 
 class _PriceAlert implements PriceAlert {
-  const _PriceAlert({required this.id, required this.title, this.dealId, this.searchQuery, required this.targetPrice, required this.displayCurrency, this.isTriggered = false, required this.createdAt});
+  const _PriceAlert({required this.id, required this.title, required this.message, required this.time, this.isRead = false});
   factory _PriceAlert.fromJson(Map<String, dynamic> json) => _$PriceAlertFromJson(json);
 
 @override final  String id;
 @override final  String title;
-@override final  String? dealId;
-@override final  String? searchQuery;
-@override final  double targetPrice;
-@override final  String displayCurrency;
-@override@JsonKey() final  bool isTriggered;
-@override final  DateTime createdAt;
+@override final  String message;
+@override final  DateTime time;
+@override@JsonKey() final  bool isRead;
 
 /// Create a copy of PriceAlert
 /// with the given fields replaced by the non-null parameter values.
@@ -241,16 +235,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PriceAlert&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.dealId, dealId) || other.dealId == dealId)&&(identical(other.searchQuery, searchQuery) || other.searchQuery == searchQuery)&&(identical(other.targetPrice, targetPrice) || other.targetPrice == targetPrice)&&(identical(other.displayCurrency, displayCurrency) || other.displayCurrency == displayCurrency)&&(identical(other.isTriggered, isTriggered) || other.isTriggered == isTriggered)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PriceAlert&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.time, time) || other.time == time)&&(identical(other.isRead, isRead) || other.isRead == isRead));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,dealId,searchQuery,targetPrice,displayCurrency,isTriggered,createdAt);
+int get hashCode => Object.hash(runtimeType,id,title,message,time,isRead);
 
 @override
 String toString() {
-  return 'PriceAlert(id: $id, title: $title, dealId: $dealId, searchQuery: $searchQuery, targetPrice: $targetPrice, displayCurrency: $displayCurrency, isTriggered: $isTriggered, createdAt: $createdAt)';
+  return 'PriceAlert(id: $id, title: $title, message: $message, time: $time, isRead: $isRead)';
 }
 
 
@@ -261,7 +255,7 @@ abstract mixin class _$PriceAlertCopyWith<$Res> implements $PriceAlertCopyWith<$
   factory _$PriceAlertCopyWith(_PriceAlert value, $Res Function(_PriceAlert) _then) = __$PriceAlertCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String? dealId, String? searchQuery, double targetPrice, String displayCurrency, bool isTriggered, DateTime createdAt
+ String id, String title, String message, DateTime time, bool isRead
 });
 
 
@@ -278,17 +272,14 @@ class __$PriceAlertCopyWithImpl<$Res>
 
 /// Create a copy of PriceAlert
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? dealId = freezed,Object? searchQuery = freezed,Object? targetPrice = null,Object? displayCurrency = null,Object? isTriggered = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? message = null,Object? time = null,Object? isRead = null,}) {
   return _then(_PriceAlert(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,dealId: freezed == dealId ? _self.dealId : dealId // ignore: cast_nullable_to_non_nullable
-as String?,searchQuery: freezed == searchQuery ? _self.searchQuery : searchQuery // ignore: cast_nullable_to_non_nullable
-as String?,targetPrice: null == targetPrice ? _self.targetPrice : targetPrice // ignore: cast_nullable_to_non_nullable
-as double,displayCurrency: null == displayCurrency ? _self.displayCurrency : displayCurrency // ignore: cast_nullable_to_non_nullable
-as String,isTriggered: null == isTriggered ? _self.isTriggered : isTriggered // ignore: cast_nullable_to_non_nullable
-as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String,time: null == time ? _self.time : time // ignore: cast_nullable_to_non_nullable
+as DateTime,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

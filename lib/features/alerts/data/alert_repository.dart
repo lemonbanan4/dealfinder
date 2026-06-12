@@ -1,27 +1,41 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-import 'package:hive_flutter/hive_flutter.dart';
-
-import '../../../core/constants.dart';
-import '../domain/price_alert.dart';
+import '../domain/alert_config.dart';
 
 class AlertRepository {
-  Box<String> get _box => Hive.box<String>(HiveBoxes.alerts);
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  List<PriceAlert> getAll() {
-    return _box.values
-        .map((v) => PriceAlert.fromJson(jsonDecode(v) as Map<String, dynamic>))
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  CollectionReference<Map<String, dynamic>>? get _configsRef {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('alert_configs');
   }
 
-  Future<void> save(PriceAlert alert) =>
-      _box.put(alert.id, jsonEncode(alert.toJson()));
+  Future<void> saveAlertConfig(AlertConfig config) async {
+    final ref = _configsRef;
+    if (ref == null)
+      throw Exception('User must be signed in to save an alert.');
+    await ref.doc(config.id).set(config.toMap());
+  }
 
-  Future<void> delete(String id) => _box.delete(id);
+  Stream<List<AlertConfig>> watchAlertConfigs() {
+    final ref = _configsRef;
+    if (ref == null) return Stream.value([]);
+    return ref.orderBy('createdAt', descending: true).snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs
+          .map((doc) => AlertConfig.fromMap(doc.data()))
+          .toList();
+    });
+  }
 
-  Future<void> saveAll(List<PriceAlert> alerts) async {
-    final entries = {for (final a in alerts) a.id: jsonEncode(a.toJson())};
-    await _box.putAll(entries);
+  Future<void> deleteAlertConfig(String id) async {
+    await _configsRef?.doc(id).delete();
   }
 }

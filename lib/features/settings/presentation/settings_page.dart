@@ -16,8 +16,8 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(appSettingsNotifierProvider);
-    final notifier = ref.read(appSettingsNotifierProvider.notifier);
+    final settings = ref.watch(appSettingsProvider);
+    final notifier = ref.read(appSettingsProvider.notifier);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -143,8 +143,8 @@ class _SourcesList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final configs = ref.watch(scraperConfigsNotifierProvider);
-    final notifier = ref.read(scraperConfigsNotifierProvider.notifier);
+    final configs = ref.watch(scraperConfigsProvider);
+    final notifier = ref.read(scraperConfigsProvider.notifier);
 
     if (configs.isEmpty) {
       return _SettingsCard(
@@ -168,14 +168,27 @@ class _SourcesList extends ConsumerWidget {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
               title: Text(configs[i].name),
-              subtitle: Text(
-                configs[i].baseUrl,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isDark ? _kMuted : null,
-                  fontSize: 12,
-                ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    configs[i].baseUrl,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark ? _kMuted : null,
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (configs[i].lastError != null) ...[
+                    const SizedBox(height: 6),
+                    _ScraperErrorBanner(
+                      error: configs[i].lastError!,
+                      at: configs[i].lastErrorAt,
+                    ),
+                  ],
+                ],
               ),
               secondary: Chip(
                 label: Text(configs[i].currencyCode),
@@ -189,6 +202,73 @@ class _SourcesList extends ConsumerWidget {
       ),
     );
   }
+}
+
+// ── Scraper error banner ──────────────────────────────────────────────────────
+
+const _kError = Color(0xFFFF4757);
+const _kErrorText = Color(0xFFFF8B95);
+
+class _ScraperErrorBanner extends StatelessWidget {
+  const _ScraperErrorBanner({required this.error, required this.at});
+  final String error;
+  final DateTime? at;
+
+  @override
+  Widget build(BuildContext context) {
+    final when = at != null ? _formatErrorAt(at!) : 'unknown time';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color.fromRGBO(255, 71, 87, 0.08),
+        border: Border.all(color: const Color.fromRGBO(255, 71, 87, 0.30)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_rounded, size: 13, color: _kError),
+              const SizedBox(width: 5),
+              Text(
+                'Scrape failed · $when',
+                style: const TextStyle(
+                  color: _kError,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            error,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _kErrorText,
+              fontSize: 11,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatErrorAt(DateTime at) {
+  final diff = DateTime.now().difference(at);
+  if (diff.inMinutes < 1) return 'just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+  if (diff.inHours < 24) return '${diff.inHours} hr ago';
+  if (diff.inDays < 7) return '${diff.inDays}d ago';
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  return '${at.day} ${months[at.month - 1]}';
 }
 
 // ── Shared primitives ─────────────────────────────────────────────────────────

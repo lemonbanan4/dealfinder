@@ -63,7 +63,7 @@ class TermsOfServicePage extends StatelessWidget {
               'an account. You are responsible for maintaining the '
               'confidentiality of your credentials and for all activity that '
               'occurs under your account. Notify us immediately at '
-              'support@prispuls.no if you suspect unauthorised access.',
+              'support@prispuls.com if you suspect unauthorised access.',
         ),
         LegalSection(
           heading: 'Acceptable Use',
@@ -138,8 +138,8 @@ class TermsOfServicePage extends StatelessWidget {
           body:
               'Questions about these Terms? Contact us:\n\n'
               'PrisPuls AS\n'
-              'Email: legal@prispuls.no\n'
-              'Website: www.prispuls.no',
+              'Email: legal@prispuls.com\n'
+              'Website: www.prispuls.com',
         ),
       ],
     );

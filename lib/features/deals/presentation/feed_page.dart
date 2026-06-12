@@ -1,114 +1,826 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../../providers/repositories.dart' show currencyServiceProvider;
 import '../../../widgets/app_logo.dart';
-import '../../../widgets/deal_card.dart';
-import '../../currency/domain/exchange_rates.dart';
-import '../../currency/providers/currency_provider.dart';
-import '../../settings/providers/settings_provider.dart';
 import '../domain/deal.dart';
 import '../providers/deals_provider.dart';
+import '../../auth/presentation/auth_page.dart';
+import '../../auth/presentation/profile_page.dart';
+import '../../alerts/presentation/create_alert_sheet.dart';
 
-class FeedPage extends ConsumerWidget {
+// ─── Feed page ─────────────────────────────────────────────────────────────────
+
+// A simple provider to hold our current search query
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
+  () => SearchQueryNotifier(),
+);
+
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void updateQuery(String query) => state = query;
+  void clear() => state = '';
+}
+
+enum ProductSort { none, priceAsc, priceDesc }
+
+final productSortProvider = NotifierProvider<ProductSortNotifier, ProductSort>(
+  () => ProductSortNotifier(),
+);
+
+class ProductSortNotifier extends Notifier<ProductSort> {
+  static const _key = 'product_sort_pref';
+
+  @override
+  ProductSort build() {
+    _loadPref();
+    return ProductSort.none;
+  }
+
+  Future<void> _loadPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    final index = prefs.getInt(_key);
+    if (index != null && index >= 0 && index < ProductSort.values.length) {
+      state = ProductSort.values[index];
+    }
+  }
+
+  Future<void> updateSort(ProductSort sort) async {
+    state = sort;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_key, sort.index);
+  }
+}
+
+final productCategoryProvider =
+    NotifierProvider<ProductCategoryNotifier, String>(
+      () => ProductCategoryNotifier(),
+    );
+
+class ProductCategoryNotifier extends Notifier<String> {
+  static const _key = 'product_category_pref';
+
+  @override
+  String build() {
+    _loadPref();
+    return 'All';
+  }
+
+  Future<void> _loadPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    final category = prefs.getString(_key);
+    if (category != null && category.isNotEmpty) {
+      state = category;
+    }
+  }
+
+  Future<void> updateCategory(String category) async {
+    state = category;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, category);
+  }
+}
+
+final showFavoritesOnlyProvider =
+    NotifierProvider<ShowFavoritesOnlyNotifier, bool>(
+      () => ShowFavoritesOnlyNotifier(),
+    );
+
+class ShowFavoritesOnlyNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void toggle() => state = !state;
+  void reset() => state = false;
+}
+
+final feedViewModeProvider = NotifierProvider<FeedViewModeNotifier, bool>(
+  () => FeedViewModeNotifier(),
+);
+
+class FeedViewModeNotifier extends Notifier<bool> {
+  static const _key = 'feed_view_mode_pref';
+
+  @override
+  bool build() {
+    _loadPref();
+    return false;
+  }
+
+  Future<void> _loadPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isGrid = prefs.getBool(_key);
+    if (isGrid != null) state = isGrid;
+  }
+
+  Future<void> toggle() async {
+    state = !state;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, state);
+  }
+}
+
+final favoritesProvider = NotifierProvider<FavoritesNotifier, Set<String>>(
+  () => FavoritesNotifier(),
+);
+
+class FavoritesNotifier extends Notifier<Set<String>> {
+  static const _key = 'favorite_products_pref';
+
+  @override
+  Set<String> build() {
+    _loadPref();
+    return {};
+  }
+
+  Future<void> _loadPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    final favs = prefs.getStringList(_key);
+    if (favs != null) state = favs.toSet();
+
+    // Sync from Firestore if authenticated
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          if (data.containsKey('favorites')) {
+            final firestoreFavs = List<String>.from(data['favorites']);
+            state = firestoreFavs.toSet();
+            await prefs.setStringList(_key, firestoreFavs);
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to load favorites from Firestore: $e');
+      }
+    }
+  }
+
+  Future<void> toggleFavorite(String productId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && !user.emailVerified) {
+      throw Exception('Email not verified');
+    }
+
+    final newFavs = Set<String>.from(state);
+    if (newFavs.contains(productId)) {
+      newFavs.remove(productId);
+    } else {
+      newFavs.add(productId);
+    }
+    state = newFavs;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_key, newFavs.toList());
+
+    // Sync to Firestore if the user is authenticated
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'favorites': newFavs.toList(),
+      }, SetOptions(merge: true));
+    }
+  }
+}
+
+String _formatAmount(double price) {
+  final rounded = price.round();
+  final s = rounded.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return buf.toString();
+}
+
+class FeedPage extends ConsumerStatefulWidget {
   const FeedPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final feedAsync = ref.watch(firestoreDealFeedProvider);
-    final settings = ref.watch(appSettingsNotifierProvider);
-    final ratesAsync = ref.watch(exchangeRatesNotifierProvider);
-    final isRefreshing = feedAsync.isLoading;
+  ConsumerState<FeedPage> createState() => _FeedPageState();
+}
+
+class _FeedPageState extends ConsumerState<FeedPage> {
+  final _searchController = TextEditingController();
+  final _isRefreshing = ValueNotifier<bool>(false);
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    _isRefreshing.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing.value) return;
+    _isRefreshing.value = true;
+    try {
+      await ref.read(dealFeedProvider.notifier).refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Deals refreshed successfully!'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to refresh deals.'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      _isRefreshing.value = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dealFeedAsync = ref.watch(dealFeedProvider);
+    final deals = dealFeedAsync.value ?? [];
+    final searchQuery = ref.watch(searchQueryProvider);
+    final sortOption = ref.watch(productSortProvider);
+    final selectedCategory = ref.watch(productCategoryProvider);
+    final favorites = ref.watch(favoritesProvider);
+    final showFavoritesOnly = ref.watch(showFavoritesOnlyProvider);
+    final isGrid = ref.watch(feedViewModeProvider);
+    final authState = ref.watch(authStateProvider);
+
+    // Dynamically build a list of categories (sources) based on available deals
+    final categories = {'All'};
+    for (final d in deals) {
+      if (d.source.isNotEmpty) categories.add(d.source);
+    }
+    final categoryList = categories.toList()
+      ..sort((a, b) => a == 'All' ? -1 : a.compareTo(b));
+
+    final displayDeals = deals.where((d) {
+      if (showFavoritesOnly && !favorites.contains(d.id)) return false;
+
+      final q = searchQuery.toLowerCase();
+      final matchesSearch =
+          d.title.toLowerCase().contains(q) ||
+          d.source.toLowerCase().contains(q);
+      final matchesCategory =
+          selectedCategory == 'All' || d.source == selectedCategory;
+      return matchesSearch && matchesCategory;
+    }).toList();
+
+    // Apply the active sorting method
+    switch (sortOption) {
+      case ProductSort.priceAsc:
+        displayDeals.sort((a, b) => a.currentPrice.compareTo(b.currentPrice));
+        break;
+      case ProductSort.priceDesc:
+        displayDeals.sort((a, b) => b.currentPrice.compareTo(a.currentPrice));
+        break;
+      case ProductSort.none:
+        break;
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const AppLogo(),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
-            onPressed: isRefreshing
-                ? null
-                : () => ref.invalidate(firestoreDealFeedProvider),
-            icon: isRefreshing
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh),
+            tooltip: authState.value != null ? 'Profile' : 'Sign In',
+            icon: Icon(
+              authState.value != null
+                  ? Icons.account_circle
+                  : Icons.person_outline,
+            ),
+            onPressed: () {
+              if (authState.value != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AuthPage()),
+                );
+              }
+            },
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: _isRefreshing,
+            builder: (context, isRefreshing, _) => IconButton(
+              tooltip: 'Refresh',
+              onPressed: isRefreshing ? null : () => _handleRefresh(),
+              icon: isRefreshing
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+            ),
+          ),
+          IconButton(
+            tooltip: showFavoritesOnly ? 'Show All' : 'Show Favorites',
+            icon: Icon(
+              showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
+            ),
+            color: showFavoritesOnly ? const Color(0xFFFF4757) : null,
+            onPressed: () =>
+                ref.read(showFavoritesOnlyProvider.notifier).toggle(),
+          ),
+          IconButton(
+            tooltip: isGrid ? 'List View' : 'Grid View',
+            icon: Icon(isGrid ? Icons.view_list : Icons.grid_view),
+            onPressed: () => ref.read(feedViewModeProvider.notifier).toggle(),
+          ),
+          PopupMenuButton<String>(
+            icon: Badge(
+              isLabelVisible: selectedCategory != 'All',
+              backgroundColor: const Color(0xFF00B4FF),
+              child: const Icon(Icons.filter_list),
+            ),
+            tooltip: 'Filter by Category',
+            initialValue: selectedCategory,
+            onSelected: (value) => ref
+                .read(productCategoryProvider.notifier)
+                .updateCategory(value),
+            itemBuilder: (context) => [
+              for (final cat in categoryList)
+                PopupMenuItem(value: cat, child: Text(cat)),
+            ],
+          ),
+          PopupMenuButton<ProductSort>(
+            icon: Badge(
+              isLabelVisible: sortOption != ProductSort.none,
+              backgroundColor: const Color(0xFF00B4FF),
+              child: const Icon(Icons.sort),
+            ),
+            tooltip: 'Sort products',
+            initialValue: sortOption,
+            onSelected: (value) =>
+                ref.read(productSortProvider.notifier).updateSort(value),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: ProductSort.none,
+                child: Text('Default Sorting'),
+              ),
+              PopupMenuItem(
+                value: ProductSort.priceAsc,
+                child: Text('Price: Low to High'),
+              ),
+              PopupMenuItem(
+                value: ProductSort.priceDesc,
+                child: Text('Price: High to Low'),
+              ),
+            ],
           ),
           const SizedBox(width: 4),
         ],
       ),
-      body: feedAsync.when(
-        loading: () => const _ShimmerGrid(),
-        error: (err, _) => _ErrorState(
-          message: err.toString(),
-          onRetry: () => ref.invalidate(firestoreDealFeedProvider),
-        ),
-        data: (deals) {
-          if (deals.isEmpty) {
-            return _EmptyState(
-              onRefresh: () => ref.invalidate(firestoreDealFeedProvider),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(firestoreDealFeedProvider),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 600;
-                return CustomScrollView(
-                  slivers: [
-                    SliverPadding(
-                      padding: EdgeInsets.all(isWide ? 20 : 14),
-                      sliver: isWide
-                          ? SliverGrid.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                mainAxisExtent: 130,
-                              ),
-                              itemCount: deals.length,
-                              itemBuilder: (context, index) =>
-                                  _buildCard(context, ref, deals[index], settings.displayCurrency, ratesAsync),
-                            )
-                          : SliverList.separated(
-                              itemCount: deals.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (context, index) =>
-                                  _buildCard(context, ref, deals[index], settings.displayCurrency, ratesAsync),
-                            ),
-                    ),
-                  ],
-                );
+      body: Column(
+        children: [
+          // ─── Search Bar ──────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: SearchBar(
+              controller: _searchController,
+              hintText: 'Search products or brands...',
+              leading: const Icon(Icons.search, color: Color(0xFF5A5A78)),
+              trailing: [
+                if (searchQuery.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.clear, color: Color(0xFF5A5A78)),
+                    onPressed: () {
+                      _debounce?.cancel();
+                      _searchController.clear();
+                      ref.read(searchQueryProvider.notifier).clear();
+                      FocusManager.instance.primaryFocus?.unfocus();
+                    },
+                  ),
+              ],
+              elevation: WidgetStateProperty.all(0),
+              backgroundColor: WidgetStateProperty.all(const Color(0xFF1A1B2A)),
+              padding: WidgetStateProperty.all(
+                const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              onChanged: (value) {
+                if (_debounce?.isActive ?? false) _debounce!.cancel();
+                _debounce = Timer(const Duration(milliseconds: 300), () {
+                  ref.read(searchQueryProvider.notifier).updateQuery(value);
+                });
               },
             ),
-          );
-        },
+          ),
+          // ─── Main Content ────────────────────────────────────────────────
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _handleRefresh,
+              child: dealFeedAsync.isLoading && !dealFeedAsync.hasValue
+                  ? _ShimmerGrid(isGrid: isGrid)
+                  : dealFeedAsync.hasError
+                  ? _ErrorState(
+                      message: dealFeedAsync.error.toString(),
+                      onRetry: () => _handleRefresh(),
+                    )
+                  : deals.isEmpty
+                  ? _EmptyState(onRefresh: () => _handleRefresh())
+                  : displayDeals.isEmpty
+                  ? _SearchEmptyState(
+                      query: searchQuery,
+                      onClear: () {
+                        _debounce?.cancel();
+                        _searchController.clear();
+                        ref.read(searchQueryProvider.notifier).clear();
+                        ref
+                            .read(productCategoryProvider.notifier)
+                            .updateCategory('All');
+                        ref.read(showFavoritesOnlyProvider.notifier).reset();
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
+                    )
+                  : AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: CustomScrollView(
+                        key: ValueKey(isGrid),
+                        slivers: [
+                          SliverPadding(
+                            padding: EdgeInsets.all(isGrid ? 20 : 14),
+                            sliver: isGrid
+                                ? SliverGrid.builder(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 12,
+                                          mainAxisExtent: 130,
+                                        ),
+                                    itemCount: displayDeals.length,
+                                    itemBuilder: (context, index) => _DealCard(
+                                      deal: displayDeals[index],
+                                      index: index,
+                                    ),
+                                  )
+                                : SliverList.separated(
+                                    itemCount: displayDeals.length,
+                                    separatorBuilder: (_, _) =>
+                                        const SizedBox(height: 10),
+                                    itemBuilder: (context, index) => _DealCard(
+                                      deal: displayDeals[index],
+                                      index: index,
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildCard(BuildContext context, WidgetRef ref, Deal deal, String currency, AsyncValue<ExchangeRates> ratesAsync) {
-    final displayPrice = ratesAsync.maybeWhen(
-      data: (rates) => ref
-          .read(currencyServiceProvider)
-          .convert(deal.priceEur, currency, rates),
-      orElse: () => deal.priceEur,
-    );
-    return DealCard(
-      deal: deal,
-      displayPrice: displayPrice,
-      currency: currency,
-      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Redirecting to merchant...'),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+class _DealCard extends ConsumerStatefulWidget {
+  const _DealCard({required this.deal, required this.index});
+
+  final Deal deal;
+  final int index;
+
+  @override
+  ConsumerState<_DealCard> createState() => _DealCardState();
+}
+
+class _DealCardState extends ConsumerState<_DealCard> {
+  bool _isSharing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final deal = widget.deal;
+    final favorites = ref.watch(favoritesProvider);
+    final isFav = favorites.contains(deal.id);
+    final showFavoritesOnly = ref.watch(showFavoritesOnlyProvider);
+
+    // Stagger animation based on index (capped at 500ms delay to keep scrolling smooth)
+    final int delayMs = (widget.index * 50).clamp(0, 500);
+    final int totalDurationMs = 400 + delayMs;
+    final double startInterval = delayMs / totalDurationMs;
+
+    Widget cardContent = DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF12131A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF252638)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            splashColor: const Color(0xFF00B4FF).withAlpha(20),
+            highlightColor: const Color(0xFF00B4FF).withAlpha(10),
+            onLongPress: () {
+              HapticFeedback.lightImpact();
+            },
+            onTap: () async {
+              final uri = Uri.tryParse(deal.url);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            child: SizedBox(
+              height: 130,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Image panel
+                  SizedBox(
+                    width: 110,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        const ColoredBox(color: Color(0xFF060919)),
+                        if (deal.imageUrl != null && deal.imageUrl!.isNotEmpty)
+                          CachedNetworkImage(
+                            imageUrl: deal.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorWidget: (context, url, error) => const Center(
+                              child: Icon(
+                                Icons.shopping_bag_outlined,
+                                color: Color(0xFF3A3A58),
+                                size: 32,
+                              ),
+                            ),
+                          )
+                        else
+                          const Center(
+                            child: Icon(
+                              Icons.shopping_bag_outlined,
+                              color: Color(0xFF3A3A58),
+                              size: 32,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Details panel
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            deal.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.store_outlined,
+                                size: 14,
+                                color: Color(0xFF5A5A78),
+                              ),
+                              const SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  deal.source.isEmpty ? 'Unknown' : deal.source,
+                                  style: const TextStyle(
+                                    color: Color(0xFF5A5A78),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    _formatAmount(deal.currentPrice),
+                                    style: const TextStyle(
+                                      color: Color(0xFF00E676),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    deal.currency,
+                                    style: TextStyle(
+                                      color: Color(0xFF00E676),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 32,
+                                    height: 32,
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(
+                                        Icons.add_alert_outlined,
+                                        size: 20,
+                                        color: Color(0xFF5A5A78),
+                                      ),
+                                      onPressed: () {
+                                        HapticFeedback.selectionClick();
+                                        CreateAlertSheet.show(context, deal);
+                                      },
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 32,
+                                    height: 32,
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: Icon(
+                                        isFav
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        size: 20,
+                                        color: isFav
+                                            ? const Color(0xFFFF4757)
+                                            : const Color(0xFF5A5A78),
+                                      ),
+                                      onPressed: () {
+                                        final user =
+                                            FirebaseAuth.instance.currentUser;
+                                        if (user != null &&
+                                            !user.emailVerified) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Please verify your email to save favorites.',
+                                              ),
+                                              backgroundColor: Color(
+                                                0xFFFF4757,
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        HapticFeedback.selectionClick();
+                                        ref
+                                            .read(favoritesProvider.notifier)
+                                            .toggleFavorite(deal.id);
+                                      },
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 32,
+                                    height: 32,
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: _isSharing
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Color(0xFF5A5A78),
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.ios_share,
+                                              size: 20,
+                                              color: Color(0xFF5A5A78),
+                                            ),
+                                      onPressed: _isSharing
+                                          ? null
+                                          : () async {
+                                              setState(() => _isSharing = true);
+                                              final shareText =
+                                                  'Check out this deal: ${deal.title} for ${_formatAmount(deal.currentPrice)} SEK!\n${deal.url}';
+                                              try {
+                                                final response = await http.get(
+                                                  Uri.parse(
+                                                    deal.imageUrl ?? '',
+                                                  ),
+                                                );
+                                                final tempDir =
+                                                    await getTemporaryDirectory();
+                                                final filePath =
+                                                    '${tempDir.path}/deal_${deal.id}.jpg';
+                                                final file = File(filePath);
+                                                await file.writeAsBytes(
+                                                  response.bodyBytes,
+                                                );
+
+                                                await SharePlus.instance.share(
+                                                  ShareParams(
+                                                    files: [XFile(filePath)],
+                                                    text: shareText,
+                                                  ),
+                                                );
+                                              } catch (e) {
+                                                SharePlus.instance.share(
+                                                  ShareParams(text: shareText),
+                                                );
+                                              } finally {
+                                                if (mounted) {
+                                                  setState(
+                                                    () => _isSharing = false,
+                                                  );
+                                                }
+                                              }
+                                            },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
+    );
+
+    if (showFavoritesOnly) {
+      cardContent = Dismissible(
+        key: ValueKey(deal.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF4757),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(
+            Icons.delete_outline,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+        onDismissed: (direction) {
+          ref.read(favoritesProvider.notifier).toggleFavorite(deal.id);
+        },
+        child: cardContent,
+      );
+    }
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: totalDurationMs),
+      curve: Interval(startInterval, 1.0, curve: Curves.easeOutQuart),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 30 * (1 - value)),
+          child: Opacity(opacity: value, child: child),
+        );
+      },
+      child: cardContent,
     );
   }
 }
@@ -116,7 +828,8 @@ class FeedPage extends ConsumerWidget {
 // ─── Shimmer skeleton loading ─────────────────────────────────────────────────
 
 class _ShimmerGrid extends StatefulWidget {
-  const _ShimmerGrid();
+  const _ShimmerGrid({required this.isGrid});
+  final bool isGrid;
 
   @override
   State<_ShimmerGrid> createState() => _ShimmerGridState();
@@ -134,9 +847,10 @@ class _ShimmerGridState extends State<_ShimmerGrid>
       vsync: this,
       duration: const Duration(milliseconds: 1100),
     )..repeat(reverse: true);
-    _opacity = Tween<double>(begin: 0.25, end: 0.6).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _opacity = Tween<double>(
+      begin: 0.25,
+      end: 0.6,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -147,40 +861,52 @@ class _ShimmerGridState extends State<_ShimmerGrid>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 600;
-        return AnimatedBuilder(
-          animation: _opacity,
-          builder: (context, _) => CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: EdgeInsets.all(isWide ? 20 : 14),
-                sliver: isWide
-                    ? SliverGrid.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          mainAxisExtent: 130,
-                        ),
-                        itemCount: 6,
-                        itemBuilder: (_, _) =>
-                            _SkeletonCard(opacity: _opacity.value),
-                      )
-                    : SliverList.separated(
-                        itemCount: 5,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 10),
-                        itemBuilder: (_, _) =>
-                            _SkeletonCard(opacity: _opacity.value),
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
+    return AnimatedBuilder(
+      animation: _opacity,
+      builder: (context, _) => AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (child, animation) {
+          final isEntering = child.key == ValueKey(widget.isGrid);
+          final offsetDir = widget.isGrid ? 1.0 : -1.0;
+          return SlideTransition(
+            position:
+                Tween<Offset>(
+                  begin: Offset(isEntering ? offsetDir : -offsetDir, 0.0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+                ),
+            child: child,
+          );
+        },
+        child: CustomScrollView(
+          key: ValueKey(widget.isGrid),
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.all(widget.isGrid ? 20 : 14),
+              sliver: widget.isGrid
+                  ? SliverGrid.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            mainAxisExtent: 130,
+                          ),
+                      itemCount: 6,
+                      itemBuilder: (_, _) =>
+                          _SkeletonCard(opacity: _opacity.value),
+                    )
+                  : SliverList.separated(
+                      itemCount: 5,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (_, _) =>
+                          _SkeletonCard(opacity: _opacity.value),
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -275,25 +1001,97 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.storefront_outlined, size: 64),
-          const SizedBox(height: 16),
-          Text(
-            'No deals yet',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.storefront_outlined, size: 64),
+                const SizedBox(height: 16),
+                Text(
+                  'No deals found',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+                const SizedBox(height: 8),
+                const Text('Check back later or tap refresh.'),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: onRefresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Refresh now'),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          const Text('Enable sources in Settings, then tap Refresh.'),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Refresh now'),
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchEmptyState extends StatelessWidget {
+  const _SearchEmptyState({required this.query, required this.onClear});
+  final String query;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      builder: (context, value, child) => Opacity(opacity: value, child: child),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.search_off_outlined,
+                      size: 64,
+                      color: Color(0xFF5A5A78),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      query.isNotEmpty
+                          ? 'No results for "$query"'
+                          : 'No deals match your filters',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Try checking for typos or removing some filters.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF8A8AA0)),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: onClear,
+                      icon: const Icon(Icons.clear),
+                      label: const Text('Clear filters'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF4757).withAlpha(30),
+                        foregroundColor: const Color(0xFFFF4757),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -308,28 +1106,36 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "838381255973",
+    "project_id": "dealfinderpro-bc5be",
+    "storage_bucket": "dealfinderpro-bc5be.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:838381255973:android:72e3adae21cd9358946ecc",
+        "android_client_info": {
+          "package_name": "com.dealfinder.dealfinder_pro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYcGVC3dVfeMvQr-TDPTETlN94ghJGW74"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

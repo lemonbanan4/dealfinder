@@ -1,65 +1,54 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
+import 'dart:convert';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../features/auth/providers/auth_provider.dart';
-import '../../../providers/repositories.dart';
+import '../../../core/constants.dart';
 import '../domain/price_alert.dart';
 
-part 'alerts_provider.g.dart';
+final alertsProvider = NotifierProvider<AlertsNotifier, List<PriceAlert>>(() {
+  return AlertsNotifier();
+});
 
-const _uuid = Uuid();
+class AlertsNotifier extends Notifier<List<PriceAlert>> {
+  Box<String> get _box => Hive.box<String>(HiveBoxes.alerts);
 
-@Riverpod(keepAlive: true)
-class AlertsNotifier extends _$AlertsNotifier {
   @override
-  Future<List<PriceAlert>> build() async {
-    final user = ref.watch(authNotifierProvider);
-    if (user == null) return [];
-    return ref.read(firestoreAlertRepositoryProvider).getAll(user.uid);
+  List<PriceAlert> build() {
+    final alerts = <PriceAlert>[];
+    for (final key in _box.keys) {
+      final jsonStr = _box.get(key);
+      if (jsonStr != null) {
+        try {
+          alerts.add(PriceAlert.fromJson(jsonDecode(jsonStr)));
+        } catch (e) {
+          // Ignore malformed data
+        }
+      }
+    }
+
+    // Sort by newest first
+    alerts.sort((a, b) => b.time.compareTo(a.time));
+    return alerts;
   }
 
-  Future<void> add({
-    required String title,
-    required double targetPrice,
-    required String displayCurrency,
-    String? dealId,
-    String? searchQuery,
-  }) async {
-    final user = ref.read(authNotifierProvider);
-    if (user == null) return;
-
-    final alert = PriceAlert(
-      id: _uuid.v4(),
-      title: title,
-      targetPrice: targetPrice,
-      displayCurrency: displayCurrency,
-      dealId: dealId,
-      searchQuery: searchQuery,
-      createdAt: DateTime.now(),
-    );
-    await ref.read(firestoreAlertRepositoryProvider).save(user.uid, alert);
-    state = AsyncData([alert, ...?state.valueOrNull]);
+  void deleteAlert(String id) {
+    _box.delete(id);
+    state = state.where((alert) => alert.id != id).toList();
   }
 
-  Future<void> remove(String id) async {
-    final user = ref.read(authNotifierProvider);
-    if (user == null) return;
-    await ref.read(firestoreAlertRepositoryProvider).delete(user.uid, id);
-    state = AsyncData(
-      (state.valueOrNull ?? []).where((a) => a.id != id).toList(),
-    );
+  void markAllAsRead() {
+    final updatedAlerts = state.map((alert) {
+      if (alert.isRead) return alert;
+      final updated = alert.copyWith(isRead: true);
+      _box.put(updated.id, jsonEncode(updated.toJson()));
+      return updated;
+    }).toList();
+    state = updatedAlerts;
   }
 
-  Future<void> markTriggered(String id) async {
-    final user = ref.read(authNotifierProvider);
-    if (user == null) return;
-    final current = state.valueOrNull ?? [];
-    final index = current.indexWhere((a) => a.id == id);
-    if (index == -1) return;
-    final updated = current[index].copyWith(isTriggered: true);
-    await ref
-        .read(firestoreAlertRepositoryProvider)
-        .markTriggered(user.uid, id);
-    state = AsyncData([...current]..[index] = updated);
+  // Utility method to add a new alert (useful for your background service)
+  void addAlert(PriceAlert alert) {
+    _box.put(alert.id, jsonEncode(alert.toJson()));
+    state = [alert, ...state];
   }
 }
