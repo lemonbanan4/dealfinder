@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../widgets/deal_card.dart';
 import '../../../widgets/app_logo.dart';
 import '../domain/deal.dart';
 import '../providers/deals_provider.dart';
@@ -437,7 +438,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                   ? _ShimmerGrid(isGrid: isGrid)
                   : dealFeedAsync.hasError
                   ? _ErrorState(
-                      message: dealFeedAsync.error.toString(),
+                      message: "ERROR: ${dealFeedAsync.error.toString()}",
                       onRetry: () => _handleRefresh(),
                     )
                   : deals.isEmpty
@@ -475,19 +476,27 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                           mainAxisExtent: 130,
                                         ),
                                     itemCount: displayDeals.length,
-                                    itemBuilder: (context, index) => _DealCard(
-                                      deal: displayDeals[index],
-                                      index: index,
-                                    ),
+                                    itemBuilder: (context, index) {
+                                      final deal = displayDeals[index];
+                                      return DealCard(
+                                        deal: deal,
+                                        displayPrice: deal.currentPrice,
+                                        currency: deal.currency,
+                                      );
+                                    },
                                   )
                                 : SliverList.separated(
                                     itemCount: displayDeals.length,
                                     separatorBuilder: (_, _) =>
                                         const SizedBox(height: 10),
-                                    itemBuilder: (context, index) => _DealCard(
-                                      deal: displayDeals[index],
-                                      index: index,
-                                    ),
+                                    itemBuilder: (context, index) {
+                                      final deal = displayDeals[index];
+                                      return DealCard(
+                                        deal: deal,
+                                        displayPrice: deal.currentPrice,
+                                        currency: deal.currency,
+                                      );
+                                    },
                                   ),
                           ),
                         ],
@@ -501,332 +510,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
   }
 }
 
-class _DealCard extends ConsumerStatefulWidget {
-  const _DealCard({required this.deal, required this.index});
-
-  final Deal deal;
-  final int index;
-
-  @override
-  ConsumerState<_DealCard> createState() => _DealCardState();
-}
-
-class _DealCardState extends ConsumerState<_DealCard> {
-  bool _isSharing = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final deal = widget.deal;
-    final favorites = ref.watch(favoritesProvider);
-    final isFav = favorites.contains(deal.id);
-    final showFavoritesOnly = ref.watch(showFavoritesOnlyProvider);
-
-    // Stagger animation based on index (capped at 500ms delay to keep scrolling smooth)
-    final int delayMs = (widget.index * 50).clamp(0, 500);
-    final int totalDurationMs = 400 + delayMs;
-    final double startInterval = delayMs / totalDurationMs;
-
-    Widget cardContent = DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF12131A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF252638)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            splashColor: const Color(0xFF00B4FF).withAlpha(20),
-            highlightColor: const Color(0xFF00B4FF).withAlpha(10),
-            onLongPress: () {
-              HapticFeedback.lightImpact();
-            },
-            onTap: () async {
-              final uri = Uri.tryParse(deal.url);
-              if (uri != null && await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            },
-            child: SizedBox(
-              height: 130,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Image panel
-                  SizedBox(
-                    width: 110,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        const ColoredBox(color: Color(0xFF060919)),
-                        if (deal.imageUrl != null && deal.imageUrl!.isNotEmpty)
-                          CachedNetworkImage(
-                            imageUrl: deal.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => const Center(
-                              child: Icon(
-                                Icons.shopping_bag_outlined,
-                                color: Color(0xFF3A3A58),
-                                size: 32,
-                              ),
-                            ),
-                          )
-                        else
-                          const Center(
-                            child: Icon(
-                              Icons.shopping_bag_outlined,
-                              color: Color(0xFF3A3A58),
-                              size: 32,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  // Details panel
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            deal.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              height: 1.3,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.store_outlined,
-                                size: 14,
-                                color: Color(0xFF5A5A78),
-                              ),
-                              const SizedBox(width: 5),
-                              Flexible(
-                                child: Text(
-                                  deal.source.isEmpty ? 'Unknown' : deal.source,
-                                  style: const TextStyle(
-                                    color: Color(0xFF5A5A78),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: [
-                                  Text(
-                                    _formatAmount(deal.currentPrice),
-                                    style: const TextStyle(
-                                      color: Color(0xFF00E676),
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    deal.currency,
-                                    style: TextStyle(
-                                      color: Color(0xFF00E676),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 32,
-                                    height: 32,
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: const Icon(
-                                        Icons.add_alert_outlined,
-                                        size: 20,
-                                        color: Color(0xFF5A5A78),
-                                      ),
-                                      onPressed: () {
-                                        HapticFeedback.selectionClick();
-                                        CreateAlertSheet.show(context, deal);
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 32,
-                                    height: 32,
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: Icon(
-                                        isFav
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        size: 20,
-                                        color: isFav
-                                            ? const Color(0xFFFF4757)
-                                            : const Color(0xFF5A5A78),
-                                      ),
-                                      onPressed: () {
-                                        final user =
-                                            FirebaseAuth.instance.currentUser;
-                                        if (user != null &&
-                                            !user.emailVerified) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Please verify your email to save favorites.',
-                                              ),
-                                              backgroundColor: Color(
-                                                0xFFFF4757,
-                                              ),
-                                            ),
-                                          );
-                                          return;
-                                        }
-
-                                        HapticFeedback.selectionClick();
-                                        ref
-                                            .read(favoritesProvider.notifier)
-                                            .toggleFavorite(deal.id);
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 32,
-                                    height: 32,
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: _isSharing
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Color(0xFF5A5A78),
-                                              ),
-                                            )
-                                          : const Icon(
-                                              Icons.ios_share,
-                                              size: 20,
-                                              color: Color(0xFF5A5A78),
-                                            ),
-                                      onPressed: _isSharing
-                                          ? null
-                                          : () async {
-                                              setState(() => _isSharing = true);
-                                              final shareText =
-                                                  'Check out this deal: ${deal.title} for ${_formatAmount(deal.currentPrice)} SEK!\n${deal.url}';
-                                              try {
-                                                final response = await http.get(
-                                                  Uri.parse(
-                                                    deal.imageUrl ?? '',
-                                                  ),
-                                                );
-                                                final tempDir =
-                                                    await getTemporaryDirectory();
-                                                final filePath =
-                                                    '${tempDir.path}/deal_${deal.id}.jpg';
-                                                final file = File(filePath);
-                                                await file.writeAsBytes(
-                                                  response.bodyBytes,
-                                                );
-
-                                                await SharePlus.instance.share(
-                                                  ShareParams(
-                                                    files: [XFile(filePath)],
-                                                    text: shareText,
-                                                  ),
-                                                );
-                                              } catch (e) {
-                                                SharePlus.instance.share(
-                                                  ShareParams(text: shareText),
-                                                );
-                                              } finally {
-                                                if (mounted) {
-                                                  setState(
-                                                    () => _isSharing = false,
-                                                  );
-                                                }
-                                              }
-                                            },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    if (showFavoritesOnly) {
-      cardContent = Dismissible(
-        key: ValueKey(deal.id),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 24),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFF4757),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Icons.delete_outline,
-            color: Colors.white,
-            size: 28,
-          ),
-        ),
-        onDismissed: (direction) {
-          ref.read(favoritesProvider.notifier).toggleFavorite(deal.id);
-        },
-        child: cardContent,
-      );
-    }
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: totalDurationMs),
-      curve: Interval(startInterval, 1.0, curve: Curves.easeOutQuart),
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, 30 * (1 - value)),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: cardContent,
-    );
-  }
-}
-
 // ─── Top deals section ────────────────────────────────────────────────────────
 
 class _TopDealsSliver extends ConsumerWidget {
@@ -835,7 +518,8 @@ class _TopDealsSliver extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final topDeals = ref.watch(topDealsProvider).value ?? [];
-    if (topDeals.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+    if (topDeals.isEmpty)
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
 
     return SliverToBoxAdapter(
       child: Column(
@@ -861,7 +545,10 @@ class _TopDealsSliver extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Color.fromRGBO(0, 230, 118, 0.15),
                     borderRadius: BorderRadius.circular(4),

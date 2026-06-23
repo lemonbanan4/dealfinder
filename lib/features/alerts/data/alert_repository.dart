@@ -18,8 +18,9 @@ class AlertRepository {
 
   Future<void> saveAlertConfig(AlertConfig config) async {
     final ref = _configsRef;
-    if (ref == null)
+    if (ref == null) {
       throw Exception('User must be signed in to save an alert.');
+    }
     await ref.doc(config.id).set(config.toMap());
   }
 

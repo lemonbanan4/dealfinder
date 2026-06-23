@@ -6,14 +6,14 @@ part 'deal.g.dart';
 @freezed
 abstract class Deal with _$Deal {
   const factory Deal({
-    required String id,
+    @JsonKey(name: 'product_id') required String id,
     required String title,
-    required String url,
+    @JsonKey(name: 'tracking_url') required String url,
     required String source,
-    required double currentPrice,
+    @JsonKey(name: 'price') required double currentPrice,
     required String currency,
-    String? imageUrl,
-    double? originalPrice,
+    @JsonKey(name: 'image_url') String? imageUrl,
+    @JsonKey(name: 'retail_price') double? originalPrice,
   }) = _Deal;
 
   factory Deal.fromJson(Map<String, dynamic> json) => _$DealFromJson(json);

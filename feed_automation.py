@@ -126,9 +126,16 @@ if __name__ == "__main__":
         "Acer_Norway": {
              "url": "https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/fid/65993/format/csv/language/no/delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2Cmerchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2Caw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2Cmerchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cproduct_name%2Cdescription%2Cpromotional_text%2Cmerchant_deep_link%2Cmerchant_image_url%2Cdelivery_time%2Ccurrency%2Csearch_price%2Crrp_price%2Cdelivery_cost%2Ccondition%2Ccolour%2Ccustom_1%2Ccustom_2%2Ccustom_4%2Ccustom_5%2Cdelivery_restrictions%2Cstock_status%2Ccustom_6%2Ccustom_7%2Cproduct_GTIN/",
              "currency": "NOK"
+        },
+        "Samsung_Sweden": {
+            "url": "https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/fid/80731/format/csv/language/sv/delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2Cmerchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2Caw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2Cmerchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cisbn%2Cproduct_name%2Cdescription%2Cmerchant_deep_link%2Cmerchant_image_url%2Cdelivery_time%2Csearch_price%2Cin_stock%2Cstock_quantity%2Ccondition%2Cproduct_type%2Ccolour%2Ccustom_1%2Ccustom_2%2Ccustom_3%2Ccustom_4%2Ccustom_5%2Csaving%2Caverage_rating%2Calternate_image%2Cmerchant_product_second_category%2Cproduct_GTIN/",
+            "currency": "SEK"
+        },
+        "Samsung_Norway": {
+            "url": "https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/fid/84515/format/csv/language/no/delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2Cmerchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2Caw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2Cmerchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cisbn%2Cproduct_name%2Cdescription%2Cmerchant_deep_link%2Cmerchant_image_url%2Cdelivery_time%2Csearch_price%2Cin_stock%2Cstock_quantity%2Ccondition%2Cproduct_type%2Cparent_product_id%2Ccolour%2Ccustom_1%2Ccustom_2%2Ccustom_3%2Ccustom_4%2Csaving%2Caverage_rating%2Calternate_image%2Cmerchant_product_second_category%2Cproduct_price_old%2Cproduct_GTIN/",
+            "currency": "NOK"
         }
     }
-    
     master_catalog = {}
     
     for feed_name, config in FEEDS_TO_RUN.items():
@@ -144,6 +151,14 @@ if __name__ == "__main__":
     if master_catalog.get("Acer_Norway") and len(master_catalog["Acer_Norway"]) > 0:
         print("\n--- Live Verification Sample: Acer Norway ---")
         pprint.pprint(master_catalog["Acer_Norway"][0])
+
+    if master_catalog.get("Samsung_Sweden") and len(master_catalog["Samsung_Sweden"]) > 0:
+        print("\n--- Live Verification Sample: Samsung Sweden ---")
+        pprint.pprint(master_catalog["Samsung_Sweden"][0])
+
+    if master_catalog.get("Samsung_Norway") and len(master_catalog["Samsung_Norway"]) > 0:
+        print("\n--- Live Verification Sample: Samsung Norway ---")
+        pprint.pprint(master_catalog["Samsung_Norway"][0])
 
     # Run Database Sync Engine
     if any(master_catalog.values()):

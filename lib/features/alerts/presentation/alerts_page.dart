@@ -66,7 +66,7 @@ class _TriggeredAlertsTab extends ConsumerWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: alerts.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final alert = alerts[index];
         return Dismissible(
@@ -101,12 +101,15 @@ class _TriggeredAlertsTab extends ConsumerWidget {
 
   String _formatTime(DateTime time) {
     final diff = DateTime.now().difference(time);
-    if (diff.inDays > 0)
+    if (diff.inDays > 0) {
       return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
-    if (diff.inHours > 0)
+    }
+    if (diff.inHours > 0) {
       return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
-    if (diff.inMinutes > 0)
+    }
+    if (diff.inMinutes > 0) {
       return '${diff.inMinutes} minute${diff.inMinutes > 1 ? 's' : ''} ago';
+    }
     return 'Just now';
   }
 }
@@ -149,7 +152,7 @@ class _ActiveTargetsTab extends ConsumerWidget {
         return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: configs.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final config = configs[index];
             return _ActiveTargetCard(config: config);

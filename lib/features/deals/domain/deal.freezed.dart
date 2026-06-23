@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Deal {
 
- String get id; String get title; String get url; String get source; double get currentPrice; String get currency; String? get imageUrl; double? get originalPrice;
+@JsonKey(name: 'product_id') String get id; String get title;@JsonKey(name: 'tracking_url') String get url; String get source;@JsonKey(name: 'price') double get currentPrice; String get currency;@JsonKey(name: 'image_url') String? get imageUrl;@JsonKey(name: 'retail_price') double? get originalPrice;
 /// Create a copy of Deal
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $DealCopyWith<$Res>  {
   factory $DealCopyWith(Deal value, $Res Function(Deal) _then) = _$DealCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String url, String source, double currentPrice, String currency, String? imageUrl, double? originalPrice
+@JsonKey(name: 'product_id') String id, String title,@JsonKey(name: 'tracking_url') String url, String source,@JsonKey(name: 'price') double currentPrice, String currency,@JsonKey(name: 'image_url') String? imageUrl,@JsonKey(name: 'retail_price') double? originalPrice
 });
 
 
@@ -160,7 +160,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String url,  String source,  double currentPrice,  String currency,  String? imageUrl,  double? originalPrice)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'product_id')  String id,  String title, @JsonKey(name: 'tracking_url')  String url,  String source, @JsonKey(name: 'price')  double currentPrice,  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Deal() when $default != null:
 return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice);case _:
@@ -181,7 +181,7 @@ return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String url,  String source,  double currentPrice,  String currency,  String? imageUrl,  double? originalPrice)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'product_id')  String id,  String title, @JsonKey(name: 'tracking_url')  String url,  String source, @JsonKey(name: 'price')  double currentPrice,  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice)  $default,) {final _that = this;
 switch (_that) {
 case _Deal():
 return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice);case _:
@@ -201,7 +201,7 @@ return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String url,  String source,  double currentPrice,  String currency,  String? imageUrl,  double? originalPrice)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'product_id')  String id,  String title, @JsonKey(name: 'tracking_url')  String url,  String source, @JsonKey(name: 'price')  double currentPrice,  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice)?  $default,) {final _that = this;
 switch (_that) {
 case _Deal() when $default != null:
 return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice);case _:
@@ -216,17 +216,17 @@ return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_
 @JsonSerializable()
 
 class _Deal implements Deal {
-  const _Deal({required this.id, required this.title, required this.url, required this.source, required this.currentPrice, required this.currency, this.imageUrl, this.originalPrice});
+  const _Deal({@JsonKey(name: 'product_id') required this.id, required this.title, @JsonKey(name: 'tracking_url') required this.url, required this.source, @JsonKey(name: 'price') required this.currentPrice, required this.currency, @JsonKey(name: 'image_url') this.imageUrl, @JsonKey(name: 'retail_price') this.originalPrice});
   factory _Deal.fromJson(Map<String, dynamic> json) => _$DealFromJson(json);
 
-@override final  String id;
+@override@JsonKey(name: 'product_id') final  String id;
 @override final  String title;
-@override final  String url;
+@override@JsonKey(name: 'tracking_url') final  String url;
 @override final  String source;
-@override final  double currentPrice;
+@override@JsonKey(name: 'price') final  double currentPrice;
 @override final  String currency;
-@override final  String? imageUrl;
-@override final  double? originalPrice;
+@override@JsonKey(name: 'image_url') final  String? imageUrl;
+@override@JsonKey(name: 'retail_price') final  double? originalPrice;
 
 /// Create a copy of Deal
 /// with the given fields replaced by the non-null parameter values.
@@ -261,7 +261,7 @@ abstract mixin class _$DealCopyWith<$Res> implements $DealCopyWith<$Res> {
   factory _$DealCopyWith(_Deal value, $Res Function(_Deal) _then) = __$DealCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String url, String source, double currentPrice, String currency, String? imageUrl, double? originalPrice
+@JsonKey(name: 'product_id') String id, String title,@JsonKey(name: 'tracking_url') String url, String source,@JsonKey(name: 'price') double currentPrice, String currency,@JsonKey(name: 'image_url') String? imageUrl,@JsonKey(name: 'retail_price') double? originalPrice
 });
 
 

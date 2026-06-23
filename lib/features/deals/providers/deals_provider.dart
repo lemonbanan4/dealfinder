@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:http/http.dart' as http;
 
+import '../../../config.dart';
 import '../../../providers/repositories.dart';
 import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';
@@ -14,37 +17,35 @@ part 'deals_provider.g.dart';
 @Riverpod(keepAlive: true)
 class DealFeedNotifier extends _$DealFeedNotifier {
   @override
-  Future<List<Deal>> build() {
-    final completer = Completer<List<Deal>>();
+  Future<List<Deal>> build() async {
+    return _fetchFromApi();
+  }
 
-    final sub = ref
-        .read(firestoreDealRepositoryProvider)
-        .watchAll()
-        .listen(
-          (deals) {
-            if (!completer.isCompleted) {
-              completer.complete(deals);
-            } else {
-              state = AsyncData(deals);
-            }
-          },
-          onError: (Object e, StackTrace s) {
-            if (!completer.isCompleted) {
-              completer.completeError(e, s);
-            } else {
-              state = AsyncError(e, s);
-            }
-          },
-        );
-    ref.onDispose(sub.cancel);
-
-    return completer.future;
+  Future<List<Deal>> _fetchFromApi() async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiUrl}/api/products'),
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final deals = data.map((json) => Deal.fromJson(json)).toList();
+        state = AsyncValue.data(deals);
+        return deals;
+      } else {
+        throw Exception('Failed to load deals');
+      }
+    } catch (e, s) {
+      state = AsyncValue.error(e, s);
+      return [];
+    }
   }
 
   /// Scrapes all enabled sources and writes results to Firestore.
   /// The stream subscription in [build] automatically pushes the updated
   /// list to the UI — no manual state assignment needed here.
   Future<void> refresh() async {
+    await _fetchFromApi();
     await _scrapeAndSave();
   }
 
@@ -90,9 +91,12 @@ class DealFeedNotifier extends _$DealFeedNotifier {
 
   List<Deal> _deduplicate(List<Deal> deals) {
     final seen = <String>{};
-    return deals.where((d) => seen.add(d.url)).toList()
-      ..sort((a, b) => CurrencyConverter.toEur(a.currentPrice, a.currency)
-            .compareTo(CurrencyConverter.toEur(b.currentPrice, b.currency)));
+    return deals.where((d) => seen.add(d.url)).toList()..sort(
+      (a, b) => CurrencyConverter.toEur(
+        a.currentPrice,
+        a.currency,
+      ).compareTo(CurrencyConverter.toEur(b.currentPrice, b.currency)),
+    );
   }
 }
 
@@ -101,12 +105,8 @@ class DealFeedNotifier extends _$DealFeedNotifier {
 /// for free by calling `.when` on the result.
 final topDealsProvider = Provider<AsyncValue<List<Deal>>>((ref) {
   return ref.watch(dealFeedProvider).whenData((deals) {
-    return deals
-        .where((d) => (d.discountPercent ?? 0) >= 25)
-        .toList()
-      ..sort(
-        (a, b) =>
-            (b.discountPercent ?? 0).compareTo(a.discountPercent ?? 0),
-      );
+    return deals.where((d) => (d.discountPercent ?? 0) >= 25).toList()..sort(
+      (a, b) => (b.discountPercent ?? 0).compareTo(a.discountPercent ?? 0),
+    );
   });
 });

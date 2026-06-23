@@ -7,7 +7,7 @@ app = FastAPI(title="Prispuls Product Engine")
 # Enable CORS so your frontend website can safely read this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # When live, replace with ['https://prispuls.com']
+    allow_origins=["https://prispuls.com"],  # When live, replace with ['https://prispuls.com']
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
