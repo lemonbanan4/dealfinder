@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../config.dart';
+import '../../../core/constants.dart';
+import '../../../providers/product_provider.dart';
 import '../../../providers/repositories.dart';
 import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';
@@ -25,7 +26,7 @@ class DealFeedNotifier extends _$DealFeedNotifier {
     state = const AsyncValue.loading();
     try {
       final response = await http.get(
-        Uri.parse('${AppConfig.apiUrl}/api/products'),
+        Uri.parse('${ApiUrls.apiUrl}/api/products'),
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);

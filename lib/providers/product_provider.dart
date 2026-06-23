@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../config.dart';
+import '../core/constants.dart';
 import '../features/deals/domain/deal.dart'; // Import your Deal model
 
 class ProductProvider with ChangeNotifier {
@@ -17,8 +17,11 @@ class ProductProvider with ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('${AppConfig.apiUrl}/api/products'),
+        Uri.parse('${ApiUrls.apiUrl}/api/products'),
       );
+
+      // DEBUG: Print the first 200 chars of the response
+      debugPrint('Response Body: ${response.body.substring(0, 200)}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -27,7 +30,7 @@ class ProductProvider with ChangeNotifier {
         _deals = data.map((json) => Deal.fromJson(json)).toList();
       }
     } catch (e) {
-      debugPrint('Error: $e');
+      debugPrint('CRITICAL FETCH ERROR: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
