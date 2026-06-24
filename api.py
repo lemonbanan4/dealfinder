@@ -33,7 +33,7 @@ def get_products():
 
         # SQL Filter: Only select products where there is a retail_price
         # and it is strictly greater than the current price (a real discount)
-        cursor.execute("""SELECT * FROM products WHERE retail_price IS NOT NULL AND retail_price > price ORDER BY last_updated DESC""")
+        cursor.execute("""SELECT * FROM products WHERE retail_price IS NOT NULL ORDER BY last_updated DESC""")
         rows = cursor.fetchall()
         cursor.close()
         conn.close()

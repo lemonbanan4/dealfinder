@@ -18,15 +18,16 @@ abstract class Deal with _$Deal {
 
   factory Deal.fromJson(Map<String, dynamic> json) {
     return Deal(
-      id: json['product_id'] ?? 'unknown_id'.toString(),
-      title: json['title'] ?? 'No Title'.toString(),
-      currentPrice: (json['price'] as num?)?.toDouble() ?? 0.0,
-      originalPrice: (json['retail_price'] as num?)?.toDouble(),
+      // Ensure these are all cast to the right types and handle nulls
+      id: (json['product_id'] ?? 'unknown').toString(),
+      title: (json['title'] ?? 'No Title').toString(),
       url: (json['tracking_url'] ?? '').toString(),
-      imageUrl: json['image_url']?.toString(),
       source: (json['feed_region'] ?? 'Unknown').toString(),
-      currency: (json['currency'] ?? 'SEK')
-          .toString(), // You might need to add a currency column to your DB
+      currentPrice: (json['price'] as num?)?.toDouble() ?? 0.0,
+      currency: (json['currency'] ?? 'SEK').toString(),
+      imageUrl: json['image_url']?.toString(),
+      // Handle the case where retail_price is null (no discount)
+      originalPrice: (json['retail_price'] as num?)?.toDouble(),
     );
   }
 }
