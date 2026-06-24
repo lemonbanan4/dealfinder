@@ -30,7 +30,11 @@ def get_products():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT * FROM products ORDER BY last_updated DESC")
+
+        # SQL Filter: Only select products where there is a retail_price
+        # and it is strictly greater than the current price (a real discount)
+        query = """SELECT * FROM products WHERE retail_price > price ORDER BY last_updated DESC"""
+        cursor.execute(query)
         rows = cursor.fetchall()
         cursor.close()
         conn.close()

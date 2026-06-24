@@ -65,6 +65,18 @@ class AwinConfig:
     # Optional: filter rows where the feed's 'currency' column matches this value.
     # Only needed when a single feed file mixes multiple currencies.
     currency_filter: Optional[str] = None
+    # Map internal keys to external CSV column names
+    column_map: dict[str, str] = field(default_factory=lambda: {
+        "id": "merchant_product_id",
+        "title": "product_name",
+        "price": "search_price",
+        "original_price": "rrp_price",
+        "link": "aw_deep_link",
+        "image": "merchant_image_url",
+        "brand": "brand_name",
+        "currency": "currency",
+        "ean": "product_GTIN",
+    })
 
 
 @dataclass
@@ -100,82 +112,161 @@ class StoreConfig:
 # publisher dashboard and update these strings accordingly.
 
 STORES: list[StoreConfig] = [
-    # ── Acer SE — Swedish store, prices in SEK ───────────────────────────────────
+
     StoreConfig(
-        id="acer_se",
-        name="Acer SE",
+        id="all_se",
+        name="ALL SE Deals",
         currency="SEK",
         awin=AwinConfig(
-            feed_url=(
-                "https://productdata.awin.com/datafeed/download/apikey/"
-                "4a61258494661ab34c07bf7f5ec68c59/fid/65995/format/csv/language/sv/"
-                "delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2C"
-                "merchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2C"
-                "aw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2C"
-                "merchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cproduct_name%2C"
-                "description%2Cpromotional_text%2Cmerchant_deep_link%2Cmerchant_image_url%2C"
-                "delivery_time%2Csearch_price%2Crrp_price%2Cdelivery_cost%2Ccondition%2C"
-                "colour%2Ccustom_1%2Ccustom_2%2Ccustom_3%2Ccustom_4%2Ccustom_5%2C"
-                "delivery_restrictions%2Cstock_status%2Ccustom_6%2Ccustom_7%2Cproduct_GTIN/"
-            ),
-            # No currency_filter: the SE feed is Sweden-only, all rows are SEK.
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/cid/61,62,72,73,71,74,75,76,77,78,63,80,82,64,83,84,85,65,86,88,90,89,91,67,92,94,33,53,52,603,66,128,130,133,212,209,210,211,68,69,213,220,221,70,224,225,226,227,228,229,4,5,10,11,537,19,15,14,6,20,22,23,24,25,7,30,32,619,8,35,618,43,9,45,46,50,421,605,604,599,422,433,434,436,532,428,474,475,476,477,423,608,437,438,441,444,445,424,451,448,453,449,452,450,425,455,457,459,460,456,458,426,616,463,464,465,466,427,625,597,473,469,617,470,429,430,481,615,483,484,485,488,529,596,431,432,490/fid/62983,80731/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            currency_filter="SEK",
+            column_map={
+            "id": "merchant_product_id",
+            "title": "product_name",
+            "price": "search_price",
+            "original_price": "product_price_old",
+            "link": "aw_deep_link",
+            "image": "merchant_image_url",
+            }
         ),
     ),
 
-    # ── Acer NO — Norwegian store, prices in NOK ─────────────────────────────────
+    # Example of using the consolidated SE feed
     StoreConfig(
-        id="acer_no",
-        name="Acer NO",
+        id="all_no",
+        name="All NO Deals",
         currency="NOK",
         awin=AwinConfig(
-            feed_url=(
-                "https://productdata.awin.com/datafeed/download/apikey/"
-                "4a61258494661ab34c07bf7f5ec68c59/fid/65993/format/csv/language/no/"
-                "delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2C"
-                "merchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2C"
-                "aw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2C"
-                "merchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cproduct_name%2C"
-                "description%2Cpromotional_text%2Cmerchant_deep_link%2Cmerchant_image_url%2C"
-                "delivery_time%2Ccurrency%2Csearch_price%2Crrp_price%2Cdelivery_cost%2C"
-                "condition%2Ccolour%2Ccustom_1%2Ccustom_2%2Ccustom_4%2Ccustom_5%2C"
-                "delivery_restrictions%2Cstock_status%2Ccustom_6%2Ccustom_7%2Cproduct_GTIN/"
-            ),
-            # This feed includes a 'currency' column — guard against multi-currency rows.
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/cid/61,62,72,73,71,74,75,76,77,78,63,80,82,64,83,84,85,65,86,88,90,89,91,67,92,94,33,53,52,603,66,128,130,133,212,209,210,211,68,69,213,220,221,70,224,225,226,227,228,229,4,5,10,11,537,19,15,14,6,20,22,23,24,25,7,30,32,619,8,35,618,43,9,45,46,50,634,230,231,538,235,238,241,556,245,521,576,575,577,579,361,633,362,366,367,368,371,369,363,372,373,374,377,375,535,364,378,365,383,385,390,392,394,399,402,404,406,407,347,348,354,350,351,349,357,358,360/fid/51735,62985/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
             currency_filter="NOK",
+            column_map={
+            "id": "merchant_product_id",
+            "title": "product_name",
+            "price": "search_price",
+            "original_price": "product_price_old", 
+            "link": "aw_deep_link",
+            "image": "merchant_image_url"
+            }
         ),
     ),
 
-    # ── Earfun — EU store, prices in EUR ─────────────────────────────────────────
-    #
-    # Earfun runs on Shopify (Dawn 2.x theme).  All product listings are
-    # server-side rendered, so BeautifulSoup works without a headless browser.
-    #
-    # If the site ever moves to a JS-first rendering approach, replace the html=
-    # block with a Playwright-based fetch or a Shopify Storefront API call
-    # (GET /products.json?limit=250).
-    StoreConfig(
-        id="earfun",
-        name="Earfun",
-        currency="EUR",
-        html=HtmlConfig(
-            url="https://www.earfun.com/collections/all",
-            list_selector="li.grid__item",
-            title_selector=".card__heading a, h3.card__heading a",
-            # On Shopify Dawn, sale cards carry both a <s> (original) and a
-            # non-struck price element inside .price__sale.
-            current_price_selector=(
-                ".price__sale .price-item--sale, "
-                ".price__regular .price-item--regular"
-            ),
-            original_price_selector=(
-                ".price__sale s.price-item--regular, "
-                ".price__sale .price-item--compare"
-            ),
-            link_selector=".card__heading a, a.full-unstyled-link",
-            image_selector=".card__media img",
-            base_url="https://www.earfun.com",
-        ),
-    ),
+
+    # # ── Acer SE — Swedish store, prices in SEK ───────────────────────────────────
+    # StoreConfig(
+    #     id="acer_se",
+    #     name="Acer SE",
+    #     currency="SEK",
+    #     awin=AwinConfig(
+    #         feed_url=(
+    #             "https://productdata.awin.com/datafeed/download/apikey/"
+    #             "4a61258494661ab34c07bf7f5ec68c59/fid/65995/format/csv/language/sv/"
+    #             "delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2C"
+    #             "merchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2C"
+    #             "aw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2C"
+    #             "merchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cproduct_name%2C"
+    #             "description%2Cpromotional_text%2Cmerchant_deep_link%2Cmerchant_image_url%2C"
+    #             "delivery_time%2Csearch_price%2Crrp_price%2Cdelivery_cost%2Ccondition%2C"
+    #             "colour%2Ccustom_1%2Ccustom_2%2Ccustom_3%2Ccustom_4%2Ccustom_5%2C"
+    #             "delivery_restrictions%2Cstock_status%2Ccustom_6%2Ccustom_7%2Cproduct_GTIN/"
+    #         ),
+    #         # No currency_filter: the SE feed is Sweden-only, all rows are SEK.
+    #     ),
+    # ),
+
+    # # ── Acer NO — Norwegian store, prices in NOK ─────────────────────────────────
+    # StoreConfig(
+    #     id="acer_no",
+    #     name="Acer NO",
+    #     currency="NOK",
+    #     awin=AwinConfig(
+    #         feed_url=(
+    #             "https://productdata.awin.com/datafeed/download/apikey/"
+    #             "4a61258494661ab34c07bf7f5ec68c59/fid/65993/format/csv/language/no/"
+    #             "delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2C"
+    #             "merchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2C"
+    #             "aw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2C"
+    #             "merchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cproduct_name%2C"
+    #             "description%2Cpromotional_text%2Cmerchant_deep_link%2Cmerchant_image_url%2C"
+    #             "delivery_time%2Ccurrency%2Csearch_price%2Crrp_price%2Cdelivery_cost%2C"
+    #             "condition%2Ccolour%2Ccustom_1%2Ccustom_2%2Ccustom_4%2Ccustom_5%2C"
+    #             "delivery_restrictions%2Cstock_status%2Ccustom_6%2Ccustom_7%2Cproduct_GTIN/"
+    #         ),
+    #         # This feed includes a 'currency' column — guard against multi-currency rows.
+    #         currency_filter="NOK",
+    #     ),
+    # ),
+
+    # ## SAMSUNG 
+    # StoreConfig(
+    #     id="samsung_se",
+    #     name="Samsung SE",
+    #     currency="SEK",
+    #     awin=AwinConfig(
+    #         feed_url=("https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/fid/80731/format/csv/language/sv/delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2Cmerchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2Caw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2Cmerchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cisbn%2Cproduct_name%2Cdescription%2Cmerchant_deep_link%2Cmerchant_image_url%2Cdelivery_time%2Csearch_price%2Cin_stock%2Cstock_quantity%2Ccondition%2Cproduct_type%2Ccolour%2Ccustom_1%2Ccustom_2%2Ccustom_3%2Ccustom_4%2Ccustom_5%2Csaving%2Caverage_rating%2Calternate_image%2Cmerchant_product_second_category%2Cproduct_GTIN/"
+    #                   ),
+    #         currency_filter="SEK",
+    #         column_map={
+    #             "id": "merchant_product_id",
+    #             "title": "product_name",
+    #             "price": "search_price",
+    #             "original_price": "product_price_old",
+    #             "link": "aw_deep_link",
+    #             "image": "merchant_image_url",
+    #         }
+    #     ),  
+    # ),
+
+    # StoreConfig(
+    #     id="samsung_no",
+    #     name="Samsung NO",
+    #     currency="NOK",
+    #     awin=AwinConfig(
+    #         feed_url=("https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/fid/84515/format/csv/language/no/delimiter/%2C/compression/gzip/columns/data_feed_id%2Cmerchant_id%2Cmerchant_name%2Caw_product_id%2Caw_deep_link%2Caw_image_url%2Caw_thumb_url%2Ccategory_id%2Ccategory_name%2Cbrand_id%2Cbrand_name%2Cmerchant_product_id%2Cmerchant_category%2Cean%2Cmpn%2Cisbn%2Cproduct_name%2Cdescription%2Cmerchant_deep_link%2Cmerchant_image_url%2Cdelivery_time%2Csearch_price%2Cin_stock%2Cstock_quantity%2Ccondition%2Cproduct_type%2Cparent_product_id%2Ccolour%2Ccustom_1%2Ccustom_2%2Ccustom_3%2Ccustom_4%2Csaving%2Caverage_rating%2Calternate_image%2Cmerchant_product_second_category%2Cproduct_price_old%2Cproduct_GTIN/"
+    #         ),
+    #         currency_filter="NOK",
+    #         column_map={
+    #             "id": "merchant_product_id",
+    #             "title": "product_name",
+    #             "price": "search_price",
+    #             "original_price": "product_price_old",
+    #             "link": "aw_deep_link",
+    #             "image": "merchant_image_url",
+    #         }
+    #     ),  
+    # ),
+
+
+    # # ── Earfun — EU store, prices in EUR ─────────────────────────────────────────
+    # #
+    # # Earfun runs on Shopify (Dawn 2.x theme).  All product listings are
+    # # server-side rendered, so BeautifulSoup works without a headless browser.
+    # #
+    # # If the site ever moves to a JS-first rendering approach, replace the html=
+    # # block with a Playwright-based fetch or a Shopify Storefront API call
+    # # (GET /products.json?limit=250).
+    # StoreConfig(
+    #     id="earfun",
+    #     name="Earfun",
+    #     currency="EUR",
+    #     html=HtmlConfig(
+    #         url="https://www.earfun.com/collections/all",
+    #         list_selector="li.grid__item",
+    #         title_selector=".card__heading a, h3.card__heading a",
+    #         # On Shopify Dawn, sale cards carry both a <s> (original) and a
+    #         # non-struck price element inside .price__sale.
+    #         current_price_selector=(
+    #             ".price__sale .price-item--sale, "
+    #             ".price__regular .price-item--regular"
+    #         ),
+    #         original_price_selector=(
+    #             ".price__sale s.price-item--regular, "
+    #             ".price__sale .price-item--compare"
+    #         ),
+    #         link_selector=".card__heading a, a.full-unstyled-link",
+    #         image_selector=".card__media img",
+    #         base_url="https://www.earfun.com",
+    #     ),
+    # ),
 ]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────────
@@ -289,21 +380,41 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
         return []
 
     log.info("[%s] %d raw rows received.", store.name, len(df))
+    log.info("[%s] Column headers: %s", store.name, list(df.columns))
+    log.info("[%s] Sample row: %s", store.name, df.head(1).to_dict())
+
+
+    link_col = cfg.column_map["link"]
+    price_col = cfg.column_map["price"]
+    rrp_col = cfg.column_map.get("original_price")
 
     # Drop rows missing required fields.
-    df = df.dropna(subset=["aw_deep_link", "search_price"])
-    df["search_price"] = pd.to_numeric(df["search_price"], errors="coerce")
-    df["rrp_price"] = pd.to_numeric(df["rrp_price"], errors="coerce")
+    df = df.dropna(subset=[link_col, price_col])
     df = df.dropna(subset=["search_price"])
 
     # Filter to the target currency when the feed mixes multiple currencies.
     if cfg.currency_filter and "currency" in df.columns:
         df = df[df["currency"].str.upper() == cfg.currency_filter.upper()]
 
+    
+    # Only clean rrp_price if the store actually has that column
+    if rrp_col and rrp_col in df.columns:
+        df[rrp_col] = pd.to_numeric(df[rrp_col], errors="coerce")
+
+    df[price_col] = pd.to_numeric(df[price_col], errors="coerce")
+    if rrp_col and rrp_col in df.columns:
+        df[rrp_col] = pd.to_numeric(df[rrp_col], errors="coerce")
+    df = df.dropna(subset=[price_col])
+
     # Identify rows that have a valid, higher RRP — but do NOT discard the rest.
     # Products where rrp_price is missing or ≤ search_price are kept and stored
     # with originalPrice = None so all 200+ products flow through.
-    has_discount = df["rrp_price"].notna() & (df["rrp_price"] > df["search_price"])
+    #has_discount = df["rrp_price"].notna() & (df["rrp_price"] > df["search_price"])
+
+    if rrp_col and rrp_col in df.columns:
+        has_discount = df[rrp_col].notna() & (df[rrp_col] > df[price_col])
+    else:
+        has_discount = pd.Series([False] * len(df))
 
     # SCRAPER_MIN_DISCOUNT_PCT only drops rows that *have* an RRP but fall below
     # the threshold.  Rows without any RRP are always kept.
@@ -322,34 +433,30 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
 
     deals: list[dict] = []
     for _, row in df.iterrows():
-        # Get values using the aliases
-        url = str(get_column(row, ['aw_deep_link', 'merchant_deep_link']) or "").strip()
-        fallback = str(row.get("merchant_product_id", ""))
-        doc_id = _make_doc_id(store.id, url, fallback_key=fallback)
+        raw_id = str(row.get(cfg.column_map["id"], ""))
+        title = str(row.get(cfg.column_map["title"], ""))
+        url = str(row.get(cfg.column_map["link"], "")).strip()
 
-        image_url = get_column(row, ['merchant_image_url', 'aw_image_url', 'alternate_image'])
 
-        # Use the alias helper for price too
-        price_val = get_column(row, ['search_price', 'product_price', 'price'])
+        # Use our helper for prices to handle different column names
+        current_price = float(pd.to_numeric(row.get(cfg.column_map["price"], 0), errors='coerce'))
+
+
+
+        # Original price (handle if it doesn't exists)
+        orig_key = cfg.column_map.get("original_price")
+        rrp = row.get(orig_key) if orig_key in row else None
+        original_price = float(rrp) if pd.notna(rrp) and float(rrp) > current_price else None
         
-        # Use the alias helper for RRP
-        rrp_val = get_column(row, ['rrp_price', 'product_price_old', 'saving'])
-
-        current_price = float(price_val) if price_val is not None else 0.0
-        
-        # Original price logic
-        original_price = None
-        if rrp_val is not None and float(rrp_val) > current_price:
-            original_price = float(rrp_val)
 
         deals.append({
-            "id": doc_id,
-            "title": str(row.get("product_name", "")).strip(),
+            "id": _make_doc_id(store.id, url, fallback_key=raw_id),
+            "title": title,
             "url": url,
             "source": store.name,
             "currentPrice": current_price,
             "currency": store.currency,
-            "imageUrl": image_url,
+            "imageUrl": row.get(cfg.column_map["image"]),
             "originalPrice": original_price,
         })
 
@@ -522,7 +629,7 @@ def write_deals(deals: list[dict], store_id: str) -> int:
             deal["id"], 
             store_id,  # Use the dynamic store ID passed here
             deal["title"], 
-            "Acer", # Note: You might want to make this dynamic too!
+            deal.get("brand", "unknown"),
             deal["currentPrice"],
             deal["originalPrice"], 
             deal["url"], 
