@@ -292,7 +292,7 @@ def _make_doc_id(store_id: str, product_url: str, fallback_key: str = "") -> str
         slug = path.split("/")[-1] if path else ""
         if not slug:
             slug = hashlib.md5((product_url).encode()).hexdigest()[:16]
-            
+
     raw = f"{store_id}_{slug}"
     # Firestore document IDs must not contain slashes; sanitise everything else too.
     return re.sub(r"[^a-zA-Z0-9_-]", "_", raw)[:200]
@@ -458,6 +458,9 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
             "currency": store.currency,
             "imageUrl": row.get(cfg.column_map["image"]),
             "originalPrice": original_price,
+            "description": row.get("description", ""),
+            "ean": row.get("ean"),
+            "brand": row.get("brand_name", "Unknown")
         })
 
     return deals
@@ -621,6 +624,8 @@ def write_deals(deals: list[dict], store_id: str) -> int:
         price = EXCLUDED.price,
         retail_price = EXCLUDED.retail_price,
         stock_status = EXCLUDED.stock_status,
+        description = EXCLUDED.description,
+        ean_code = EXCLUDED.ean_code,
         last_updated = timezone('utc'::text, now());
     """
     
@@ -633,10 +638,10 @@ def write_deals(deals: list[dict], store_id: str) -> int:
             deal["currentPrice"],
             deal["originalPrice"], 
             deal["url"], 
-            deal["imageUrl"], 
-            "", 
-            "In Stock", 
-            None
+            deal["imageUrl"],
+            deal.get("description", ""),
+            "In Stock",
+            deal.get("ean")
         ))
     
     conn.commit()
