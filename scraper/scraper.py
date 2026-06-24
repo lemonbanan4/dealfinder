@@ -282,17 +282,17 @@ def get_db_connection():
 
 def _make_doc_id(store_id: str, product_url: str, fallback_key: str = "") -> str:
     """
-    Build a stable Firestore document ID from the URL path slug.
-
-    Using the URL slug (not a random UUID) makes repeated runs idempotent —
-    the same product always maps to the same document, so `batch.set()` is a
-    clean upsert rather than a duplicate insert.
+    Build a stable ID using the unique merchant_product_id.
     """
-    path = urlparse(product_url).path.rstrip("/")
-    slug = path.split("/")[-1] if path else ""
-    if not slug:
-        # Fall back to an MD5 hash if the URL has no meaningful path segment.
-        slug = hashlib.md5((product_url or fallback_key).encode()).hexdigest()[:16]
+    # If we have a fallback_key (the merchant_product_id), use it as the slug!
+    if fallback_key:
+        slug = fallback_key
+    else:
+        path = urlparse(product_url).path.rstrip("/")
+        slug = path.split("/")[-1] if path else ""
+        if not slug:
+            slug = hashlib.md5((product_url).encode()).hexdigest()[:16]
+            
     raw = f"{store_id}_{slug}"
     # Firestore document IDs must not contain slashes; sanitise everything else too.
     return re.sub(r"[^a-zA-Z0-9_-]", "_", raw)[:200]
@@ -626,7 +626,7 @@ def write_deals(deals: list[dict], store_id: str) -> int:
     
     for deal in deals:
         cur.execute(upsert_query, (
-            deal["id"], 
+            deal["id"],
             store_id,  # Use the dynamic store ID passed here
             deal["title"], 
             deal.get("brand", "unknown"),

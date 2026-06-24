@@ -16,7 +16,19 @@ abstract class Deal with _$Deal {
     @JsonKey(name: 'retail_price') double? originalPrice,
   }) = _Deal;
 
-  factory Deal.fromJson(Map<String, dynamic> json) => _$DealFromJson(json);
+  factory Deal.fromJson(Map<String, dynamic> json) {
+    return Deal(
+      id: json['product_id'] ?? 'unknown_id'.toString(),
+      title: json['title'] ?? 'No Title'.toString(),
+      currentPrice: (json['price'] as num?)?.toDouble() ?? 0.0,
+      originalPrice: (json['retail_price'] as num?)?.toDouble(),
+      url: (json['tracking_url'] ?? '').toString(),
+      imageUrl: json['image_url']?.toString(),
+      source: (json['feed_region'] ?? 'Unknown').toString(),
+      currency: (json['currency'] ?? 'SEK')
+          .toString(), // You might need to add a currency column to your DB
+    );
+  }
 }
 
 extension DealDiscount on Deal {
