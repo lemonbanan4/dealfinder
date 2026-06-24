@@ -7,7 +7,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/constants.dart';
-import '../../../providers/product_provider.dart';
 import '../../../providers/repositories.dart';
 import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';

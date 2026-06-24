@@ -48,84 +48,88 @@ class AlertEvaluationService {
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    try {
-      WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb) {
+    Workmanager().executeTask((task, inputData) async {
+      try {
+        WidgetsFlutterBinding.ensureInitialized();
 
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
 
-      await Hive.initFlutter();
-      await Future.wait([
-        Hive.openBox<String>(HiveBoxes.alerts),
-        Hive.openBox<String>(HiveBoxes.deals),
-        Hive.openBox<String>(HiveBoxes.scraperConfigs),
-        Hive.openBox<String>(HiveBoxes.currencyRates),
-        Hive.openBox<String>(HiveBoxes.settings),
-      ]);
+        await Hive.initFlutter();
+        await Future.wait([
+          Hive.openBox<String>(HiveBoxes.alerts),
+          Hive.openBox<String>(HiveBoxes.deals),
+          Hive.openBox<String>(HiveBoxes.scraperConfigs),
+          Hive.openBox<String>(HiveBoxes.currencyRates),
+          Hive.openBox<String>(HiveBoxes.settings),
+        ]);
 
-      final container = ProviderContainer();
+        final container = ProviderContainer();
 
-      final scraperService = container.read(scraperServiceProvider);
-      final dealRepo = container.read(dealRepositoryProvider);
-      final configs =
-          dealRepo.getConfigs().where((c) => c.isEnabled).toList();
+        final scraperService = container.read(scraperServiceProvider);
+        final dealRepo = container.read(dealRepositoryProvider);
+        final configs = dealRepo
+            .getConfigs()
+            .where((c) => c.isEnabled)
+            .toList();
 
-      final allDeals = <Deal>[];
-      for (final config in configs) {
-        try {
-          final deals = await scraperService.scrape(config);
-          allDeals.addAll(deals);
-        } catch (_) {}
-      }
-
-      // Persist scraped deals so the feed is fresh when the user opens the app.
-      if (allDeals.isNotEmpty) {
-        await dealRepo.saveAll(allDeals);
-        if (FirebaseAuth.instance.currentUser != null) {
-          await container
-              .read(firestoreDealRepositoryProvider)
-              .upsertDeals(allDeals);
+        final allDeals = <Deal>[];
+        for (final config in configs) {
+          try {
+            final deals = await scraperService.scrape(config);
+            allDeals.addAll(deals);
+          } catch (_) {}
         }
+
+        // Persist scraped deals so the feed is fresh when the user opens the app.
+        if (allDeals.isNotEmpty) {
+          await dealRepo.saveAll(allDeals);
+          if (FirebaseAuth.instance.currentUser != null) {
+            await container
+                .read(firestoreDealRepositoryProvider)
+                .upsertDeals(allDeals);
+          }
+        }
+
+        final droppedDeals = await AlertEvaluationService.evaluate(allDeals);
+
+        await PlatformNotificationService().initialize();
+
+        for (final deal in droppedDeals) {
+          const title = 'Price Drop Alert!';
+          final message =
+              '${deal.title} is now only ${deal.currentPrice.round()} ${deal.currency}!';
+
+          await PlatformNotificationService().showPriceAlert(
+            id: deal.id.hashCode,
+            title: title,
+            body: message,
+            payload: deal.url,
+          );
+
+          final newAlert = PriceAlert(
+            id: '${DateTime.now().millisecondsSinceEpoch}_${deal.id}',
+            title: title,
+            message: message,
+            time: DateTime.now(),
+            isRead: false,
+          );
+          container.read(alertsProvider.notifier).addAlert(newAlert);
+        }
+
+        if (!kIsWeb && await FlutterAppBadger.isAppBadgeSupported()) {
+          FlutterAppBadger.updateBadgeCount(droppedDeals.length);
+        }
+
+        container.dispose();
+        return Future.value(true);
+      } catch (_) {
+        return Future.value(false);
       }
-
-      final droppedDeals = await AlertEvaluationService.evaluate(allDeals);
-
-      await PlatformNotificationService().initialize();
-
-      for (final deal in droppedDeals) {
-        const title = 'Price Drop Alert!';
-        final message =
-            '${deal.title} is now only ${deal.currentPrice.round()} ${deal.currency}!';
-
-        await PlatformNotificationService().showPriceAlert(
-          id: deal.id.hashCode,
-          title: title,
-          body: message,
-          payload: deal.url,
-        );
-
-        final newAlert = PriceAlert(
-          id: '${DateTime.now().millisecondsSinceEpoch}_${deal.id}',
-          title: title,
-          message: message,
-          time: DateTime.now(),
-          isRead: false,
-        );
-        container.read(alertsProvider.notifier).addAlert(newAlert);
-      }
-
-      if (!kIsWeb && await FlutterAppBadger.isAppBadgeSupported()) {
-        FlutterAppBadger.updateBadgeCount(droppedDeals.length);
-      }
-
-      container.dispose();
-      return Future.value(true);
-    } catch (_) {
-      return Future.value(false);
-    }
-  });
+    });
+  }
 }
 
 void initializeBackgroundTasks() {

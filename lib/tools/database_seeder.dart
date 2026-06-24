@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-import '../features/deals/data/firestore_deal_repository.dart';
 import '../features/deals/domain/deal.dart';
 
 class DatabaseSeeder {

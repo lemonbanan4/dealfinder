@@ -11,8 +11,9 @@ app = FastAPI(title="Prispuls Product Engine")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Use ["https://prispuls.com"] for final production
-    allow_methods=["*"],
+    allow_origins=["https://prispuls.com"], # Use ["https://prispuls.com"] for final production
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -25,22 +26,18 @@ def read_root():
     return {"message": "API is alive!"}
 
 @app.get("/api/products")
-def get_products(region: str = Query(None)):
-    conn = get_db_connection()
-    # RealDictCursor makes the rows behave like Python dictionaries
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    
-    if region:
-        # Use %s for psycopg2 parameters, NOT ?
-        cursor.execute("SELECT * FROM products WHERE feed_region = %s ORDER BY price ASC", (region,))
-    else:
+def get_products():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("SELECT * FROM products ORDER BY last_updated DESC")
-        
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    
-    return rows
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        return {"error": str(e)}
+
 
 if __name__ == "__main__":
     import uvicorn
