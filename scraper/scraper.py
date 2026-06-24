@@ -622,6 +622,9 @@ def write_deals(deals: list[dict], store_id: str) -> int:
     ON CONFLICT (product_id) 
     DO UPDATE SET 
         price = EXCLUDED.price,
+        currency = EXCLUDED.currency,
+        tracking_url = EXCLUDED.tracking_url,
+        image_url = EXCLUDED.image_url,
         retail_price = EXCLUDED.retail_price,
         stock_status = EXCLUDED.stock_status,
         description = EXCLUDED.description,
@@ -637,6 +640,7 @@ def write_deals(deals: list[dict], store_id: str) -> int:
             deal.get("brand", "unknown"),
             deal["currentPrice"],
             deal["originalPrice"], 
+            deal['currency'],
             deal["url"], 
             deal["imageUrl"],
             deal.get("description", ""),
