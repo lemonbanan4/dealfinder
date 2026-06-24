@@ -20,6 +20,10 @@ def get_db_connection():
     # sslmode=require is required by Supabase
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
+@app.get("/")
+def read_root():
+    return {"message": "API is alive!"}
+
 @app.get("/api/products")
 def get_products(region: str = Query(None)):
     conn = get_db_connection()

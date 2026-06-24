@@ -31,6 +31,7 @@ class DealCard extends StatelessWidget {
     required this.deal,
     required this.displayPrice,
     required this.currency,
+    required this.onShare,
     this.onTap,
   });
 
@@ -38,6 +39,7 @@ class DealCard extends StatelessWidget {
   final double displayPrice;
   final String currency;
   final VoidCallback? onTap;
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +72,7 @@ class DealCard extends StatelessWidget {
                     vatLabel: vatLabel,
                   ),
                 ),
+                IconButton(icon: const Icon(Icons.share), onPressed: onShare),
               ],
             ),
           ),

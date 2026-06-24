@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:web/web.dart' as web;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +21,7 @@ import '../providers/deals_provider.dart';
 import '../../auth/presentation/auth_page.dart';
 import '../../auth/presentation/profile_page.dart';
 import '../../alerts/presentation/create_alert_sheet.dart';
+import '../../../services/share_service.dart';
 
 // ─── Feed page ─────────────────────────────────────────────────────────────────
 
@@ -438,7 +441,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                   ? _ShimmerGrid(isGrid: isGrid)
                   : dealFeedAsync.hasError
                   ? _ErrorState(
-                      message: "ERROR: ${dealFeedAsync.error.toString()}",
+                      message: 'ERROR: ${dealFeedAsync.error.toString()}',
                       onRetry: () => _handleRefresh(),
                     )
                   : deals.isEmpty
@@ -482,6 +485,10 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                         deal: deal,
                                         displayPrice: deal.currentPrice,
                                         currency: deal.currency,
+                                        onShare: () => ShareService.shareDeal(
+                                          title: deal.title,
+                                          url: deal.url,
+                                        ),
                                       );
                                     },
                                   )
@@ -495,6 +502,10 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                         deal: deal,
                                         displayPrice: deal.currentPrice,
                                         currency: deal.currency,
+                                        onShare: () => ShareService.shareDeal(
+                                          title: deal.title,
+                                          url: deal.url,
+                                        ),
                                       );
                                     },
                                   ),
@@ -518,8 +529,9 @@ class _TopDealsSliver extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final topDeals = ref.watch(topDealsProvider).value ?? [];
-    if (topDeals.isEmpty)
+    if (topDeals.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     return SliverToBoxAdapter(
       child: Column(
