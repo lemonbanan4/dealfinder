@@ -28,16 +28,17 @@ import io
 import logging
 import os
 import re
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import urlparse
 
-import firebase_admin
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-from firebase_admin import credentials, firestore
+
 
 # ── Logging ──────────────────────────────────────────────────────────────────────
 
@@ -179,6 +180,15 @@ STORES: list[StoreConfig] = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────────────
 
+def get_db_connection():
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        raise ValueError("DATABASE_URL is not set")
+    print(f"DEBUG: Using DATABASE_URL: {db_url}")
+    # Use the connection string you got from Supabase (port 6543)
+    return psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+
+
 def _make_doc_id(store_id: str, product_url: str, fallback_key: str = "") -> str:
     """
     Build a stable Firestore document ID from the URL path slug.
@@ -195,6 +205,16 @@ def _make_doc_id(store_id: str, product_url: str, fallback_key: str = "") -> str
     raw = f"{store_id}_{slug}"
     # Firestore document IDs must not contain slashes; sanitise everything else too.
     return re.sub(r"[^a-zA-Z0-9_-]", "_", raw)[:200]
+
+
+def get_column(row, aliases):
+    """Helper to find a value from a row using a list of possible column names."""
+    for alias in aliases:
+        if alias in row:
+            val = row[alias]
+            if pd.notna(val):
+                return val
+    return None
 
 
 def _parse_price(text: str) -> Optional[float]:
@@ -302,29 +322,32 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
 
     deals: list[dict] = []
     for _, row in df.iterrows():
-        url = str(row.get("aw_deep_link", "")).strip()
+        # Get values using the aliases
+        url = str(get_column(row, ['aw_deep_link', 'merchant_deep_link']) or "").strip()
         fallback = str(row.get("merchant_product_id", ""))
         doc_id = _make_doc_id(store.id, url, fallback_key=fallback)
 
-        image_url = (
-            str(row.get("merchant_image_url") or "").strip()
-            or str(row.get("aw_image_url") or "").strip()
-            or None
-        )
+        image_url = get_column(row, ['merchant_image_url', 'aw_image_url', 'alternate_image'])
 
-        rrp = row.get("rrp_price")
-        original_price = (
-            float(rrp)
-            if pd.notna(rrp) and float(rrp) > float(row["search_price"])
-            else None
-        )
+        # Use the alias helper for price too
+        price_val = get_column(row, ['search_price', 'product_price', 'price'])
+        
+        # Use the alias helper for RRP
+        rrp_val = get_column(row, ['rrp_price', 'product_price_old', 'saving'])
+
+        current_price = float(price_val) if price_val is not None else 0.0
+        
+        # Original price logic
+        original_price = None
+        if rrp_val is not None and float(rrp_val) > current_price:
+            original_price = float(rrp_val)
 
         deals.append({
             "id": doc_id,
             "title": str(row.get("product_name", "")).strip(),
             "url": url,
             "source": store.name,
-            "currentPrice": float(row["search_price"]),
+            "currentPrice": current_price,
             "currency": store.currency,
             "imageUrl": image_url,
             "originalPrice": original_price,
@@ -424,7 +447,14 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
         if current_price is None or current_price <= 0:
             continue
 
-        href = link_el.get("href", "")
+        href_value = link_el.get("href")
+        if isinstance(href_value, list):
+            href = href_value[0] if href_value else ""
+        elif href_value is None:
+            href = ""
+        else:
+            href = str(href_value)
+
         if href.startswith("/"):
             href = cfg.base_url + href
         if not href:
@@ -468,33 +498,44 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
 
 # ── Firestore writer ──────────────────────────────────────────────────────────────
 
-def write_deals(db, deals: list[dict]) -> int:
+# 1. Update the signature to accept the store ID
+def write_deals(deals: list[dict], store_id: str) -> int:
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    upsert_query = """
+    INSERT INTO products (
+        product_id, feed_region, title, brand, price, 
+        retail_price, tracking_url, image_url, description, 
+        stock_status, ean_code
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (product_id) 
+    DO UPDATE SET 
+        price = EXCLUDED.price,
+        retail_price = EXCLUDED.retail_price,
+        stock_status = EXCLUDED.stock_status,
+        last_updated = timezone('utc'::text, now());
     """
-    Upsert all deals into Firestore /deals using batched writes.
-
-    Mirrors the behaviour of FirestoreDealRepository.upsertDeals() in Flutter —
-    `batch.set()` with no merge option overwrites every field atomically, so a
-    price change on the next run always wins.
-    """
-    if not deals:
-        return 0
-
-    collection = db.collection("deals")
-    now = datetime.now(timezone.utc)
-    written = 0
-
-    for i in range(0, len(deals), FIRESTORE_BATCH_SIZE):
-        chunk = deals[i : i + FIRESTORE_BATCH_SIZE]
-        batch = db.batch()
-        for deal in chunk:
-            ref = collection.document(deal["id"])
-            batch.set(ref, {**deal, "scrapedAt": now})
-        batch.commit()
-        written += len(chunk)
-        log.info("  Committed batch of %d (total so far: %d).", len(chunk), written)
-
-    return written
-
+    
+    for deal in deals:
+        cur.execute(upsert_query, (
+            deal["id"], 
+            store_id,  # Use the dynamic store ID passed here
+            deal["title"], 
+            "Acer", # Note: You might want to make this dynamic too!
+            deal["currentPrice"],
+            deal["originalPrice"], 
+            deal["url"], 
+            deal["imageUrl"], 
+            "", 
+            "In Stock", 
+            None
+        ))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    return len(deals)
 
 # ── Per-store dispatch ────────────────────────────────────────────────────────────
 
@@ -510,42 +551,30 @@ def scrape_store(store: StoreConfig) -> list[dict]:
 # ── Entry point ───────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    # ── Firebase Admin SDK init ───────────────────────────────────────────────────
-    cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    if cred_path:
-        cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred)
-        log.info("Firebase initialised with service account: %s", cred_path)
-    else:
-        firebase_admin.initialize_app()
-        log.info("Firebase initialised using Application Default Credentials.")
+    # # ── Firebase Admin SDK init ───────────────────────────────────────────────────
+    # cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    # if cred_path:
+    #     cred = credentials.Certificate(cred_path)
+    #     firebase_admin.initialize_app(cred)
+    #     log.info("Firebase initialised with service account: %s", cred_path)
+    # else:
+    #     firebase_admin.initialize_app()
+    #     log.info("Firebase initialised using Application Default Credentials.")
 
-    db = firestore.client()
+    # db = firestore.client()
 
-    # ── Scrape each store independently ──────────────────────────────────────────
-    all_deals: list[dict] = []
-
+    # ── Scrape and Write Store by Store ──────────────────────────────────────────
     for store in STORES:
         try:
             deals = scrape_store(store)
-            all_deals.extend(deals)
-            log.info("[%s] Collected %d deals.", store.name, len(deals))
+            if deals:
+                log.info("[%s] Writing %d deals to Supabase...", store.name, len(deals))
+                written = write_deals(deals, store.id) # Pass the store ID here
+                log.info("[%s] Successfully wrote %d deals.", store.name, written)
         except Exception as exc:
-            # Belt-and-suspenders: individual scrapers already isolate network
-            # errors, but any unexpected exception here must never abort the
-            # remaining stores.
-            log.exception(
-                "[%s] Unexpected error — store skipped: %s", store.name, exc
-            )
+            log.exception("[%s] Unexpected error — store skipped: %s", store.name, exc)
 
-    # ── Write to Firestore ────────────────────────────────────────────────────────
-    if not all_deals:
-        log.warning("No deals collected from any store — Firestore /deals unchanged.")
-        return
-
-    log.info("Writing %d total deals to Firestore /deals…", len(all_deals))
-    written = write_deals(db, all_deals)
-    log.info("Pipeline complete. %d documents written to /deals.", written)
+    log.info("Pipeline complete.")
 
 
 if __name__ == "__main__":
