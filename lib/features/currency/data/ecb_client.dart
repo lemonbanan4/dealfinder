@@ -29,14 +29,16 @@ class EcbClient {
     }
 
     final doc = XmlDocument.parse(response.body);
-    final cubes = doc.findAllElements('Cube')
+    final cubes = doc
+        .findAllElements('Cube')
         .where((e) => e.getAttribute('currency') != null);
 
     final rates = <String, double>{
       CurrencyCode.eur: 1.0,
       for (final cube in cubes)
-        cube.getAttribute('currency')!:
-            double.parse(cube.getAttribute('rate')!),
+        cube.getAttribute('currency')!: double.parse(
+          cube.getAttribute('rate')!,
+        ),
     };
 
     return ExchangeRates(rates: rates, fetchedAt: DateTime.now());
@@ -44,7 +46,7 @@ class EcbClient {
 
   Future<ExchangeRates> _fetchErApi() async {
     final response = await _client
-        .get(Uri.parse(ApiUrls.erApiRates))
+        .get(Uri.parse(ApiUrls.ecbRates))
         .timeout(const Duration(seconds: 10));
 
     if (response.statusCode != 200) {
