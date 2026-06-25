@@ -26,14 +26,32 @@ def read_root():
     return {"message": "API is alive!"}
 
 @app.get("/api/products")
-def get_products():
+def get_products(region: str = Query(None, description="Region to filter")):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        # SQL Filter: Only select products where there is a retail_price
-        # and it is strictly greater than the current price (a real discount)
-        cursor.execute("SELECT * FROM products LIMIT 50")
+        # Base query
+        query = "SELECT * FROM products"
+        params = []
+        
+        # Filter by region if requested (matches "all_se" or "all_no")
+        if region:
+            query += " WHERE feed_region LIKE %s"
+            params.append(f"{region.lower()}%")
+
+        # Sort logic:
+        # 1. Biggest percentage discounts first
+        # 2. Then newest items
+        query += """
+            ORDER BY
+            CASE
+                WHEN retail_price > price THEN (retail_price - price) / retail_price
+                ELSE 0
+            END DESC,
+            last_updated DESC
+        """
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
