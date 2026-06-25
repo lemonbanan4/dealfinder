@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../features/deals/domain/deal.dart';
 import 'liquid_glass_background.dart';
@@ -56,7 +57,15 @@ class DealCard extends StatelessWidget {
           child: InkWell(
             splashColor: _kAccentBlue.withAlpha(20),
             highlightColor: _kAccentBlue.withAlpha(10),
-            onTap: onTap ?? () => _copyLink(context),
+            onTap: () async {
+              final uri = Uri.tryParse(deal.url);
+              if (uri != null && await canLaunchUrl(uri)) {
+                // This safely opens the affiliate link in a new browser tab
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                debugPrint('Could not launch ${deal.url}');
+              }
+            },
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -96,19 +105,20 @@ class DealCard extends StatelessWidget {
     return pct > 0 ? pct : null;
   }
 
-  void _copyLink(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: deal.url));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Link copied to clipboard'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
+  // void _copyLink(BuildContext context) {
+  //   Clipboard.setData(ClipboardData(text: deal.url));
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(
+  //       content: Text('Link copied to clipboard'),
+  //       behavior: SnackBarBehavior.floating,
+  //       duration: Duration(seconds: 2),
+  //     ),
+  //   );
+  // }
 
   static double _withVat(double price, String currency) {
-    if (currency == 'NOK' || currency == 'SEK') return price * 1.25;
+    // Awin feeds for SE/NO already include VAT. do not multiply !
+    if (currency == 'SEK' || currency == 'NOK') return price;
     return price;
   }
 
@@ -301,6 +311,16 @@ class _MerchantRow extends StatelessWidget {
   final String sourceName;
   final String merchantHost;
 
+  // Helper method
+  String _formatSourceName(String source) {
+    final lower = source.toLowerCase();
+    if (lower.contains('all_no') || lower.contains('all no'))
+      return 'Norway Deals 🇳🇴';
+    if (lower.contains('all_se') || lower.contains('all se'))
+      return 'Sweden Deals 🇸🇪';
+    return source; // Fallback
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -309,7 +329,7 @@ class _MerchantRow extends StatelessWidget {
         const SizedBox(width: 5),
         Flexible(
           child: Text(
-            sourceName,
+            _formatSourceName(sourceName),
             style: const TextStyle(
               color: _kMuted,
               fontSize: 11,

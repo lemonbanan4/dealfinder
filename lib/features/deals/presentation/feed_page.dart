@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:web/web.dart' as web;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +23,18 @@ import '../../auth/presentation/profile_page.dart';
 import '../../alerts/presentation/create_alert_sheet.dart';
 import '../../../services/share_service.dart';
 
+// HELPER FUNCTION FOR format all_no and all_se
+String formatSourceName(String rawSource) {
+  if (rawSource.toLowerCase().contains('all_no') ||
+      rawSource.toLowerCase().contains('all no')) {
+    return 'Norway Deals 🇳🇴';
+  } else if (rawSource.toLowerCase().contains('all_se') ||
+      rawSource.toLowerCase().contains('all se')) {
+    return 'Sweden Deals 🇸🇪';
+  }
+  return rawSource; // Fallback
+}
+
 // ─── Feed page ─────────────────────────────────────────────────────────────────
 
 // A simple provider to hold our current search query
@@ -42,7 +55,17 @@ final regionProvider = NotifierProvider<RegionNotifier, String>(
 
 class RegionNotifier extends Notifier<String> {
   @override
-  String build() => 'se';
+  String build() {
+    // Check user's browser/system locale
+    final countryCode = ui.PlatformDispatcher.instance.locale.countryCode;
+
+    // If they are in Norway, serve the 'no' deals automatically
+    if (countryCode?.toUpperCase() == 'NO') {
+      return 'no';
+    }
+    // Default to 'se' for Sweden and everyone else
+    return 'se';
+  }
 
   void setRegion(String newRegion) {
     state = newRegion;
@@ -408,7 +431,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                 .updateCategory(value),
             itemBuilder: (context) => [
               for (final cat in categoryList)
-                PopupMenuItem(value: cat, child: Text(cat)),
+                PopupMenuItem(value: cat, child: Text(formatSourceName(cat))),
             ],
           ),
           PopupMenuButton<ProductSort>(
@@ -549,6 +572,21 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                       );
                                     },
                                   ),
+                          ),
+
+                          // ---- AFFILIATE DISCLAIMER ----
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.all(24.0),
+                              child: Text(
+                                'PrisPuls is reader-supported. When you buy through links on our site, we may earn an affiliate commission.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Color(0xFF5A5A78),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
