@@ -340,7 +340,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const AppLogo(),
+        //title: const AppLogo(),
         actions: [
           // ─── 1. The Region Toggle ───────────────────────────────────────
           Consumer(

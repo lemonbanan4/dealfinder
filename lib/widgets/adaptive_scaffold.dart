@@ -147,7 +147,7 @@ class _CustomSidebar extends StatelessWidget {
             child: extended
                 ? const Padding(
                     padding: EdgeInsets.only(left: 20),
-                    child: AppLogo(iconSize: 20, fontSize: 15),
+                    child: AppLogo(iconSize: 30, fontSize: 25),
                   )
                 : const Center(
                     child: Icon(
