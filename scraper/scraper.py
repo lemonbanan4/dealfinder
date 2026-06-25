@@ -126,7 +126,7 @@ STORES: list[StoreConfig] = [
             "price": "search_price",
             "original_price": "product_price_old",
             "link": "aw_deep_link",
-            "image": "merchant_image_url",
+            "image": "aw_image_url",
             }
         ),
     ),
@@ -145,7 +145,7 @@ STORES: list[StoreConfig] = [
             "price": "search_price",
             "original_price": "product_price_old", 
             "link": "aw_deep_link",
-            "image": "merchant_image_url"
+            "image": "aw_image_url"
             }
         ),
     ),
@@ -455,11 +455,11 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
             "url": url,
             "source": store.name,
             "currentPrice": current_price,
-            "currency": store.currency,
+            "currency": row.get(cfg.column_map.get("currency", "currency"), store.currency),
             "imageUrl": row.get(cfg.column_map["image"]),
             "originalPrice": original_price,
-            "description": row.get("description", ""),
-            "ean": row.get("ean"),
+            "description": row.get(cfg.column_map.get("description", "description"), ""),
+            "ean": row.get(cfg.column_map.get("ean", "ean")),
             "brand": row.get("brand_name", "Unknown")
         })
 
@@ -617,8 +617,8 @@ def write_deals(deals: list[dict], store_id: str) -> int:
     INSERT INTO products (
         product_id, feed_region, title, brand, price, 
         retail_price, tracking_url, image_url, description, 
-        stock_status, ean_code
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        stock_status, ean_code, currency
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON CONFLICT (product_id) 
     DO UPDATE SET 
         price = EXCLUDED.price,
@@ -639,13 +639,13 @@ def write_deals(deals: list[dict], store_id: str) -> int:
             deal["title"], 
             deal.get("brand", "unknown"),
             deal["currentPrice"],
-            deal["originalPrice"], 
-            deal['currency'],
+            deal["originalPrice"],
             deal["url"], 
             deal["imageUrl"],
             deal.get("description", ""),
             "In Stock",
-            deal.get("ean")
+            str(deal.get("ean")) if deal.get("ean") else None,
+            deal.get("currency", "SEK")
         ))
     
     conn.commit()
