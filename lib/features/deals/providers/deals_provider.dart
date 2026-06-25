@@ -11,6 +11,7 @@ import '../../../providers/repositories.dart';
 import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';
 import 'scraper_configs_provider.dart';
+import '../presentation/feed_page.dart';
 
 part 'deals_provider.g.dart';
 
@@ -38,6 +39,23 @@ class DealFeedNotifier extends _$DealFeedNotifier {
     } catch (e, s) {
       state = AsyncValue.error(e, s);
       return [];
+    }
+  }
+
+  Future<List<Deal>> fetchDeals(Ref ref) async {
+    // Watch the region! When this changes, Riverpod will re-run this function.
+    final region = ref.watch(regionProvider);
+
+    final url = Uri.parse(
+      'https://dealfinder-swr5.onrender.com/api/products?region=$region',
+    );
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => Deal.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load deals');
     }
   }
 

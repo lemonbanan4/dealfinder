@@ -36,6 +36,19 @@ class SearchQueryNotifier extends Notifier<String> {
   void clear() => state = '';
 }
 
+final regionProvider = NotifierProvider<RegionNotifier, String>(
+  () => RegionNotifier(),
+);
+
+class RegionNotifier extends Notifier<String> {
+  @override
+  String build() => 'se';
+
+  void setRegion(String newRegion) {
+    state = newRegion;
+  }
+}
+
 enum ProductSort { none, priceAsc, priceDesc }
 
 final productSortProvider = NotifierProvider<ProductSortNotifier, ProductSort>(
@@ -306,6 +319,33 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       appBar: AppBar(
         title: const AppLogo(),
         actions: [
+          // ─── 1. The Region Toggle ───────────────────────────────────────
+          Consumer(
+            builder: (context, ref, child) {
+              final currentRegion = ref.watch(regionProvider);
+              return SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'se', label: Text('🇸🇪')),
+                  ButtonSegment(value: 'no', label: Text('🇳🇴')),
+                ],
+                selected: {currentRegion},
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+                onSelectionChanged: (Set<String> newSelection) {
+                  // Update the region state
+                  ref
+                      .read(regionProvider.notifier)
+                      .setRegion(newSelection.first);
+                },
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+
+          // ─── 2. Your existing action icons ──────────────────────────────
           IconButton(
             tooltip: authState.value != null ? 'Profile' : 'Sign In',
             icon: Icon(
@@ -340,6 +380,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                   : const Icon(Icons.refresh),
             ),
           ),
+          // ... Keep your favorite, grid, filter, and sort buttons exactly as they were!
           IconButton(
             tooltip: showFavoritesOnly ? 'Show All' : 'Show Favorites',
             icon: Icon(
