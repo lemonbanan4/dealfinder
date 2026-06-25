@@ -7,12 +7,12 @@ part of 'deal.dart';
 // **************************************************************************
 
 _Deal _$DealFromJson(Map<String, dynamic> json) => _Deal(
-  id: json['product_id'] as String,
-  title: json['title'] as String,
-  url: json['tracking_url'] as String,
-  source: json['source'] as String,
-  currentPrice: (json['price'] as num).toDouble(),
-  currency: json['currency'] as String,
+  id: json['product_id'] as String? ?? 'unknown',
+  title: json['title'] as String? ?? 'No Title',
+  url: json['tracking_url'] as String? ?? '',
+  source: json['feed_region'] as String? ?? 'Unknown',
+  currentPrice: (json['price'] as num?)?.toDouble() ?? 0.0,
+  currency: json['currency'] as String? ?? 'SEK',
   imageUrl: json['image_url'] as String?,
   originalPrice: (json['retail_price'] as num?)?.toDouble(),
 );
@@ -21,7 +21,7 @@ Map<String, dynamic> _$DealToJson(_Deal instance) => <String, dynamic>{
   'product_id': instance.id,
   'title': instance.title,
   'tracking_url': instance.url,
-  'source': instance.source,
+  'feed_region': instance.source,
   'price': instance.currentPrice,
   'currency': instance.currency,
   'image_url': instance.imageUrl,

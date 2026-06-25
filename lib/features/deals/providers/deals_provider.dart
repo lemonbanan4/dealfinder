@@ -19,15 +19,21 @@ part 'deals_provider.g.dart';
 class DealFeedNotifier extends _$DealFeedNotifier {
   @override
   Future<List<Deal>> build() async {
-    return _fetchFromApi();
+    // Watch the region! When the region provider updates, this automatically refetches
+    final region = ref.watch(regionProvider);
+    return _fetchFromApi(region);
   }
 
-  Future<List<Deal>> _fetchFromApi() async {
+  Future<List<Deal>> _fetchFromApi(String region) async {
     state = const AsyncValue.loading();
     try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final response = await http.get(
-        Uri.parse('${ApiUrls.apiUrl}/api/products'),
+        Uri.parse(
+          'https://dealfinder-swr5.onrender.com/api/products?region=$region&t=$timestamp',
+        ),
       );
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final deals = data.map((json) => Deal.fromJson(json)).toList();
@@ -42,30 +48,10 @@ class DealFeedNotifier extends _$DealFeedNotifier {
     }
   }
 
-  final dealFeedProvider = FutureProvider<List<Deal>>((ref) async {
-    // Watch the region! When this changes, Riverpod will re-run this function.
-    final region = ref.watch(regionProvider);
-
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-
-    final url = Uri.parse(
-      'https://dealfinder-swr5.onrender.com/api/products?region=$region',
-    );
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return data.map((json) => Deal.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load deals');
-    }
-  });
-
-  /// Scrapes all enabled sources and writes results to Firestore.
-  /// The stream subscription in [build] automatically pushes the updated
-  /// list to the UI — no manual state assignment needed here.
+  /// Refreshes the current list of deals
   Future<void> refresh() async {
-    await _fetchFromApi();
+    final region = ref.read(regionProvider);
+    await _fetchFromApi(region);
     await _scrapeAndSave();
   }
 
@@ -121,8 +107,6 @@ class DealFeedNotifier extends _$DealFeedNotifier {
 }
 
 /// Deals discounted ≥ 25 % off their original price, sorted deepest first.
-/// Mirrors the async state of [dealFeedProvider] — consumers get loading/error
-/// for free by calling `.when` on the result.
 final topDealsProvider = Provider<AsyncValue<List<Deal>>>((ref) {
   return ref.watch(dealFeedProvider).whenData((deals) {
     return deals.where((d) => (d.discountPercent ?? 0) >= 25).toList()..sort(

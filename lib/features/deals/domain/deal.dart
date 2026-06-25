@@ -6,30 +6,19 @@ part 'deal.g.dart';
 @freezed
 abstract class Deal with _$Deal {
   const factory Deal({
-    @JsonKey(name: 'product_id') required String id,
-    required String title,
-    @JsonKey(name: 'tracking_url') required String url,
+    @JsonKey(name: 'product_id', defaultValue: 'unknown') required String id,
+    @JsonKey(defaultValue: 'No Title') required String title,
+    @JsonKey(name: 'tracking_url', defaultValue: '') required String url,
+    @JsonKey(name: 'feed_region', defaultValue: 'Unknown')
     required String source,
-    @JsonKey(name: 'price') required double currentPrice,
-    required String currency,
+    @JsonKey(name: 'price', defaultValue: 0.0) required double currentPrice,
+    @JsonKey(defaultValue: 'SEK') required String currency,
     @JsonKey(name: 'image_url') String? imageUrl,
     @JsonKey(name: 'retail_price') double? originalPrice,
   }) = _Deal;
 
-  factory Deal.fromJson(Map<String, dynamic> json) {
-    return Deal(
-      // Ensure these are all cast to the right types and handle nulls
-      id: (json['product_id'] ?? 'unknown').toString(),
-      title: (json['title'] ?? 'No Title').toString(),
-      url: (json['tracking_url'] ?? '').toString(),
-      source: (json['feed_region'] ?? 'Unknown').toString(),
-      currentPrice: (json['price'] as num?)?.toDouble() ?? 0.0,
-      currency: (json['currency'] ?? 'SEK').toString(),
-      imageUrl: json['image_url']?.toString(),
-      // Handle the case where retail_price is null (no discount)
-      originalPrice: (json['retail_price'] as num?)?.toDouble(),
-    );
-  }
+  // THIS is the magic line that tells the generator to build deal.g.dart and toJson()
+  factory Deal.fromJson(Map<String, dynamic> json) => _$DealFromJson(json);
 }
 
 extension DealDiscount on Deal {

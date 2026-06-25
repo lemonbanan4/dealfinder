@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/auth_provider.dart';
+import 'auth_page.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -57,16 +58,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   static String _friendlyError(String code) => switch (code) {
-        'user-not-found' || 'wrong-password' || 'invalid-credential' =>
-          'Invalid email or password.',
-        'email-already-in-use' =>
-          'An account already exists with this email.',
-        'weak-password' => 'Password must be at least 6 characters.',
-        'invalid-email' => 'Please enter a valid email address.',
-        'too-many-requests' =>
-          'Too many attempts. Try again later.',
-        _ => 'Authentication failed ($code).',
-      };
+    'user-not-found' ||
+    'wrong-password' ||
+    'invalid-credential' => 'Invalid email or password.',
+    'email-already-in-use' => 'An account already exists with this email.',
+    'weak-password' => 'Password must be at least 6 characters.',
+    'invalid-email' => 'Please enter a valid email address.',
+    'too-many-requests' => 'Too many attempts. Try again later.',
+    _ => 'Authentication failed ($code).',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +78,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
                   child: _GlassCard(
@@ -123,11 +126,7 @@ class _Background extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF060710),
-                Color(0xFF0D1535),
-                Color(0xFF060710),
-              ],
+              colors: [Color(0xFF060710), Color(0xFF0D1535), Color(0xFF060710)],
               stops: [0.0, 0.5, 1.0],
             ),
           ),
@@ -188,9 +187,7 @@ class _GlassCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withAlpha(12),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: Colors.white.withAlpha(28),
-            ),
+            border: Border.all(color: Colors.white.withAlpha(28)),
           ),
           child: child,
         ),
@@ -228,6 +225,32 @@ class _FormContent extends StatelessWidget {
   final VoidCallback onToggleObscure;
   final VoidCallback onSubmit;
 
+  // 1. Define the method right inside this class so onTap can see it!
+  Future<void> _signInWithGoogle(BuildContext context) async {
+    try {
+      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithPopup(googleProvider);
+
+      // 2. Guard the context to fix the 'async gaps' warning
+      if (!context.mounted) return;
+
+      if (userCredential.user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully logged in!')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      debugPrint('Google Sign-In Error: $e');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Login failed: ${e.toString()}')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -251,10 +274,7 @@ class _FormContent extends StatelessWidget {
             isLogin
                 ? 'Sign in to sync your price alerts'
                 : 'Start tracking deals across devices',
-            style: TextStyle(
-              color: Colors.white.withAlpha(120),
-              fontSize: 13,
-            ),
+            style: TextStyle(color: Colors.white.withAlpha(120), fontSize: 13),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 28),
@@ -273,11 +293,14 @@ class _FormContent extends StatelessWidget {
             label: 'Password',
             icon: Icons.lock_outline,
             obscureText: obscurePass,
-            textInputAction:
-                isLogin ? TextInputAction.done : TextInputAction.next,
+            textInputAction: isLogin
+                ? TextInputAction.done
+                : TextInputAction.next,
             suffixIcon: IconButton(
               icon: Icon(
-                obscurePass ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                obscurePass
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
                 size: 18,
                 color: Colors.white.withAlpha(140),
               ),
@@ -347,17 +370,17 @@ class _FormContent extends StatelessWidget {
                 child: _SocialButton(
                   label: 'Google',
                   icon: Icons.g_mobiledata_rounded,
-                  onTap: () => _showSocialStub(context, 'Google'),
+                  onTap: () => _signInWithGoogle(context),
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: _SocialButton(
-                  label: 'Apple',
-                  icon: Icons.apple,
-                  onTap: () => _showSocialStub(context, 'Apple'),
-                ),
-              ),
+              // Expanded(
+              //   child: _SocialButton(
+              //     label: 'Apple',
+              //     icon: Icons.apple,
+              //     onTap: () => _showSocialStub(context, 'Apple'),
+              //   ),
+              // ),
             ],
           ),
           const SizedBox(height: 20),
@@ -378,17 +401,17 @@ class _FormContent extends StatelessWidget {
     );
   }
 
-  static void _showSocialStub(BuildContext context, String provider) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '$provider sign-in requires Firebase project configuration.',
-        ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
+  // static void _showSocialStub(BuildContext context, String provider) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text(
+  //         '$provider sign-in requires Firebase project configuration.',
+  //       ),
+  //       behavior: SnackBarBehavior.floating,
+  //       duration: const Duration(seconds: 3),
+  //     ),
+  //   );
+  // }
 }
 
 // ── Logo mark ──────────────────────────────────────────────────────────────────
@@ -482,8 +505,10 @@ class _GlassField extends StatelessWidget {
           borderSide: const BorderSide(color: Color(0xFFFF4757), width: 1.5),
         ),
         errorStyle: const TextStyle(color: Color(0xFFFF4757), fontSize: 11),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -558,9 +583,7 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: Divider(color: Colors.white.withAlpha(30), height: 1),
-        ),
+        Expanded(child: Divider(color: Colors.white.withAlpha(30), height: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
@@ -568,9 +591,7 @@ class _Divider extends StatelessWidget {
             style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 12),
           ),
         ),
-        Expanded(
-          child: Divider(color: Colors.white.withAlpha(30), height: 1),
-        ),
+        Expanded(child: Divider(color: Colors.white.withAlpha(30), height: 1)),
       ],
     );
   }

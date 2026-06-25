@@ -49,21 +49,29 @@ class SearchQueryNotifier extends Notifier<String> {
   void clear() => state = '';
 }
 
+// The Provider definition
 final regionProvider = NotifierProvider<RegionNotifier, String>(
   () => RegionNotifier(),
 );
 
+// The Notifier class with the auto-detection logic
 class RegionNotifier extends Notifier<String> {
   @override
   String build() {
-    // Check user's browser/system locale
-    final countryCode = ui.PlatformDispatcher.instance.locale.countryCode;
+    // Grab system locale properties directly
+    final locale = ui.PlatformDispatcher.instance.locale;
+    final country = locale.countryCode?.toUpperCase() ?? '';
+    final language = locale.languageCode.toLowerCase();
 
-    // If they are in Norway, serve the 'no' deals automatically
-    if (countryCode?.toUpperCase() == 'NO') {
+    // Route automatically based on country code or browser language
+    if (country == 'NO' ||
+        language == 'no' ||
+        language == 'nb' ||
+        language == 'nn') {
       return 'no';
     }
-    // Default to 'se' for Sweden and everyone else
+
+    // Default fallback
     return 'se';
   }
 
@@ -343,29 +351,29 @@ class _FeedPageState extends ConsumerState<FeedPage> {
         //title: const AppLogo(),
         actions: [
           // ─── 1. The Region Toggle ───────────────────────────────────────
-          Consumer(
-            builder: (context, ref, child) {
-              final currentRegion = ref.watch(regionProvider);
-              return SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'se', label: Text('🇸🇪')),
-                  ButtonSegment(value: 'no', label: Text('🇳🇴')),
-                ],
-                selected: {currentRegion},
-                showSelectedIcon: false,
-                style: SegmentedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(fontSize: 12),
-                ),
-                onSelectionChanged: (Set<String> newSelection) {
-                  // Update the region state
-                  ref
-                      .read(regionProvider.notifier)
-                      .setRegion(newSelection.first);
-                },
-              );
-            },
-          ),
+          // Consumer(
+          //   builder: (context, ref, child) {
+          //     final currentRegion = ref.watch(regionProvider);
+          //     return SegmentedButton<String>(
+          //       segments: const [
+          //         ButtonSegment(value: 'se', label: Text('🇸🇪')),
+          //         ButtonSegment(value: 'no', label: Text('🇳🇴')),
+          //       ],
+          //       selected: {currentRegion},
+          //       showSelectedIcon: false,
+          //       style: SegmentedButton.styleFrom(
+          //         visualDensity: VisualDensity.compact,
+          //         textStyle: const TextStyle(fontSize: 12),
+          //       ),
+          //       onSelectionChanged: (Set<String> newSelection) {
+          //         // Update the region state
+          //         ref
+          //             .read(regionProvider.notifier)
+          //             .setRegion(newSelection.first);
+          //       },
+          //     );
+          //   },
+          // ),
           const SizedBox(width: 8),
 
           // ─── 2. Your existing action icons ──────────────────────────────
