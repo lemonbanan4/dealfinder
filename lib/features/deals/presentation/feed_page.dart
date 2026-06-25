@@ -464,6 +464,52 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       ),
       body: Column(
         children: [
+          // --- Gradient container ---
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF00B4FF),
+                  Color(0xFF0047FF),
+                ], // Electric blue gradient
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF00B4FF).withAlpha(60),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Real Deals. No Noise.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tracking ${deals.length}+ price drops across top Nordic retailers today.',
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(200),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
           // ─── Search Bar ──────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

@@ -42,7 +42,7 @@ class DealFeedNotifier extends _$DealFeedNotifier {
     }
   }
 
-  Future<List<Deal>> fetchDeals(Ref ref) async {
+  final dealFeedProvider = FutureProvider<List<Deal>>((ref) async {
     // Watch the region! When this changes, Riverpod will re-run this function.
     final region = ref.watch(regionProvider);
 
@@ -57,7 +57,7 @@ class DealFeedNotifier extends _$DealFeedNotifier {
     } else {
       throw Exception('Failed to load deals');
     }
-  }
+  });
 
   /// Scrapes all enabled sources and writes results to Firestore.
   /// The stream subscription in [build] automatically pushes the updated
