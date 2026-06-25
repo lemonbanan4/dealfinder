@@ -46,6 +46,8 @@ class DealFeedNotifier extends _$DealFeedNotifier {
     // Watch the region! When this changes, Riverpod will re-run this function.
     final region = ref.watch(regionProvider);
 
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+
     final url = Uri.parse(
       'https://dealfinder-swr5.onrender.com/api/products?region=$region',
     );
