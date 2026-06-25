@@ -38,7 +38,7 @@ def get_products(region: str = Query(None, description="Region to filter")):
         # Filter by region if requested (matches "all_se" or "all_no")
         if region:
             query += " WHERE feed_region LIKE %s"
-            params.append(f"{region.lower()}%")
+            params.append(f"%{region.lower()}%")
 
         # Sort logic:
         # 1. Biggest percentage discounts first
