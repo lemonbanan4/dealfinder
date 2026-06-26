@@ -587,15 +587,29 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                             color: Color(0xFF00B4FF),
                                           ),
                                           onPressed: () {
-                                            showPriceAlertModal(
-                                              context: context,
-                                              ref: ref,
-                                              productId: deal.id,
-                                              title: deal.title,
-                                              url: deal.url,
-                                              currentPrice: deal.currentPrice,
-                                              currency: deal.currency,
-                                            );
+                                            // Check if user is logged in
+                                            if (ref
+                                                    .read(authStateProvider)
+                                                    .value ==
+                                                null) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const LoginPage(),
+                                                ),
+                                              );
+                                            } else {
+                                              showPriceAlertModal(
+                                                context: context,
+                                                ref: ref,
+                                                productId: deal.id,
+                                                title: deal.title,
+                                                url: deal.url,
+                                                currentPrice: deal.currentPrice,
+                                                currency: deal.currency,
+                                              );
+                                            }
                                           },
                                         ),
                                       );
@@ -621,16 +635,30 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                             color: Color(0xFF00B4FF),
                                           ),
                                           onPressed: () {
-                                            showPriceAlertModal(
-                                              context: context,
-                                              ref: ref,
-                                              productId: deal
-                                                  .id, // Ensure these match your deal fields
-                                              title: deal.title,
-                                              url: deal.url,
-                                              currentPrice: deal.currentPrice,
-                                              currency: deal.currency,
-                                            );
+                                            // Check if user is logged in
+                                            if (ref
+                                                    .read(authStateProvider)
+                                                    .value ==
+                                                null) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const LoginPage(),
+                                                ),
+                                              );
+                                            } else {
+                                              showPriceAlertModal(
+                                                context: context,
+                                                ref: ref,
+                                                productId: deal
+                                                    .id, // Ensure these match your deal fields
+                                                title: deal.title,
+                                                url: deal.url,
+                                                currentPrice: deal.currentPrice,
+                                                currency: deal.currency,
+                                              );
+                                            }
                                           },
                                         ),
                                       );
