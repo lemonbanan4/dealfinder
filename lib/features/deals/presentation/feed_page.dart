@@ -303,6 +303,34 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     }
   }
 
+  void _handlePriceAlertTap(Deal deal) {
+    // Check if user is logged in
+    if (ref.read(authStateProvider).value == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please sign in to set price alerts.'),
+          action: SnackBarAction(
+            label: 'SIGN IN',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginPage()),
+            ),
+          ),
+        ),
+      );
+    } else {
+      showPriceAlertModal(
+        context: context,
+        ref: ref,
+        productId: deal.id,
+        title: deal.title,
+        url: deal.url,
+        currentPrice: deal.currentPrice,
+        currency: deal.currency,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dealFeedAsync = ref.watch(dealFeedProvider);
@@ -587,29 +615,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                             color: Color(0xFF00B4FF),
                                           ),
                                           onPressed: () {
-                                            // Check if user is logged in
-                                            if (ref
-                                                    .read(authStateProvider)
-                                                    .value ==
-                                                null) {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      const LoginPage(),
-                                                ),
-                                              );
-                                            } else {
-                                              showPriceAlertModal(
-                                                context: context,
-                                                ref: ref,
-                                                productId: deal.id,
-                                                title: deal.title,
-                                                url: deal.url,
-                                                currentPrice: deal.currentPrice,
-                                                currency: deal.currency,
-                                              );
-                                            }
+                                            _handlePriceAlertTap(deal);
                                           },
                                         ),
                                       );
@@ -635,30 +641,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                             color: Color(0xFF00B4FF),
                                           ),
                                           onPressed: () {
-                                            // Check if user is logged in
-                                            if (ref
-                                                    .read(authStateProvider)
-                                                    .value ==
-                                                null) {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      const LoginPage(),
-                                                ),
-                                              );
-                                            } else {
-                                              showPriceAlertModal(
-                                                context: context,
-                                                ref: ref,
-                                                productId: deal
-                                                    .id, // Ensure these match your deal fields
-                                                title: deal.title,
-                                                url: deal.url,
-                                                currentPrice: deal.currentPrice,
-                                                currency: deal.currency,
-                                              );
-                                            }
+                                            _handlePriceAlertTap(deal);
                                           },
                                         ),
                                       );

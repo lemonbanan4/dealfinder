@@ -368,8 +368,11 @@ class _FormContent extends StatelessWidget {
             children: [
               Expanded(
                 child: _SocialButton(
-                  label: 'Google',
-                  icon: Icons.g_mobiledata_rounded,
+                  label: 'Sign in with Google',
+                  // A simple way to get a Google logo without adding new assets
+                  // is to use a Text widget with the 'G' from a specific font.
+                  // For a real app, you'd use an SVG or an icon font pack.
+                  icon: Image.asset('assets/images/google_logo.png', height: 18),
                   onTap: () => _signInWithGoogle(context),
                 ),
               ),
@@ -617,14 +620,14 @@ class _SocialButton extends StatelessWidget {
         onPressed: onTap,
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.white,
-          side: BorderSide(color: Colors.white.withAlpha(40)),
-          backgroundColor: Colors.white.withAlpha(10),
+          side: BorderSide(color: Colors.white.withAlpha(30)),
+          backgroundColor: Colors.white.withAlpha(15),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
         icon: Icon(icon, size: 18),
-        label: Text(
+        label: Flexible(child: Text(
           label,
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         ),

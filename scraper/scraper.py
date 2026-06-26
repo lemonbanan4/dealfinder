@@ -38,8 +38,14 @@ from urllib.parse import urlparse
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+from supabase import create_client, Client
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
+load_dotenv()
 # ── Logging ──────────────────────────────────────────────────────────────────────
 
 logging.basicConfig(
@@ -319,11 +325,9 @@ def _parse_price(text: str) -> Optional[float]:
     if not t:
         return None
 
-    # Remove non-breaking / regular spaces used as thousands separators.
-    t = t.replace(" ", "").replace(" ", "")
-
     if "," in t and "." in t:
         if t.rfind(",") > t.rfind("."):
+            # Handle cases like "1.299,00" (European)
             # e.g. "1.299,00" — European format
             t = t.replace(".", "").replace(",", ".")
         else:
@@ -332,9 +336,11 @@ def _parse_price(text: str) -> Optional[float]:
     elif "," in t:
         parts = t.split(",")
         if len(parts) == 2 and len(parts[1]) in (1, 2):
+            # Handle "79,99" -> "79.99"
             t = t.replace(",", ".")  # decimal comma: "79,99" → "79.99"
         else:
-            t = t.replace(",", "")  # thousands comma: "1,299" → "1299"
+            # Handle "1,299" -> "1299"
+            t = t.replace(",", "")
 
     try:
         return float(t)
@@ -346,6 +352,75 @@ def _discount_pct(original: float, current: float) -> float:
     if original <= 0:
         return 0.0
     return (original - current) / original * 100.0
+
+
+# --- Sending emails logic
+SENDER_EMAIL = "contact@orbitroutine.com"
+SENDER_PASSWORD = "ggtp txgh lxcw koka" 
+
+def send_alert_email(to_email, title, url, price, target):
+    msg = MIMEMultipart()
+    msg['From'] = SENDER_EMAIL
+    msg['To'] = to_email
+    msg['Subject'] = f"🚨 Price Drop Alert: {title[:30]}..."
+
+    html_body = f"""
+    <h2>Your deal just dropped!</h2>
+    <p>You asked us to track <strong>{title}</strong>.</p>
+    <p>Your target price was {target}. The price just dropped to <strong>{price}</strong>!</p>
+    <a href="{url}" style="padding: 10px 20px; background-color: #00B4FF; color: white; text-decoration: none; border-radius: 5px;">Grab the Deal Here</a>
+    """
+    
+    msg.attach(MIMEText(html_body, 'html'))
+
+    # Connect to Gmail's server and send
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Failed to send email to {to_email}: {e}")
+        return False
+
+def check_and_fire_price_alerts(supabase):
+    print("Checking for triggered price alerts...")
+    
+    # 1. Grab all ACTIVE alerts from the database
+    alerts_response = supabase.table('price_alerts').select('*').eq('is_active', True).execute()
+    active_alerts = alerts_response.data
+
+    if not active_alerts:
+        print("No active alerts to check.")
+        return
+
+    for alert in active_alerts:
+        # 2. Check the current price of the tracked product
+        product_response = supabase.table('products').select('currentPrice').eq('id', alert['product_id']).execute()
+        
+        if not product_response.data:
+            continue
+            
+        current_price = product_response.data[0]['currentPrice']
+
+        # 3. DID IT DROP BELOW THE TARGET?
+        if current_price <= alert['target_price']:
+            print(f"HIT! {alert['product_title']} dropped to {current_price} for {alert['user_email']}")
+            
+            # 4. Fire the email
+            success = send_alert_email(
+                to_email=alert['user_email'],
+                title=alert['product_title'],
+                url=alert['product_url'], # This is your affiliate link!
+                price=current_price,
+                target=alert['target_price']
+            )
+            
+            # 5. Turn off the alert so we don't spam them tomorrow
+            if success:
+                supabase.table('price_alerts').update({'is_active': False}).eq('id', alert['id']).execute()
 
 
 # ── Awin feed fetcher ─────────────────────────────────────────────────────────────
@@ -628,7 +703,7 @@ def write_deals(deals: list[dict], store_id: str) -> int:
         retail_price = EXCLUDED.retail_price,
         stock_status = EXCLUDED.stock_status,
         description = EXCLUDED.description,
-        ean_code = EXCLUDED.ean_code,
+        ean_code = EXCLUDED.ean_code, 
         last_updated = timezone('utc'::text, now());
     """
     
@@ -667,6 +742,11 @@ def scrape_store(store: StoreConfig) -> list[dict]:
 # ── Entry point ───────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    # Initialize Supabase client
+    url: str = os.environ.get("SUPABASE_URL")
+    key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    supabase: Client = create_client(url, key)
+
     # # ── Firebase Admin SDK init ───────────────────────────────────────────────────
     # cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     # if cred_path:
@@ -691,6 +771,9 @@ def main() -> None:
             log.exception("[%s] Unexpected error — store skipped: %s", store.name, exc)
 
     log.info("Pipeline complete.")
+
+    # Assuming 'supabase' is your initialized client
+    check_and_fire_price_alerts(supabase)
 
 
 if __name__ == "__main__":
