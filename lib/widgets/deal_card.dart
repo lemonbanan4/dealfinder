@@ -6,6 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../features/deals/domain/deal.dart';
 import 'liquid_glass_background.dart';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../features/alerts/providers/price_alerts_provider.dart'; // Import your provider path
+import '../features/alerts/providers/alert_configs_provider.dart';
 // Import the model we made!
 
 // Design tokens
@@ -33,12 +38,14 @@ class DealCard extends StatelessWidget {
     required this.displayPrice,
     required this.currency,
     required this.onShare,
+    this.trailingAction,
     this.onTap,
   });
 
   final Deal deal;
   final double displayPrice;
   final String currency;
+  final Widget? trailingAction;
   final VoidCallback? onTap;
   final VoidCallback? onShare;
 
@@ -81,6 +88,7 @@ class DealCard extends StatelessWidget {
                     vatLabel: vatLabel,
                   ),
                 ),
+                if (trailingAction != null) trailingAction!,
                 IconButton(icon: const Icon(Icons.share), onPressed: onShare),
               ],
             ),

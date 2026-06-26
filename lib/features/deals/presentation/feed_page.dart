@@ -20,7 +20,7 @@ import '../domain/deal.dart';
 import '../providers/deals_provider.dart';
 import '../../auth/presentation/auth_page.dart';
 import '../../auth/presentation/profile_page.dart';
-import '../../alerts/presentation/create_alert_sheet.dart';
+import '../../alerts/presentation/price_alert_modal.dart';
 import '../../../services/share_service.dart';
 import '../../auth/presentation/login_page.dart';
 
@@ -581,6 +581,23 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                           title: deal.title,
                                           url: deal.url,
                                         ),
+                                        trailingAction: IconButton(
+                                          icon: const Icon(
+                                            Icons.notifications_none_rounded,
+                                            color: Color(0xFF00B4FF),
+                                          ),
+                                          onPressed: () {
+                                            showPriceAlertModal(
+                                              context: context,
+                                              ref: ref,
+                                              productId: deal.id,
+                                              title: deal.title,
+                                              url: deal.url,
+                                              currentPrice: deal.currentPrice,
+                                              currency: deal.currency,
+                                            );
+                                          },
+                                        ),
                                       );
                                     },
                                   )
@@ -597,6 +614,24 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                         onShare: () => ShareService.shareDeal(
                                           title: deal.title,
                                           url: deal.url,
+                                        ),
+                                        trailingAction: IconButton(
+                                          icon: const Icon(
+                                            Icons.notifications_none_rounded,
+                                            color: Color(0xFF00B4FF),
+                                          ),
+                                          onPressed: () {
+                                            showPriceAlertModal(
+                                              context: context,
+                                              ref: ref,
+                                              productId: deal
+                                                  .id, // Ensure these match your deal fields
+                                              title: deal.title,
+                                              url: deal.url,
+                                              currentPrice: deal.currentPrice,
+                                              currency: deal.currency,
+                                            );
+                                          },
                                         ),
                                       );
                                     },
