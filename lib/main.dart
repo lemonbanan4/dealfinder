@@ -7,8 +7,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
 import 'core/constants.dart';
-import 'features/deals/data/deal_repository.dart';
-import 'features/deals/data/default_scraper_configs.dart';
 import 'firebase_options.dart';
 import 'services/background_refresh_service.dart';
 import 'services/notification/fcm_service.dart';
@@ -18,7 +16,6 @@ void main() async {
 
   await Hive.initFlutter();
   await _openBoxes();
-  _seedDefaultConfigs();
 
   try {
     await Firebase.initializeApp(
@@ -59,12 +56,4 @@ Future<void> _openBoxes() async {
     Hive.openBox<String>(HiveBoxes.currencyRates),
     Hive.openBox<String>(HiveBoxes.scraperConfigs),
   ]);
-}
-
-void _seedDefaultConfigs() {
-  final repo = DealRepository();
-  if (repo.getConfigs().isNotEmpty) return;
-  for (final config in defaultScraperConfigs) {
-    repo.saveConfig(config);
-  }
 }

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants.dart';
 import '../../../widgets/app_logo.dart';
-import '../../deals/providers/scraper_configs_provider.dart';
 import '../providers/settings_provider.dart';
 
 const _kCardBg = Color(0xFF12131A);
@@ -21,14 +20,12 @@ class SettingsPage extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const AppLogo(),
-      ),
+      appBar: AppBar(title: const AppLogo()),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
-          // ── Currency & Region ─────────────────────────────────────────────
-          _SectionLabel('Currency & Region'),
+          // ── Currency Display ─────────────────────────────────────────────
+          _SectionLabel('Currency Display'),
           _SettingsCard(
             isDark: isDark,
             child: Column(
@@ -53,26 +50,7 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(height: 12),
-
-          // ── Auto-refresh ─────────────────────────────────────────────────
-          _SectionLabel('Auto-Refresh'),
-          _SettingsCard(
-            isDark: isDark,
-            child: SegmentedButton<int>(
-              showSelectedIcon: false,
-              expandedInsets: EdgeInsets.zero,
-              segments: const [
-                ButtonSegment(value: 15, label: Text('15 min')),
-                ButtonSegment(value: 30, label: Text('30 min')),
-                ButtonSegment(value: 60, label: Text('1 hr')),
-              ],
-              selected: {settings.refreshIntervalMinutes},
-              onSelectionChanged: (s) => notifier.setRefreshInterval(s.first),
-            ),
-          ),
-
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
 
           // ── Notifications ─────────────────────────────────────────────────
           _SectionLabel('Notifications'),
@@ -83,11 +61,8 @@ class SettingsPage extends ConsumerWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               title: const Text('Price-alert notifications'),
               subtitle: Text(
-                'Notified when a deal drops below your target',
-                style: TextStyle(
-                  color: isDark ? _kMuted : null,
-                  fontSize: 12,
-                ),
+                'Get notified when a deal drops below your target price',
+                style: TextStyle(color: isDark ? _kMuted : null, fontSize: 12),
               ),
               value: settings.notificationsEnabled,
               onChanged: (v) => notifier.toggleNotifications(enabled: v),
@@ -95,13 +70,18 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(height: 12),
-
-          // ── Deal sources ──────────────────────────────────────────────────
-          _SectionLabel('Deal Sources'),
-          _SourcesList(isDark: isDark),
-
           const SizedBox(height: 24),
+
+          // ── Account Info ──────────────────────────────────────────────────
+          _SectionLabel('Account'),
+          _SettingsCard(
+            isDark: isDark,
+            padding: const EdgeInsets.all(16),
+            child: const Text(
+              'Manage your saved deals and active price alerts directly from the Profile tab.',
+              style: TextStyle(color: _kMuted, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );
@@ -133,142 +113,6 @@ class _VatNote extends StatelessWidget {
       ],
     );
   }
-}
-
-// ── Sources list ──────────────────────────────────────────────────────────────
-
-class _SourcesList extends ConsumerWidget {
-  const _SourcesList({required this.isDark});
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final configs = ref.watch(scraperConfigsProvider);
-    final notifier = ref.read(scraperConfigsProvider.notifier);
-
-    if (configs.isEmpty) {
-      return _SettingsCard(
-        isDark: isDark,
-        child: Text(
-          'No sources configured.',
-          style: TextStyle(color: isDark ? _kMuted : null),
-        ),
-      );
-    }
-
-    return _SettingsCard(
-      isDark: isDark,
-      padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          for (int i = 0; i < configs.length; i++) ...[
-            if (i > 0)
-              Divider(height: 1, color: isDark ? _kBorder : null),
-            SwitchListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-              title: Text(configs[i].name),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    configs[i].baseUrl,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isDark ? _kMuted : null,
-                      fontSize: 12,
-                    ),
-                  ),
-                  if (configs[i].lastError != null) ...[
-                    const SizedBox(height: 6),
-                    _ScraperErrorBanner(
-                      error: configs[i].lastError!,
-                      at: configs[i].lastErrorAt,
-                    ),
-                  ],
-                ],
-              ),
-              secondary: Chip(
-                label: Text(configs[i].currencyCode),
-                visualDensity: VisualDensity.compact,
-              ),
-              value: configs[i].isEnabled,
-              onChanged: (v) => notifier.toggle(configs[i].id, enabled: v),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ── Scraper error banner ──────────────────────────────────────────────────────
-
-const _kError = Color(0xFFFF4757);
-const _kErrorText = Color(0xFFFF8B95);
-
-class _ScraperErrorBanner extends StatelessWidget {
-  const _ScraperErrorBanner({required this.error, required this.at});
-  final String error;
-  final DateTime? at;
-
-  @override
-  Widget build(BuildContext context) {
-    final when = at != null ? _formatErrorAt(at!) : 'unknown time';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color.fromRGBO(255, 71, 87, 0.08),
-        border: Border.all(color: const Color.fromRGBO(255, 71, 87, 0.30)),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.warning_rounded, size: 13, color: _kError),
-              const SizedBox(width: 5),
-              Text(
-                'Scrape failed · $when',
-                style: const TextStyle(
-                  color: _kError,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 3),
-          Text(
-            error,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: _kErrorText,
-              fontSize: 11,
-              height: 1.35,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String _formatErrorAt(DateTime at) {
-  final diff = DateTime.now().difference(at);
-  if (diff.inMinutes < 1) return 'just now';
-  if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-  if (diff.inHours < 24) return '${diff.inHours} hr ago';
-  if (diff.inDays < 7) return '${diff.inDays}d ago';
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-  return '${at.day} ${months[at.month - 1]}';
 }
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
@@ -309,9 +153,7 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: isDark
-            ? _kCardBg
-            : Theme.of(context).colorScheme.surface,
+        color: isDark ? _kCardBg : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark
