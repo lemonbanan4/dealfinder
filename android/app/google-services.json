@@ -12,7 +12,12 @@
           "package_name": "com.dealfinder.dealfinder_pro"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "838381255973-phb7e8udpcccm7elmv35bdc77b2ab7o4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCYcGVC3dVfeMvQr-TDPTETlN94ghJGW74"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "838381255973-phb7e8udpcccm7elmv35bdc77b2ab7o4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "838381255973-pd2rkctil5128n25mj3bcgso658cd2dg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dealfinder.dealfinderPro"
+              }
+            }
+          ]
         }
       }
     }

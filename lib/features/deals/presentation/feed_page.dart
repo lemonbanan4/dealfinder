@@ -22,6 +22,7 @@ import '../../auth/presentation/auth_page.dart';
 import '../../auth/presentation/profile_page.dart';
 import '../../alerts/presentation/create_alert_sheet.dart';
 import '../../../services/share_service.dart';
+import '../../auth/presentation/login_page.dart';
 
 // HELPER FUNCTION FOR format all_no and all_se
 String formatSourceName(String rawSource) {
@@ -350,32 +351,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       appBar: AppBar(
         //title: const AppLogo(),
         actions: [
-          // ─── 1. The Region Toggle ───────────────────────────────────────
-          // Consumer(
-          //   builder: (context, ref, child) {
-          //     final currentRegion = ref.watch(regionProvider);
-          //     return SegmentedButton<String>(
-          //       segments: const [
-          //         ButtonSegment(value: 'se', label: Text('🇸🇪')),
-          //         ButtonSegment(value: 'no', label: Text('🇳🇴')),
-          //       ],
-          //       selected: {currentRegion},
-          //       showSelectedIcon: false,
-          //       style: SegmentedButton.styleFrom(
-          //         visualDensity: VisualDensity.compact,
-          //         textStyle: const TextStyle(fontSize: 12),
-          //       ),
-          //       onSelectionChanged: (Set<String> newSelection) {
-          //         // Update the region state
-          //         ref
-          //             .read(regionProvider.notifier)
-          //             .setRegion(newSelection.first);
-          //       },
-          //     );
-          //   },
-          // ),
-          const SizedBox(width: 8),
-
           // ─── 2. Your existing action icons ──────────────────────────────
           IconButton(
             tooltip: authState.value != null ? 'Profile' : 'Sign In',
@@ -393,7 +368,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
               } else {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const AuthPage()),
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
                 );
               }
             },

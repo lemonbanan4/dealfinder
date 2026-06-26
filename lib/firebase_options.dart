@@ -48,16 +48,16 @@ class DefaultFirebaseOptions {
     projectId: 'dealfinderpro-bc5be',
     storageBucket: 'dealfinderpro-bc5be.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDR8nE4E66lYQoomthjMlQCEI1qUVDip6o',
     appId: '1:838381255973:ios:0591742b5144bb5f946ecc',
     messagingSenderId: '838381255973',
     projectId: 'dealfinderpro-bc5be',
     storageBucket: 'dealfinderpro-bc5be.firebasestorage.app',
+    iosClientId:
+        '838381255973-pd2rkctil5128n25mj3bcgso658cd2dg.apps.googleusercontent.com',
     iosBundleId: 'com.dealfinder.dealfinderPro',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'REPLACE_ME',
     appId: 'REPLACE_ME',
