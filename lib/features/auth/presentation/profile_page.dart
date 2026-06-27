@@ -205,10 +205,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
             // ── GENERAL SYSTEM SETTINGS ──────────────────────────────────────
             ListTile(
-              leading: const Icon(Icons.brightness_6),
-              title: const Text('Theme Appearance'),
+              leading: const Icon(Icons.brightness_6, color: Color(0xFF8A8AA0)),
+              title: const Text(
+                'Theme Appearance',
+                style: TextStyle(color: Colors.white, fontSize: 14),
+              ),
               trailing: DropdownButton<AppTheme>(
                 value: themeMode,
+                dropdownColor: const Color(0xFF12131A),
+                style: const TextStyle(color: Colors.white),
                 underline: const SizedBox(),
                 items: const [
                   DropdownMenuItem(
@@ -225,8 +230,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ],
                 onChanged: (mode) {
-                  if (mode != null)
+                  if (mode != null) {
                     ref.read(themeProvider.notifier).updateTheme(mode);
+                  }
                 },
               ),
             ),
@@ -236,7 +242,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 leading: const Icon(Icons.logout, color: Color(0xFFFF4757)),
                 title: const Text(
                   'Sign Out',
-                  style: TextStyle(color: Color(0xFFFF4757)),
+                  style: TextStyle(
+                    color: Color(0xFFFF4757),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 onTap: _signOut,
               ),

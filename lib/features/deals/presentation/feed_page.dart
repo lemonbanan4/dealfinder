@@ -302,6 +302,8 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     final isGrid = ref.watch(feedViewModeProvider); // Corrected provider name
     final authState = ref.watch(authProvider); // Use the correct auth provider
 
+    final region = ref.watch(regionProvider);
+
     // Dynamically build a list of categories (sources) based on available deals
     final categories = {'All'};
     for (final d in deals) {
@@ -402,6 +404,23 @@ class _FeedPageState extends ConsumerState<FeedPage> {
             tooltip: isGrid ? 'List View' : 'Grid View',
             icon: Icon(isGrid ? Icons.view_list : Icons.grid_view),
             onPressed: () => ref.read(feedViewModeProvider.notifier).toggle(),
+          ),
+          PopupMenuButton<String>(
+            icon: Text(
+              region == 'no' ? '🇳🇴' : '🇸🇪',
+              style: const TextStyle(fontSize: 20),
+            ),
+            tooltip: 'Select Region',
+            onSelected: (value) {
+              // Instantly swap the database region
+              ref.read(regionProvider.notifier).setRegion(value);
+              // Refresh the feed to pull the new country's deals
+              ref.read(dealFeedProvider.notifier).refresh();
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'se', child: Text('🇸🇪 Sweden')),
+              PopupMenuItem(value: 'no', child: Text('🇳🇴 Norway')),
+            ],
           ),
           PopupMenuButton<String>(
             icon: Badge(
@@ -600,13 +619,31 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                         ),
                                         trailingActions: [
                                           IconButton(
+                                            icon: Icon(
+                                              (favorites.asData?.value.contains(
+                                                        deal.id,
+                                                      ) ??
+                                                      false)
+                                                  ? Icons.favorite
+                                                  : Icons.favorite_border,
+                                              color:
+                                                  (favorites.asData?.value
+                                                          .contains(deal.id) ??
+                                                      false)
+                                                  ? const Color(0xFFFF4757)
+                                                  : const Color(0xFF5A5A78),
+                                            ),
+                                            onPressed: () =>
+                                                _handleFavoriteTap(deal),
+                                          ),
+                                          // Price Alert button
+                                          IconButton(
                                             icon: const Icon(
                                               Icons.notifications_none_rounded,
                                               color: Color(0xFF00B4FF),
                                             ),
-                                            onPressed: () {
-                                              _handlePriceAlertTap(deal);
-                                            },
+                                            onPressed: () =>
+                                                _handlePriceAlertTap(deal),
                                           ),
                                         ],
                                       );
@@ -640,13 +677,31 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                         ),
                                         trailingActions: [
                                           IconButton(
+                                            icon: Icon(
+                                              (favorites.asData?.value.contains(
+                                                        deal.id,
+                                                      ) ??
+                                                      false)
+                                                  ? Icons.favorite
+                                                  : Icons.favorite_border,
+                                              color:
+                                                  (favorites.asData?.value
+                                                          .contains(deal.id) ??
+                                                      false)
+                                                  ? const Color(0xFFFF4757)
+                                                  : const Color(0xFF5A5A78),
+                                            ),
+                                            onPressed: () =>
+                                                _handleFavoriteTap(deal),
+                                          ),
+                                          // Price Alert button
+                                          IconButton(
                                             icon: const Icon(
                                               Icons.notifications_none_rounded,
                                               color: Color(0xFF00B4FF),
                                             ),
-                                            onPressed: () {
-                                              _handlePriceAlertTap(deal);
-                                            },
+                                            onPressed: () =>
+                                                _handlePriceAlertTap(deal),
                                           ),
                                         ],
                                       );

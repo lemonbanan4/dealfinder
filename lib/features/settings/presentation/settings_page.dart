@@ -35,10 +35,10 @@ class SettingsPage extends ConsumerWidget {
                   showSelectedIcon: false,
                   expandedInsets: EdgeInsets.zero,
                   segments: const [
-                    ButtonSegment(value: CurrencyCode.eur, label: Text('EUR')),
-                    ButtonSegment(value: CurrencyCode.nok, label: Text('NOK')),
-                    ButtonSegment(value: CurrencyCode.sek, label: Text('SEK')),
-                    ButtonSegment(value: CurrencyCode.usd, label: Text('USD')),
+                    ButtonSegment(value: 'EUR', label: Text('EUR')),
+                    ButtonSegment(value: 'NOK', label: Text('NOK')),
+                    ButtonSegment(value: 'SEK', label: Text('SEK')),
+                    ButtonSegment(value: 'USD', label: Text('USD')),
                   ],
                   selected: {settings.displayCurrency},
                   onSelectionChanged: (s) =>
