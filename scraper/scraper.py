@@ -290,6 +290,8 @@ def _make_doc_id(store_id: str, product_url: str, fallback_key: str = "") -> str
     """
     Build a stable ID using the unique merchant_product_id.
     """
+    if not product_url:
+        product_url = ""
     # If we have a fallback_key (the merchant_product_id), use it as the slug!
     if fallback_key:
         slug = fallback_key
@@ -354,6 +356,7 @@ def _discount_pct(original: float, current: float) -> float:
     return (original - current) / original * 100.0
 
 
+# --- Email Alerting Logic --------------------------------------------------------
 # --- Sending emails logic
 SENDER_EMAIL = "contact@orbitroutine.com"
 SENDER_PASSWORD = "ggtp txgh lxcw koka" 
@@ -385,42 +388,63 @@ def send_alert_email(to_email, title, url, price, target):
         print(f"Failed to send email to {to_email}: {e}")
         return False
 
-def check_and_fire_price_alerts(supabase):
+def check_and_fire_price_alerts(supabase: Client):
     print("Checking for triggered price alerts...")
     
-    # 1. Grab all ACTIVE alerts from the database
     alerts_response = supabase.table('price_alerts').select('*').eq('is_active', True).execute()
     active_alerts = alerts_response.data
 
     if not active_alerts:
         print("No active alerts to check.")
         return
+    
+    # Optimization: Fetch all product prices in one go
+    product_ids = {alert['product_id'] for alert in active_alerts}
+    products_response = supabase.table('products').select('id, currentPrice').in_('id', list(product_ids)).execute()
+    
+    if not products_response.data:
+        print("Could not fetch current prices for alerted products.")
+        return
 
-    for alert in active_alerts:
-        # 2. Check the current price of the tracked product
-        product_response = supabase.table('products').select('currentPrice').eq('id', alert['product_id']).execute()
-        
-        if not product_response.data:
-            continue
-            
-        current_price = product_response.data[0]['currentPrice']
+    price_map = {p['id']: p['currentPrice'] for p in products_response.data}
+    alerts_to_deactivate = []
+    
+    # Optimization: Use a single SMTP connection for all emails
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
 
-        # 3. DID IT DROP BELOW THE TARGET?
-        if current_price <= alert['target_price']:
-            print(f"HIT! {alert['product_title']} dropped to {current_price} for {alert['user_email']}")
-            
-            # 4. Fire the email
-            success = send_alert_email(
-                to_email=alert['user_email'],
-                title=alert['product_title'],
-                url=alert['product_url'], # This is your affiliate link!
-                price=current_price,
-                target=alert['target_price']
-            )
-            
-            # 5. Turn off the alert so we don't spam them tomorrow
-            if success:
-                supabase.table('price_alerts').update({'is_active': False}).eq('id', alert['id']).execute()
+        for alert in active_alerts:
+            current_price = price_map.get(alert['product_id'])
+            if current_price is None:
+                continue
+
+            if current_price <= alert['target_price']:
+                print(f"HIT! {alert['product_title']} dropped to {current_price} for {alert['user_email']}")
+                
+                # Fire the email using the existing server connection
+                success = send_alert_email(
+                    to_email=alert['user_email'],
+                    title=alert['product_title'],
+                    url=alert['product_url'],
+                    price=current_price,
+                    target=alert['target_price']
+                )
+                
+                if success:
+                    alerts_to_deactivate.append(alert['id'])
+
+        server.quit()
+
+    except Exception as e:
+        print(f"An error occurred during email sending: {e}")
+
+    # Deactivate alerts in a single batch update
+    if alerts_to_deactivate:
+        print(f"Deactivating {len(alerts_to_deactivate)} alerts...")
+        supabase.table('price_alerts').update({'is_active': False}).in_('id', alerts_to_deactivate).execute()
+
 
 
 # ── Awin feed fetcher ─────────────────────────────────────────────────────────────
@@ -519,10 +543,10 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
 
 
         # Original price (handle if it doesn't exists)
-        orig_key = cfg.column_map.get("original_price")
-        rrp = row.get(orig_key) if orig_key in row else None
+        orig_col_name = cfg.column_map.get("original_price")
+        rrp = row.get(orig_col_name) if orig_col_name and orig_col_name in row else None
         original_price = float(rrp) if pd.notna(rrp) and float(rrp) > current_price else None
-        
+
 
         deals.append({
             "id": _make_doc_id(store.id, url, fallback_key=raw_id),
@@ -691,13 +715,12 @@ def write_deals(deals: list[dict], store_id: str) -> int:
     upsert_query = """
     INSERT INTO products (
         product_id, feed_region, title, brand, price, 
-        retail_price, tracking_url, image_url, description, 
-        stock_status, ean_code, currency
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        retail_price, tracking_url, image_url, description,
+        stock_status, ean_code
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON CONFLICT (product_id) 
     DO UPDATE SET 
         price = EXCLUDED.price,
-        currency = EXCLUDED.currency,
         tracking_url = EXCLUDED.tracking_url,
         image_url = EXCLUDED.image_url,
         retail_price = EXCLUDED.retail_price,
@@ -705,6 +728,11 @@ def write_deals(deals: list[dict], store_id: str) -> int:
         description = EXCLUDED.description,
         ean_code = EXCLUDED.ean_code, 
         last_updated = timezone('utc'::text, now());
+    """
+
+    price_history_query = """
+    INSERT INTO price_history (product_id, price)
+    VALUES (%s, %s);
     """
     
     for deal in deals:
@@ -718,9 +746,14 @@ def write_deals(deals: list[dict], store_id: str) -> int:
             deal["url"], 
             deal["imageUrl"],
             deal.get("description", ""),
-            "In Stock",
-            str(deal.get("ean")) if deal.get("ean") else None,
-            deal.get("currency", "SEK")
+            "In Stock", # Assuming stock if it's in the feed
+            str(deal.get("ean")) if deal.get("ean") else None
+        ))
+
+        # Insert into price_history table
+        cur.execute(price_history_query, (
+            deal["id"],
+            deal["currentPrice"]
         ))
     
     conn.commit()

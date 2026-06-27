@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../core/constants.dart';
 import '../../../providers/repositories.dart';
 import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';
@@ -14,6 +14,10 @@ import 'scraper_configs_provider.dart';
 import '../presentation/feed_page.dart';
 
 part 'deals_provider.g.dart';
+
+final supabaseProvider = Provider<SupabaseClient>((ref) {
+  return Supabase.instance.client;
+});
 
 @Riverpod(keepAlive: true)
 class DealFeedNotifier extends _$DealFeedNotifier {

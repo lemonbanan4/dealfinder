@@ -1,63 +1,73 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:web/web.dart' as web;
 import 'dart:ui' as ui;
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:http/http.dart' as http;
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../widgets/deal_card.dart';
-import '../../../widgets/app_logo.dart';
 import '../domain/deal.dart';
 import '../providers/deals_provider.dart';
-import '../../auth/presentation/auth_page.dart';
-import '../../auth/presentation/profile_page.dart';
+import '../data/favorites_repository.dart';
+import '../providers/recently_viewed_provider.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../auth/presentation/profile_page.dart' as profile_page;
 import '../../alerts/presentation/price_alert_modal.dart';
 import '../../../services/share_service.dart';
 import '../../auth/presentation/login_page.dart';
 
-// HELPER FUNCTION FOR format all_no and all_se
-String formatSourceName(String rawSource) {
-  if (rawSource.toLowerCase().contains('all_no') ||
-      rawSource.toLowerCase().contains('all no')) {
-    return 'Norway Deals 🇳🇴';
-  } else if (rawSource.toLowerCase().contains('all_se') ||
-      rawSource.toLowerCase().contains('all se')) {
-    return 'Sweden Deals 🇸🇪';
+part 'feed_page.g.dart';
+
+@immutable
+class FeedFilters {
+  const FeedFilters({
+    this.searchQuery = '',
+    this.sort = ProductSort.none,
+    this.category = 'All',
+    this.showFavoritesOnly = false,
+  });
+
+  final String searchQuery;
+  final ProductSort sort;
+  final String category;
+  final bool showFavoritesOnly;
+
+  FeedFilters copyWith({
+    String? searchQuery,
+    ProductSort? sort,
+    String? category,
+    bool? showFavoritesOnly,
+  }) {
+    return FeedFilters(
+      searchQuery: searchQuery ?? this.searchQuery,
+      sort: sort ?? this.sort,
+      category: category ?? this.category,
+      showFavoritesOnly: showFavoritesOnly ?? this.showFavoritesOnly,
+    );
   }
-  return rawSource; // Fallback
 }
+
+enum ProductSort { none, priceAsc, priceDesc }
+
+enum FeedView { grid, list }
 
 // ─── Feed page ─────────────────────────────────────────────────────────────────
 
-// A simple provider to hold our current search query
-final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
-  () => SearchQueryNotifier(),
-);
-
-class SearchQueryNotifier extends Notifier<String> {
+@riverpod
+class SearchQuery extends _$SearchQuery {
   @override
   String build() => '';
-  void updateQuery(String query) => state = query;
+  void update(String query) => state = query;
   void clear() => state = '';
 }
 
-// The Provider definition
-final regionProvider = NotifierProvider<RegionNotifier, String>(
-  () => RegionNotifier(),
-);
-
-// The Notifier class with the auto-detection logic
-class RegionNotifier extends Notifier<String> {
-  @override
+@riverpod
+class Region extends _$Region {
   String build() {
     // Grab system locale properties directly
     final locale = ui.PlatformDispatcher.instance.locale;
@@ -81,164 +91,88 @@ class RegionNotifier extends Notifier<String> {
   }
 }
 
-enum ProductSort { none, priceAsc, priceDesc }
-
-final productSortProvider = NotifierProvider<ProductSortNotifier, ProductSort>(
-  () => ProductSortNotifier(),
-);
-
-class ProductSortNotifier extends Notifier<ProductSort> {
-  static const _key = 'product_sort_pref';
-
+@riverpod
+class FeedFiltersNotifier extends _$FeedFiltersNotifier {
   @override
-  ProductSort build() {
-    _loadPref();
-    return ProductSort.none;
+  FeedFilters build() {
+    //_loadInitialState(); // It's okay for this to be async here
+    return const FeedFilters();
   }
 
-  Future<void> _loadPref() async {
-    final prefs = await SharedPreferences.getInstance();
-    final index = prefs.getInt(_key);
-    if (index != null && index >= 0 && index < ProductSort.values.length) {
-      state = ProductSort.values[index];
-    }
+  void updateSearchQuery(String query) {
+    state = state.copyWith(searchQuery: query);
   }
 
-  Future<void> updateSort(ProductSort sort) async {
-    state = sort;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_key, sort.index);
+  void updateSort(ProductSort sort) {
+    state = state.copyWith(sort: sort);
+  }
+
+  void updateCategory(String category) {
+    state = state.copyWith(category: category);
+  }
+
+  void toggleFavoritesOnly() {
+    state = state.copyWith(showFavoritesOnly: !state.showFavoritesOnly);
+  }
+
+  void clear() {
+    state = state.copyWith(
+      searchQuery: '',
+      category: 'All',
+      showFavoritesOnly: false,
+    );
   }
 }
 
-final productCategoryProvider =
-    NotifierProvider<ProductCategoryNotifier, String>(
-      () => ProductCategoryNotifier(),
-    );
-
-class ProductCategoryNotifier extends Notifier<String> {
-  static const _key = 'product_category_pref';
-
-  @override
-  String build() {
-    _loadPref();
-    return 'All';
-  }
-
-  Future<void> _loadPref() async {
-    final prefs = await SharedPreferences.getInstance();
-    final category = prefs.getString(_key);
-    if (category != null && category.isNotEmpty) {
-      state = category;
-    }
-  }
-
-  Future<void> updateCategory(String category) async {
-    state = category;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, category);
-  }
-}
-
-final showFavoritesOnlyProvider =
-    NotifierProvider<ShowFavoritesOnlyNotifier, bool>(
-      () => ShowFavoritesOnlyNotifier(),
-    );
-
-class ShowFavoritesOnlyNotifier extends Notifier<bool> {
+@riverpod
+class FeedViewMode extends _$FeedViewMode {
   @override
   bool build() => false;
+
   void toggle() => state = !state;
-  void reset() => state = false;
 }
 
-final feedViewModeProvider = NotifierProvider<FeedViewModeNotifier, bool>(
-  () => FeedViewModeNotifier(),
-);
-
-class FeedViewModeNotifier extends Notifier<bool> {
-  static const _key = 'feed_view_mode_pref';
-
+@Riverpod(keepAlive: true)
+class FavoritesNotifier extends _$FavoritesNotifier {
   @override
-  bool build() {
-    _loadPref();
-    return false;
+  Future<Set<String>> build() async {
+    final authState = ref.watch(authProvider);
+    final user = authState.value;
+
+    final repo = await ref.watch(favoritesRepositoryProvider.future);
+    return repo.getFavorites(user);
   }
 
-  Future<void> _loadPref() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isGrid = prefs.getBool(_key);
-    if (isGrid != null) state = isGrid;
-  }
-
-  Future<void> toggle() async {
-    state = !state;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_key, state);
-  }
-}
-
-final favoritesProvider = NotifierProvider<FavoritesNotifier, Set<String>>(
-  () => FavoritesNotifier(),
-);
-
-class FavoritesNotifier extends Notifier<Set<String>> {
-  static const _key = 'favorite_products_pref';
-
-  @override
-  Set<String> build() {
-    _loadPref();
-    return {};
-  }
-
-  Future<void> _loadPref() async {
-    final prefs = await SharedPreferences.getInstance();
-    final favs = prefs.getStringList(_key);
-    if (favs != null) state = favs.toSet();
-
-    // Sync from Firestore if authenticated
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        if (doc.exists && doc.data() != null) {
-          final data = doc.data()!;
-          if (data.containsKey('favorites')) {
-            final firestoreFavs = List<String>.from(data['favorites']);
-            state = firestoreFavs.toSet();
-            await prefs.setStringList(_key, firestoreFavs);
-          }
-        }
-      } catch (e) {
-        debugPrint('Failed to load favorites from Firestore: $e');
-      }
-    }
+  /// Clears all favorites from storage and state.
+  Future<void> clear() async {
+    final user = ref.read(authProvider).value;
+    final repo = await ref.read(favoritesRepositoryProvider.future);
+    await repo.clearFavorites(user);
+    state = const AsyncValue.data({});
   }
 
   Future<void> toggleFavorite(String productId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null && !user.emailVerified) {
-      throw Exception('Email not verified');
+    final user = ref.read(authProvider).value;
+
+    // Optimistic update: update the UI immediately
+    final previousState = state;
+    if (previousState.hasValue) {
+      final newFavs = Set<String>.from(previousState.value!);
+      if (newFavs.contains(productId)) {
+        newFavs.remove(productId);
+      } else {
+        newFavs.add(productId);
+      }
+      state = AsyncValue.data(newFavs);
     }
 
-    final newFavs = Set<String>.from(state);
-    if (newFavs.contains(productId)) {
-      newFavs.remove(productId);
-    } else {
-      newFavs.add(productId);
-    }
-    state = newFavs;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_key, newFavs.toList());
-
-    // Sync to Firestore if the user is authenticated
-    if (user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'favorites': newFavs.toList(),
-      }, SetOptions(merge: true));
+    try {
+      final repo = await ref.read(favoritesRepositoryProvider.future);
+      // The repository handles the actual data update.
+      await repo.toggleFavorite(productId, user);
+    } catch (e) {
+      // If the update fails, revert to the previous state.
+      state = previousState;
     }
   }
 }
@@ -252,6 +186,18 @@ String _formatAmount(double price) {
     buf.write(s[i]);
   }
   return buf.toString();
+}
+
+// HELPER FUNCTION FOR format all_no and all_se
+String formatSourceName(String rawSource) {
+  if (rawSource.toLowerCase().contains('all_no') ||
+      rawSource.toLowerCase().contains('all no')) {
+    return 'Norway Deals 🇳🇴';
+  } else if (rawSource.toLowerCase().contains('all_se') ||
+      rawSource.toLowerCase().contains('all se')) {
+    return 'Sweden Deals 🇸🇪';
+  }
+  return rawSource; // Fallback
 }
 
 class FeedPage extends ConsumerStatefulWidget {
@@ -304,8 +250,9 @@ class _FeedPageState extends ConsumerState<FeedPage> {
   }
 
   void _handlePriceAlertTap(Deal deal) {
-    // Check if user is logged in
-    if (ref.read(authStateProvider).value == null) {
+    // Check if user is logged in. Use authProvider here.
+    final user = ref.read(authProvider).value;
+    if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Please sign in to set price alerts.'),
@@ -331,17 +278,29 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     }
   }
 
+  void _handleFavoriteTap(Deal deal) {
+    final user = ref.read(authProvider).value;
+    if (user != null && !user.emailVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please verify your email to manage favorites.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    ref.read(favoritesProvider.notifier).toggleFavorite(deal.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final dealFeedAsync = ref.watch(dealFeedProvider);
-    final deals = dealFeedAsync.value ?? [];
-    final searchQuery = ref.watch(searchQueryProvider);
-    final sortOption = ref.watch(productSortProvider);
-    final selectedCategory = ref.watch(productCategoryProvider);
+    final deals = dealFeedAsync.asData?.value ?? [];
+    final filters = ref.watch(feedFiltersProvider); // This is fine
     final favorites = ref.watch(favoritesProvider);
-    final showFavoritesOnly = ref.watch(showFavoritesOnlyProvider);
-    final isGrid = ref.watch(feedViewModeProvider);
-    final authState = ref.watch(authStateProvider);
+
+    final isGrid = ref.watch(feedViewModeProvider); // Corrected provider name
+    final authState = ref.watch(authProvider); // Use the correct auth provider
 
     // Dynamically build a list of categories (sources) based on available deals
     final categories = {'All'};
@@ -352,19 +311,22 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       ..sort((a, b) => a == 'All' ? -1 : a.compareTo(b));
 
     final displayDeals = deals.where((d) {
-      if (showFavoritesOnly && !favorites.contains(d.id)) return false;
+      if (filters.showFavoritesOnly &&
+          !(favorites.asData?.value.contains(d.id) ?? false)) {
+        return false;
+      }
 
-      final q = searchQuery.toLowerCase();
+      final q = filters.searchQuery.toLowerCase();
       final matchesSearch =
           d.title.toLowerCase().contains(q) ||
           d.source.toLowerCase().contains(q);
       final matchesCategory =
-          selectedCategory == 'All' || d.source == selectedCategory;
+          filters.category == 'All' || d.source == filters.category;
       return matchesSearch && matchesCategory;
     }).toList();
 
     // Apply the active sorting method
-    switch (sortOption) {
+    switch (filters.sort) {
       case ProductSort.priceAsc:
         displayDeals.sort((a, b) => a.currentPrice.compareTo(b.currentPrice));
         break;
@@ -377,29 +339,36 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 
     return Scaffold(
       appBar: AppBar(
-        //title: const AppLogo(),
+        title: const Text('DealFinder'),
         actions: [
           // ─── 2. Your existing action icons ──────────────────────────────
-          IconButton(
-            tooltip: authState.value != null ? 'Profile' : 'Sign In',
-            icon: Icon(
-              authState.value != null
-                  ? Icons.account_circle
-                  : Icons.person_outline,
+          authState.when(
+            data: (user) => IconButton(
+              tooltip: user != null ? 'Profile' : 'Sign In',
+              icon: Icon(
+                user != null ? Icons.account_circle : Icons.person_outline,
+              ),
+              onPressed: () {
+                if (user != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const profile_page.ProfilePage(),
+                    ),
+                  );
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                  );
+                }
+              },
             ),
-            onPressed: () {
-              if (authState.value != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ProfilePage()),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                );
-              }
-            },
+            loading: () => const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: SizedBox.shrink(),
+            ),
+            error: (e, s) => const Icon(Icons.error),
           ),
           ValueListenableBuilder<bool>(
             valueListenable: _isRefreshing,
@@ -416,13 +385,18 @@ class _FeedPageState extends ConsumerState<FeedPage> {
           ),
           // ... Keep your favorite, grid, filter, and sort buttons exactly as they were!
           IconButton(
-            tooltip: showFavoritesOnly ? 'Show All' : 'Show Favorites',
-            icon: Icon(
-              showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
+            tooltip: filters.showFavoritesOnly ? 'Show All' : 'Show Favorites',
+            icon: Badge(
+              isLabelVisible: favorites.asData?.value.isNotEmpty ?? false,
+              child: Icon(
+                filters.showFavoritesOnly
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+              ),
             ),
-            color: showFavoritesOnly ? const Color(0xFFFF4757) : null,
+            color: filters.showFavoritesOnly ? const Color(0xFFFF4757) : null,
             onPressed: () =>
-                ref.read(showFavoritesOnlyProvider.notifier).toggle(),
+                ref.read(feedFiltersProvider.notifier).toggleFavoritesOnly(),
           ),
           IconButton(
             tooltip: isGrid ? 'List View' : 'Grid View',
@@ -431,15 +405,14 @@ class _FeedPageState extends ConsumerState<FeedPage> {
           ),
           PopupMenuButton<String>(
             icon: Badge(
-              isLabelVisible: selectedCategory != 'All',
+              isLabelVisible: filters.category != 'All',
               backgroundColor: const Color(0xFF00B4FF),
               child: const Icon(Icons.filter_list),
             ),
             tooltip: 'Filter by Category',
-            initialValue: selectedCategory,
-            onSelected: (value) => ref
-                .read(productCategoryProvider.notifier)
-                .updateCategory(value),
+            initialValue: filters.category,
+            onSelected: (value) =>
+                ref.read(feedFiltersProvider.notifier).updateCategory(value),
             itemBuilder: (context) => [
               for (final cat in categoryList)
                 PopupMenuItem(value: cat, child: Text(formatSourceName(cat))),
@@ -447,14 +420,14 @@ class _FeedPageState extends ConsumerState<FeedPage> {
           ),
           PopupMenuButton<ProductSort>(
             icon: Badge(
-              isLabelVisible: sortOption != ProductSort.none,
+              isLabelVisible: filters.sort != ProductSort.none,
               backgroundColor: const Color(0xFF00B4FF),
               child: const Icon(Icons.sort),
             ),
             tooltip: 'Sort products',
-            initialValue: sortOption,
+            initialValue: filters.sort,
             onSelected: (value) =>
-                ref.read(productSortProvider.notifier).updateSort(value),
+                ref.read(feedFiltersProvider.notifier).updateSort(value),
             itemBuilder: (context) => const [
               PopupMenuItem(
                 value: ProductSort.none,
@@ -529,13 +502,15 @@ class _FeedPageState extends ConsumerState<FeedPage> {
               hintText: 'Search products or brands...',
               leading: const Icon(Icons.search, color: Color(0xFF5A5A78)),
               trailing: [
-                if (searchQuery.isNotEmpty)
+                if (filters.searchQuery.isNotEmpty)
                   IconButton(
                     icon: const Icon(Icons.clear, color: Color(0xFF5A5A78)),
                     onPressed: () {
                       _debounce?.cancel();
                       _searchController.clear();
-                      ref.read(searchQueryProvider.notifier).clear();
+                      ref
+                          .read(feedFiltersProvider.notifier)
+                          .updateSearchQuery('');
                       FocusManager.instance.primaryFocus?.unfocus();
                     },
                   ),
@@ -548,7 +523,9 @@ class _FeedPageState extends ConsumerState<FeedPage> {
               onChanged: (value) {
                 if (_debounce?.isActive ?? false) _debounce!.cancel();
                 _debounce = Timer(const Duration(milliseconds: 300), () {
-                  ref.read(searchQueryProvider.notifier).updateQuery(value);
+                  ref
+                      .read(feedFiltersProvider.notifier)
+                      .updateSearchQuery(value);
                 });
               },
             ),
@@ -568,15 +545,11 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                   ? _EmptyState(onRefresh: () => _handleRefresh())
                   : displayDeals.isEmpty
                   ? _SearchEmptyState(
-                      query: searchQuery,
+                      query: filters.searchQuery,
                       onClear: () {
                         _debounce?.cancel();
                         _searchController.clear();
-                        ref.read(searchQueryProvider.notifier).clear();
-                        ref
-                            .read(productCategoryProvider.notifier)
-                            .updateCategory('All');
-                        ref.read(showFavoritesOnlyProvider.notifier).reset();
+                        ref.read(feedFiltersProvider.notifier).clear();
                         FocusManager.instance.primaryFocus?.unfocus();
                       },
                     )
@@ -585,8 +558,12 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                       child: CustomScrollView(
                         key: ValueKey(isGrid),
                         slivers: [
-                          if (searchQuery.isEmpty && !showFavoritesOnly)
+                          if (filters.searchQuery.isEmpty &&
+                              !filters.showFavoritesOnly)
                             const _TopDealsSliver(),
+                          if (filters.searchQuery.isEmpty &&
+                              !filters.showFavoritesOnly)
+                            const _RecentlyViewedSliver(),
                           SliverPadding(
                             padding: EdgeInsets.all(isGrid ? 20 : 14),
                             sliver: isGrid
@@ -604,20 +581,34 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                       return DealCard(
                                         deal: deal,
                                         displayPrice: deal.currentPrice,
+                                        onTap: () {
+                                          ref
+                                              .read(
+                                                recentlyViewedProvider.notifier,
+                                              )
+                                              .addDeal(deal.id);
+                                          launchUrl(
+                                            Uri.parse(deal.url),
+                                            mode:
+                                                LaunchMode.externalApplication,
+                                          );
+                                        },
                                         currency: deal.currency,
                                         onShare: () => ShareService.shareDeal(
                                           title: deal.title,
                                           url: deal.url,
                                         ),
-                                        trailingAction: IconButton(
-                                          icon: const Icon(
-                                            Icons.notifications_none_rounded,
-                                            color: Color(0xFF00B4FF),
+                                        trailingActions: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.notifications_none_rounded,
+                                              color: Color(0xFF00B4FF),
+                                            ),
+                                            onPressed: () {
+                                              _handlePriceAlertTap(deal);
+                                            },
                                           ),
-                                          onPressed: () {
-                                            _handlePriceAlertTap(deal);
-                                          },
-                                        ),
+                                        ],
                                       );
                                     },
                                   )
@@ -630,20 +621,34 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                       return DealCard(
                                         deal: deal,
                                         displayPrice: deal.currentPrice,
+                                        onTap: () {
+                                          ref
+                                              .read(
+                                                recentlyViewedProvider.notifier,
+                                              )
+                                              .addDeal(deal.id);
+                                          launchUrl(
+                                            Uri.parse(deal.url),
+                                            mode:
+                                                LaunchMode.externalApplication,
+                                          );
+                                        },
                                         currency: deal.currency,
                                         onShare: () => ShareService.shareDeal(
                                           title: deal.title,
                                           url: deal.url,
                                         ),
-                                        trailingAction: IconButton(
-                                          icon: const Icon(
-                                            Icons.notifications_none_rounded,
-                                            color: Color(0xFF00B4FF),
+                                        trailingActions: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.notifications_none_rounded,
+                                              color: Color(0xFF00B4FF),
+                                            ),
+                                            onPressed: () {
+                                              _handlePriceAlertTap(deal);
+                                            },
                                           ),
-                                          onPressed: () {
-                                            _handlePriceAlertTap(deal);
-                                          },
-                                        ),
+                                        ],
                                       );
                                     },
                                   ),
@@ -674,18 +679,53 @@ class _FeedPageState extends ConsumerState<FeedPage> {
   }
 }
 
-// ─── Top deals section ────────────────────────────────────────────────────────
+// ─── Recently Viewed section ────────────────────────────────────────────────
 
-class _TopDealsSliver extends ConsumerWidget {
-  const _TopDealsSliver();
+class _RecentlyViewedSliver extends ConsumerWidget {
+  const _RecentlyViewedSliver();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final topDeals = ref.watch(topDealsProvider).value ?? [];
-    if (topDeals.isEmpty) {
+    final recentIds = ref.watch(recentlyViewedProvider);
+    final dealFeedAsync = ref.watch(dealFeedProvider);
+
+    if (recentIds.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
+    return dealFeedAsync.when(
+      loading: () => const _TopDealsShimmer(), // Reuse the same shimmer
+      error: (err, stack) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+      data: (allDeals) {
+        if (allDeals.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+
+        // Create a map for quick lookups
+        final dealMap = {for (var deal in allDeals) deal.id: deal};
+
+        // Filter and order deals based on recentIds
+        final recentDeals = recentIds
+            .map((id) => dealMap[id])
+            .where((deal) => deal != null)
+            .cast<Deal>()
+            .toList();
+
+        if (recentDeals.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+
+        return _RecentlyViewedSliverContent(recentDeals: recentDeals);
+      },
+    );
+  }
+}
+
+class _RecentlyViewedSliverContent extends StatelessWidget {
+  const _RecentlyViewedSliverContent({required this.recentDeals});
+  final List<Deal> recentDeals;
+  @override
+  Widget build(BuildContext context) {
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,36 +735,17 @@ class _TopDealsSliver extends ConsumerWidget {
             child: Row(
               children: [
                 const Icon(
-                  Icons.local_fire_department_rounded,
-                  color: Color(0xFFFF6B35),
+                  Icons.history_rounded,
+                  color: Color(0xFF8A8AA0),
                   size: 18,
                 ),
                 const SizedBox(width: 6),
-                const Text(
-                  'Insane Deals',
+                Text(
+                  'Recently Viewed',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.white.withOpacity(0.8),
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Color.fromRGBO(0, 230, 118, 0.15),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    '≥ 25% off',
-                    style: TextStyle(
-                      color: Color(0xFF00E676),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
                   ),
                 ),
               ],
@@ -735,13 +756,142 @@ class _TopDealsSliver extends ConsumerWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: topDeals.length,
+              itemCount: recentDeals.length,
               separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (_, i) => _TopDealCard(deal: topDeals[i]),
+              itemBuilder: (_, i) => _TopDealCard(deal: recentDeals[i]),
             ),
           ),
           const SizedBox(height: 14),
           const Divider(height: 1, color: Color(0xFF252638)),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Top deals section ────────────────────────────────────────────────────────
+
+class _TopDealsSliver extends ConsumerWidget {
+  const _TopDealsSliver();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final topDealsAsync = ref.watch(topDealsProvider);
+
+    return topDealsAsync.when(
+      loading: () => const _TopDealsShimmer(),
+      error: (err, stack) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+      data: (topDeals) {
+        if (topDeals.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+        return _TopDealsSliverContent(topDeals: topDeals);
+      },
+    );
+  }
+}
+
+class _TopDealsSliverContent extends StatelessWidget {
+  const _TopDealsSliverContent({required this.topDeals});
+  final List<Deal> topDeals;
+
+  @override
+  Widget build(BuildContext context) {
+    // Use LayoutBuilder to get screen constraints for responsiveness.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // --- Responsive Grid Calculation ---
+        const double cardWidth = 148;
+        const double cardHeight = 192;
+        const double horizontalPadding = 16.0;
+        const double spacing = 10.0;
+
+        // Calculate how many columns can fit.
+        final crossAxisCount =
+            (constraints.maxWidth - horizontalPadding * 2 + spacing) ~/
+            (cardWidth + spacing);
+
+        // Determine how many rows are needed.
+        final rowCount = (topDeals.length / crossAxisCount).ceil();
+
+        // Calculate the total height required for the grid.
+        final totalHeight =
+            rowCount * cardHeight + (rowCount - 1) * spacing + 48;
+
+        return SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _TopDealsHeader(),
+              SizedBox(
+                height: totalHeight,
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: 10,
+                  ),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: spacing,
+                    mainAxisSpacing: spacing,
+                    childAspectRatio: cardWidth / cardHeight,
+                  ),
+                  itemCount: topDeals.length,
+                  itemBuilder: (context, index) {
+                    return _TopDealCard(deal: topDeals[index]);
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Divider(height: 1, color: Color(0xFF252638)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TopDealsHeader extends StatelessWidget {
+  const _TopDealsHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.local_fire_department_rounded,
+            color: Color(0xFFFF6B35),
+            size: 18,
+          ),
+          const SizedBox(width: 6),
+          const Text(
+            'Insane Deals',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(0, 230, 118, 0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              '≥ 25% off',
+              style: TextStyle(
+                color: Color(0xFF00E676),
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -758,6 +908,7 @@ class _TopDealCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () async {
+        // Consider adding this to recently viewed
         final uri = Uri.tryParse(deal.url);
         if (uri != null && await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -765,6 +916,7 @@ class _TopDealCard extends StatelessWidget {
       },
       child: Container(
         width: 148,
+        height: 192,
         decoration: BoxDecoration(
           color: const Color(0xFF12131A),
           border: Border.all(color: const Color(0xFF252638)),
@@ -881,6 +1033,123 @@ class _TopDealCard extends StatelessWidget {
   }
 }
 
+class _TopDealsShimmer extends StatelessWidget {
+  const _TopDealsShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.25, end: 0.6),
+        duration: const Duration(milliseconds: 1100),
+        builder: (context, opacity, _) {
+          final shimmerColor = const Color(
+            0xFF272839,
+          ).withAlpha((opacity * 255).round());
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Container(
+                  height: 20,
+                  width: 120,
+                  decoration: BoxDecoration(
+                    color: shimmerColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 192,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: 3,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (_, __) =>
+                      _TopDealSkeletonCard(shimmerColor: shimmerColor),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Divider(height: 1, color: Color(0xFF252638)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TopDealSkeletonCard extends StatelessWidget {
+  const _TopDealSkeletonCard({required this.shimmerColor});
+  final Color shimmerColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 148,
+      decoration: BoxDecoration(
+        color: const Color(0xFF12131A),
+        border: Border.all(color: const Color(0xFF252638)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(height: 100, width: double.infinity, color: shimmerColor),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 11,
+                    width: 120,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    height: 11,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    height: 13,
+                    width: 70,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Container(
+                    height: 10,
+                    width: 70,
+                    decoration: BoxDecoration(
+                      color: shimmerColor,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Shimmer skeleton loading ─────────────────────────────────────────────────
 
 class _ShimmerGrid extends StatefulWidget {
@@ -893,75 +1162,58 @@ class _ShimmerGrid extends StatefulWidget {
 
 class _ShimmerGridState extends State<_ShimmerGrid>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _opacity;
+  late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
+    _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1100),
+      duration: const Duration(milliseconds: 1200),
+      lowerBound: 0.25,
+      upperBound: 0.6,
     )..repeat(reverse: true);
-    _opacity = Tween<double>(
-      begin: 0.25,
-      end: 0.6,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _opacity,
-      builder: (context, _) => AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) {
-          final isEntering = child.key == ValueKey(widget.isGrid);
-          final offsetDir = widget.isGrid ? 1.0 : -1.0;
-          return SlideTransition(
-            position:
-                Tween<Offset>(
-                  begin: Offset(isEntering ? offsetDir : -offsetDir, 0.0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(parent: animation, curve: Curves.easeInOut),
-                ),
-            child: child,
-          );
-        },
-        child: CustomScrollView(
-          key: ValueKey(widget.isGrid),
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.all(widget.isGrid ? 20 : 14),
-              sliver: widget.isGrid
-                  ? SliverGrid.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            mainAxisExtent: 130,
-                          ),
-                      itemCount: 6,
-                      itemBuilder: (_, _) =>
-                          _SkeletonCard(opacity: _opacity.value),
-                    )
-                  : SliverList.separated(
-                      itemCount: 5,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (_, _) =>
-                          _SkeletonCard(opacity: _opacity.value),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: CustomScrollView(
+        key: ValueKey(widget.isGrid), // Use the boolean directly as the key
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.all(widget.isGrid ? 20 : 14),
+            sliver: widget.isGrid
+                ? SliverGrid.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          mainAxisExtent: 130,
+                        ),
+                    itemCount: 6,
+                    itemBuilder: (_, __) => AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, _) =>
+                          _SkeletonCard(opacity: _controller.value),
                     ),
-            ),
-          ],
-        ),
+                  )
+                : SliverList.separated(
+                    itemCount: 5,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (_, __) =>
+                        _SkeletonCard(opacity: _controller.value),
+                  ),
+          ),
+        ],
       ),
     );
   }

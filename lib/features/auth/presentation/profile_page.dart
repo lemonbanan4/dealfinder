@@ -1,21 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../deals/presentation/feed_page.dart'
-    show favoritesProvider, showFavoritesOnlyProvider;
-import '../../alerts/providers/alerts_provider.dart';
-import '../../alerts/providers/alert_configs_provider.dart';
-import '../../alerts/providers/unread_alerts_provider.dart';
-import '../../../core/constants.dart';
+    show favoritesProvider, feedFiltersProvider;
+import '../../deals/providers/recently_viewed_provider.dart';
 import '../../settings/providers/theme_provider.dart';
-import '../../legal/presentation/privacy_policy_page.dart';
-import '../../legal/presentation/terms_of_service_page.dart';
-import '../../legal/presentation/about_us_page.dart';
+import '../../../widgets/glass_dialog.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -25,339 +20,233 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
+  final _supabase = Supabase.instance.client;
+
   Future<void> _signOut() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showGlassDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sign Out'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    await FirebaseAuth.instance.signOut();
-    await _clearLocalData(ref);
-
-    if (context.mounted) Navigator.pop(context);
-  }
-
-  Future<void> _clearLocalData(WidgetRef ref) async {
-    // 1. Wipe offline caches
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('favorite_products_pref');
-    await Hive.box<String>(HiveBoxes.alerts).clear();
-
-    // 2. Invalidate Riverpod providers to reset their state across the UI
-    ref.invalidate(favoritesProvider);
-    ref.invalidate(alertsProvider);
-    ref.invalidate(alertConfigsProvider);
-    ref.invalidate(unreadAlertsProvider);
-    ref.invalidate(showFavoritesOnlyProvider);
-  }
-
-  Future<void> _deleteAccount() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      title: const Text('Sign Out'),
+      content: const Text('Are you sure you want to sign out?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFFF4757),
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Sign Out'),
+        ),
+      ],
     );
-
     if (confirm != true) return;
+    await _handlePostSignOutCleanup();
+  }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+  Future<void> _handlePostSignOutCleanup() async {
+    await FirebaseAuth.instance.signOut();
+    ref.invalidate(feedFiltersProvider);
+    ref.read(recentlyViewedProvider.notifier).clear();
+    if (mounted) Navigator.pop(context);
+  }
 
+  /// Prequest a list of active alerts for the current user from Supabase
+  Stream<List<Map<String, dynamic>>> _userAlertsStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
+
+    return _supabase
+        .from('price_alerts')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', user.uid)
+        .map(
+          (maps) => maps.where((item) => item['is_active'] == true).toList(),
+        );
+  }
+
+  Future<void> _deleteAlert(String alertId) async {
     try {
-      final callable = FirebaseFunctions.instanceFor(
-        region: 'europe-north1',
-      ).httpsCallable('delete_account');
-
-      await callable.call();
-      await FirebaseAuth.instance.signOut();
-      await _clearLocalData(ref);
-
-      if (context.mounted) {
-        Navigator.pop(context); // Dismiss loading dialog
-        Navigator.pop(context); // Dismiss profile page
-      }
-    } catch (e) {
-      if (context.mounted) Navigator.pop(context); // Dismiss loading dialog
-
-      if (context.mounted) {
+      await _supabase.from('price_alerts').delete().eq('id', alertId);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to delete account. Please try again.'),
-            backgroundColor: Color(0xFFFF4757),
-          ),
+          const SnackBar(content: Text('Alert removed successfully.')),
         );
       }
-    }
-  }
-
-  Future<void> _updateDisplayName() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final ctrl = TextEditingController(text: user.displayName);
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Display Name'),
-        content: TextField(
-          controller: ctrl,
-          decoration: const InputDecoration(hintText: 'Enter new name'),
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    if (newName != null && newName != user.displayName) {
-      await user.updateDisplayName(newName);
-      await user.reload();
-      if (mounted) setState(() {});
-    }
-  }
-
-  Future<void> _updateProfilePicture() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final ctrl = TextEditingController(text: user.photoURL);
-    final newUrl = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Profile Picture'),
-        content: TextField(
-          controller: ctrl,
-          decoration: const InputDecoration(
-            hintText: 'Enter image URL (e.g., https://...)',
-          ),
-          keyboardType: TextInputType.url,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    if (newUrl != null && newUrl != user.photoURL) {
-      if (newUrl.isNotEmpty && !newUrl.startsWith('https://')) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Image URL must be secure (start with https://)'),
-              backgroundColor: Color(0xFFFF4757),
-            ),
-          );
-        }
-        return;
-      }
-      await user.updatePhotoURL(newUrl.isEmpty ? null : newUrl);
-      await user.reload();
-      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Failed to delete alert: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final userAsync = ref.watch(authProvider);
     final themeMode = ref.watch(themeProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile & Settings')),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        children: [
-          if (user != null) ...[
-            if (user.photoURL != null && user.photoURL!.isNotEmpty)
-              CircleAvatar(
-                radius: 32,
-                backgroundImage: CachedNetworkImageProvider(user.photoURL!),
-                backgroundColor: Colors.transparent,
-              )
-            else
-              const Icon(
-                Icons.account_circle,
-                size: 64,
-                color: Color(0xFF5A5A78),
+    return userAsync.when(
+      data: (user) => Scaffold(
+        appBar: AppBar(title: const Text('Profile & Settings')),
+        body: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          children: [
+            if (user != null) ...[
+              Center(
+                child: const Icon(
+                  Icons.account_circle,
+                  size: 72,
+                  color: Color(0xFF00B4FF),
+                ),
               ),
-            const SizedBox(height: 16),
-            Text(
-              user.displayName?.isNotEmpty == true
-                  ? user.displayName!
-                  : 'No display name',
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              user.email ?? 'No email',
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF8A8AA0)),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              user.emailVerified ? 'Email Verified' : 'Email Not Verified',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: user.emailVerified
-                    ? const Color(0xFF00E676)
-                    : const Color(0xFFFF4757),
+              const SizedBox(height: 16),
+              Text(
+                user.email ?? 'No email associated',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 32),
-            const Divider(),
-          ],
-          ListTile(
-            leading: const Icon(Icons.brightness_6),
-            title: const Text('Theme Appearance'),
-            trailing: DropdownButton<AppTheme>(
-              value: themeMode,
-              underline: const SizedBox(),
-              items: const [
-                DropdownMenuItem(
-                  value: AppTheme.system,
-                  child: Text('System Default'),
+              const SizedBox(height: 24),
+              const Divider(color: Color(0xFF252638)),
+
+              // ── LIVE PRICE ALERTS DASHBOARD SECTION ───────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 4,
                 ),
-                DropdownMenuItem(
-                  value: AppTheme.light,
-                  child: Text('Light Mode'),
+                child: Text(
+                  'YOUR ACTIVE PRICE ALERTS',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
                 ),
-                DropdownMenuItem(
-                  value: AppTheme.dark,
-                  child: Text('Dark Mode'),
-                ),
-                DropdownMenuItem(
-                  value: AppTheme.amoled,
-                  child: Text('AMOLED Black'),
-                ),
-              ],
-              onChanged: (mode) {
-                if (mode != null) {
-                  ref.read(themeProvider.notifier).updateTheme(mode);
-                }
-              },
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.badge_outlined),
-            title: const Text('Update Display Name'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _updateDisplayName,
-          ),
-          ListTile(
-            leading: const Icon(Icons.image_outlined),
-            title: const Text('Update Profile Picture'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _updateProfilePicture,
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.privacy_tip_outlined),
-            title: const Text('Privacy Policy'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.description_outlined),
-            title: const Text('Terms of Service'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('About Us'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AboutUsPage()),
-            ),
-          ),
-          if (user != null) ...[
-            const Divider(),
+              ),
+
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: _userAlertsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+                  final alerts = snapshot.data ?? [];
+                  if (alerts.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF12131A),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF252638)),
+                      ),
+                      child: const Text(
+                        'You haven\'t set up any active price alerts yet.',
+                        style: TextStyle(
+                          color: Color(0xFF5A5A78),
+                          fontSize: 13,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF12131A),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF252638)),
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: alerts.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1, color: Color(0xFF252638)),
+                      itemBuilder: (context, index) {
+                        final alert = alerts[index];
+                        return ListTile(
+                          title: Text(
+                            alert['product_title'] ?? 'Product',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Target: ${alert['target_price']} ${alert['currency']}',
+                            style: const TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Color(0xFFFF4757),
+                              size: 20,
+                            ),
+                            onPressed: () => _deleteAlert(alert['id']),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              const Divider(color: Color(0xFF252638)),
+            ],
+
+            // ── GENERAL SYSTEM SETTINGS ──────────────────────────────────────
             ListTile(
-              leading: const Icon(Icons.logout, color: Color(0xFFFF4757)),
-              title: const Text(
-                'Sign Out',
-                style: TextStyle(color: Color(0xFFFF4757)),
+              leading: const Icon(Icons.brightness_6),
+              title: const Text('Theme Appearance'),
+              trailing: DropdownButton<AppTheme>(
+                value: themeMode,
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(
+                    value: AppTheme.system,
+                    child: Text('System Default'),
+                  ),
+                  DropdownMenuItem(
+                    value: AppTheme.light,
+                    child: Text('Light Mode'),
+                  ),
+                  DropdownMenuItem(
+                    value: AppTheme.dark,
+                    child: Text('Dark Mode'),
+                  ),
+                ],
+                onChanged: (mode) {
+                  if (mode != null)
+                    ref.read(themeProvider.notifier).updateTheme(mode);
+                },
               ),
-              onTap: _signOut,
             ),
-            ListTile(
-              leading: const Icon(
-                Icons.delete_forever,
-                color: Color(0xFFFF4757),
+            const Divider(color: Color(0xFF252638)),
+            if (user != null) ...[
+              ListTile(
+                leading: const Icon(Icons.logout, color: Color(0xFFFF4757)),
+                title: const Text(
+                  'Sign Out',
+                  style: TextStyle(color: Color(0xFFFF4757)),
+                ),
+                onTap: _signOut,
               ),
-              title: const Text(
-                'Delete Account',
-                style: TextStyle(color: Color(0xFFFF4757)),
-              ),
-              onTap: _deleteAccount,
-            ),
+            ],
           ],
-        ],
+        ),
       ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, s) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
   }
 }

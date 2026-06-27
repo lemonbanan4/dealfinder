@@ -1,16 +1,18 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import 'package:shimmer/shimmer.dart';
 import '../features/deals/domain/deal.dart';
+import '../features/deals/providers/deals_provider.dart';
 import 'liquid_glass_background.dart';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../features/alerts/providers/price_alerts_provider.dart'; // Import your provider path
-import '../features/alerts/providers/alert_configs_provider.dart';
+// Import your provider path
 // Import the model we made!
 
 // Design tokens
@@ -21,14 +23,10 @@ const _kMuted = Color(0xFF5A5A78);
 const _kMutedLight = Color(0xFF8A8AA0);
 
 String _formatAmount(double price) {
-  final rounded = price.round();
-  final s = rounded.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-    buf.write(s[i]);
-  }
-  return buf.toString();
+  // Use intl for more robust and locale-aware formatting.
+  // The ' ' locale uses spaces as a group separator.
+  final format = NumberFormat.decimalPattern(' ');
+  return format.format(price.round());
 }
 
 class DealCard extends StatelessWidget {
@@ -38,14 +36,14 @@ class DealCard extends StatelessWidget {
     required this.displayPrice,
     required this.currency,
     required this.onShare,
-    this.trailingAction,
+    this.trailingActions,
     this.onTap,
   });
 
   final Deal deal;
   final double displayPrice;
   final String currency;
-  final Widget? trailingAction;
+  final List<Widget>? trailingActions;
   final VoidCallback? onTap;
   final VoidCallback? onShare;
 
@@ -64,15 +62,7 @@ class DealCard extends StatelessWidget {
           child: InkWell(
             splashColor: _kAccentBlue.withAlpha(20),
             highlightColor: _kAccentBlue.withAlpha(10),
-            onTap: () async {
-              final uri = Uri.tryParse(deal.url);
-              if (uri != null && await canLaunchUrl(uri)) {
-                // This safely opens the affiliate link in a new browser tab
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              } else {
-                debugPrint('Could not launch ${deal.url}');
-              }
-            },
+            onTap: onTap,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -88,8 +78,11 @@ class DealCard extends StatelessWidget {
                     vatLabel: vatLabel,
                   ),
                 ),
-                if (trailingAction != null) trailingAction!,
-                IconButton(icon: const Icon(Icons.share), onPressed: onShare),
+                if (trailingActions != null) ...trailingActions!,
+                IconButton(
+                  icon: const Icon(Icons.share_outlined, color: _kMutedLight),
+                  onPressed: onShare,
+                ),
               ],
             ),
           ),
@@ -100,15 +93,9 @@ class DealCard extends StatelessWidget {
 
   int? _computeDiscount() {
     final orig = deal.originalPrice;
-    if (orig == null || orig <= 0) return null;
-    final effectiveCurrency = deal.currency;
-    final double current;
-    if (effectiveCurrency == currency && displayPrice > 0) {
-      current = displayPrice;
-    } else {
+    if (orig == null || orig <= displayPrice || deal.currency != currency)
       return null;
-    }
-    if (orig <= current) return null;
+    final current = displayPrice;
     final pct = ((orig - current) / orig * 100).round();
     return pct > 0 ? pct : null;
   }
@@ -305,7 +292,7 @@ class _DetailsPanel extends StatelessWidget {
               ],
             ),
           ),
-          _PriceTrend(dealId: dealId),
+          _PriceTrend(dealId: dealId, currency: currency),
           const SizedBox(height: 4),
           _PriceRow(vatPrice: vatPrice, currency: currency, vatLabel: vatLabel),
         ],
@@ -322,10 +309,12 @@ class _MerchantRow extends StatelessWidget {
   // Helper method
   String _formatSourceName(String source) {
     final lower = source.toLowerCase();
-    if (lower.contains('all_no') || lower.contains('all no'))
+    if (lower.contains('all_no') || lower.contains('all no')) {
       return 'Norway Deals 🇳🇴';
-    if (lower.contains('all_se') || lower.contains('all se'))
+    }
+    if (lower.contains('all_se') || lower.contains('all se')) {
       return 'Sweden Deals 🇸🇪';
+    }
     return source; // Fallback
   }
 
@@ -423,26 +412,18 @@ class _PriceRow extends StatelessWidget {
 // ─── 30-day price trend sparkline ─────────────────────────────────────────────
 
 class _PriceTrend extends StatelessWidget {
-  const _PriceTrend({required this.dealId});
+  const _PriceTrend({required this.dealId, required this.currency});
   final String dealId;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
-    // Deterministic pseudo-random trend seeded from deal ID — placeholder for real history.
-    final seed = dealId.codeUnits.fold(0, (a, b) => a ^ b);
-    final rng = math.Random(seed);
-    var v = 0.75 + rng.nextDouble() * 0.25;
-    final data = <double>[v];
-    for (var i = 1; i < 30; i++) {
-      v = (v + (rng.nextDouble() - 0.52) * 0.15).clamp(0.05, 1.0);
-      data.add(v);
-    }
-
     return SizedBox(
-      height: 20,
-      child: CustomPaint(
-        painter: _SparklinePainter(data: data),
-        size: Size.infinite,
+      height: 25, // Give it a bit more height
+      child: PriceHistoryChart(
+        productId: dealId,
+        currency: currency,
+        simpleView: true,
       ),
     );
   }
@@ -512,4 +493,295 @@ class _SparklinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SparklinePainter old) => false;
+}
+
+final priceHistoryProvider = FutureProvider.autoDispose
+    .family<List<FlSpot>, String>((ref, productId) async {
+      final supabase = ref.watch(supabaseProvider);
+      try {
+        final response = await supabase
+            .from('price_history')
+            .select('price, recorded_at')
+            .eq('product_id', productId)
+            .order('recorded_at', ascending: true);
+
+        if (response.isEmpty) {
+          return [];
+        }
+
+        final spots = <FlSpot>[];
+        for (var row in response) {
+          final date = DateTime.parse(row['recorded_at']).toLocal();
+          final x = date.millisecondsSinceEpoch.toDouble();
+          final y = (row['price'] as num).toDouble();
+          spots.add(FlSpot(x, y));
+        }
+        return spots;
+      } catch (e) {
+        debugPrint('Error fetching price history: $e');
+        rethrow;
+      }
+    });
+
+class PriceHistoryChart extends ConsumerWidget {
+  final String productId;
+  final String currency;
+  final bool simpleView;
+
+  const PriceHistoryChart({
+    super.key,
+    required this.productId,
+    required this.currency,
+    this.simpleView = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final historyAsync = ref.watch(priceHistoryProvider(productId));
+
+    return historyAsync.when(
+      loading: () {
+        if (simpleView) {
+          // For simple view, show nothing while loading to avoid layout shifts.
+          return const SizedBox.shrink();
+        }
+        // Use a more sophisticated shimmer effect for the full chart view.
+        return const _ChartShimmer();
+      },
+      error: (err, stack) {
+        if (simpleView) return const SizedBox.shrink();
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Could not load price history.',
+                style: TextStyle(color: Color(0xFFFF4757), fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: _kMutedLight),
+                tooltip: 'Retry',
+                onPressed: () => ref.refresh(priceHistoryProvider(productId)),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF252638),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      data: (spots) {
+        if (simpleView) {
+          return CustomPaint(
+            painter: _SparklinePainter(data: spots.map((s) => s.y).toList()),
+            size: Size.infinite,
+          );
+        }
+
+        if (spots.length < 2) {
+          return Container(
+            height: 100,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF12131A),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF252638)),
+            ),
+            child: const Text(
+              'Not enough price history yet.',
+              style: TextStyle(color: Color(0xFF5A5A78), fontSize: 13),
+            ),
+          );
+        }
+
+        // Calculate min/max for chart bounds
+        final yValues = spots.map((s) => s.y).toList();
+        final minP = yValues.reduce(math.min);
+        final maxP = yValues.reduce(math.max);
+        // Add a 10% buffer to the top and bottom of the chart
+        final minPrice = minP - (minP * 0.1);
+        final maxPrice = maxP + (maxP * 0.1);
+
+        return _FullChartView(
+          spots: spots,
+          minPrice: minPrice,
+          maxPrice: maxPrice,
+          currency: currency,
+        );
+      },
+    );
+  }
+}
+
+/// A widget that displays a shimmering placeholder for the price history chart.
+class _ChartShimmer extends StatelessWidget {
+  const _ChartShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF1A1B2A),
+      highlightColor: const Color(0xFF272839),
+      child: Container(
+        height: 220,
+        decoration: BoxDecoration(
+          // The color here is important for the shimmer effect to be visible.
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF252638)),
+        ),
+      ),
+    );
+  }
+}
+
+class _FullChartView extends StatelessWidget {
+  const _FullChartView({
+    required this.spots,
+    required this.minPrice,
+    required this.maxPrice,
+    required this.currency,
+  });
+
+  final List<FlSpot> spots;
+  final double minPrice;
+  final double maxPrice;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 220,
+      padding: const EdgeInsets.only(right: 20, left: 10, top: 20, bottom: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF12131A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF252638)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00B4FF).withAlpha(10),
+            blurRadius: 20,
+            spreadRadius: -5,
+          ),
+        ],
+      ),
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: (maxPrice - minPrice) / 4,
+            getDrawingHorizontalLine: (value) {
+              return const FlLine(color: Color(0xFF252638), strokeWidth: 1);
+            },
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 30,
+                interval: (spots.last.x - spots.first.x) / 3, // Show ~3 dates
+                getTitlesWidget: (value, meta) {
+                  final date = DateTime.fromMillisecondsSinceEpoch(
+                    value.toInt(),
+                  );
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      DateFormat('MMM d').format(date),
+                      style: const TextStyle(
+                        color: Color(0xFF5A5A78),
+                        fontSize: 11,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 45,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    value.toInt().toString(),
+                    style: const TextStyle(
+                      color: Color(0xFF5A5A78),
+                      fontSize: 11,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          minX: spots.first.x,
+          maxX: spots.last.x,
+          minY: minPrice,
+          maxY: maxPrice,
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: const Color(0xFF00B4FF),
+              barWidth: 3,
+              isStrokeCapRound: true,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF00B4FF).withAlpha(80),
+                    const Color(0xFF00B4FF).withAlpha(0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ],
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              // Tooltip styling
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((spot) {
+                  final date = DateTime.fromMillisecondsSinceEpoch(
+                    spot.x.toInt(),
+                  );
+                  return LineTooltipItem(
+                    '${spot.y.toInt()} $currency\n',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: DateFormat('MMM d, yyyy').format(date),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

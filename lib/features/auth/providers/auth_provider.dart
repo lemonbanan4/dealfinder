@@ -1,30 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-part 'auth_provider.g.dart';
+final authProvider = StreamProvider<User?>((ref) {
+  return FirebaseAuth.instance.authStateChanges();
+});
 
-@Riverpod(keepAlive: true)
-class AuthNotifier extends _$AuthNotifier {
-  @override
-  User? build() {
-    final sub = FirebaseAuth.instance.authStateChanges().listen((user) {
-      state = user;
-    });
-    ref.onDispose(sub.cancel);
-    return FirebaseAuth.instance.currentUser;
-  }
+final firestoreProvider = Provider<FirebaseFirestore>((ref) {
+  return FirebaseFirestore.instance;
+});
 
-  Future<void> signInWithEmail(String email, String password) =>
-      FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-  Future<void> createAccount(String email, String password) =>
-      FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-  Future<void> signOut() => FirebaseAuth.instance.signOut();
-}
+final sharedPreferencesProvider = FutureProvider<SharedPreferences>((
+  ref,
+) async {
+  return await SharedPreferences.getInstance();
+});

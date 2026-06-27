@@ -36,6 +36,12 @@ class AlertsNotifier extends Notifier<List<PriceAlert>> {
     state = state.where((alert) => alert.id != id).toList();
   }
 
+  /// Clears all alerts from storage and state.
+  Future<void> clear() async {
+    await _box.clear();
+    state = [];
+  }
+
   void markAllAsRead() {
     final updatedAlerts = state.map((alert) {
       if (alert.isRead) return alert;
