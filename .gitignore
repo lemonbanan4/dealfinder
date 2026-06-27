@@ -51,3 +51,7 @@ skills-lock.json
 
 # Local databases
 *.db
+# security
+.env
+
+.env
