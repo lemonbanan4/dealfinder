@@ -33,7 +33,7 @@ final class DealFeedNotifierProvider
   DealFeedNotifier create() => DealFeedNotifier();
 }
 
-String _$dealFeedNotifierHash() => r'fa940d5a994883a3ac9a23bf9980074ab4ba4b5e';
+String _$dealFeedNotifierHash() => r'f05fbba5486beeca73a04b0c4198191ce2ae37e5';
 
 abstract class _$DealFeedNotifier extends $AsyncNotifier<List<Deal>> {
   FutureOr<List<Deal>> build();

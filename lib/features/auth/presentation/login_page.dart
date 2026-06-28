@@ -311,7 +311,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     child: Text(
                       _isLogin
                           ? "Don't have an account? Sign Up"
-                          : "Already have an account? Sign In",
+                          : 'Already have an account? Sign In',
                       style: const TextStyle(color: Color(0xFF00B4FF)),
                     ),
                   ),

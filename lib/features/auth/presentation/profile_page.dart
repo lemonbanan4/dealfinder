@@ -10,6 +10,9 @@ import '../../deals/presentation/feed_page.dart'
 import '../../deals/providers/recently_viewed_provider.dart';
 import '../../settings/providers/theme_provider.dart';
 import '../../../widgets/glass_dialog.dart';
+import '../../legal/presentation/about_us_page.dart';
+import '../../legal/presentation/privacy_policy_page.dart';
+import '../../legal/presentation/terms_of_service_page.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -183,19 +186,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  Stream<List<Map<String, dynamic>>> _userAlertsStream() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const Stream.empty();
-
-    return _supabase
-        .from('price_alerts')
-        .stream(primaryKey: ['id'])
-        .eq('user_id', user.uid)
-        .map(
-          (maps) => maps.where((item) => item['is_active'] == true).toList(),
-        );
-  }
-
   Future<void> _deleteAlert(String alertId) async {
     try {
       await _supabase.from('price_alerts').delete().eq('id', alertId);
@@ -261,82 +251,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ),
 
-              StreamBuilder<List<Map<String, dynamic>>>(
-                stream: _userAlertsStream(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  final alerts = snapshot.data ?? [];
-                  if (alerts.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF12131A),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF252638)),
-                      ),
-                      child: const Text(
-                        'You haven\'t set up any active price alerts yet.',
-                        style: TextStyle(
-                          color: Color(0xFF5A5A78),
-                          fontSize: 13,
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF12131A),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF252638)),
-                    ),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: alerts.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(height: 1, color: Color(0xFF252638)),
-                      itemBuilder: (context, index) {
-                        final alert = alerts[index];
-                        return ListTile(
-                          title: Text(
-                            alert['product_title'] ?? 'Product',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Target: ${alert['target_price']} ${alert['currency']}',
-                            style: const TextStyle(
-                              color: Color(0xFF00E676),
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Color(0xFFFF4757),
-                              size: 20,
-                            ),
-                            onPressed: () => _deleteAlert(alert['id']),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+              const _UserPriceAlertsSection(),
               const SizedBox(height: 24),
               const Divider(color: Color(0xFF252638)),
             ],
@@ -410,7 +325,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 style: TextStyle(color: textColor, fontSize: 14),
               ),
               trailing: Icon(Icons.chevron_right, color: iconColor),
-              onTap: () => _showPlaceholderDialog('Privacy Policy'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+              ),
             ),
             ListTile(
               leading: Icon(Icons.description_outlined, color: iconColor),
@@ -419,7 +337,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 style: TextStyle(color: textColor, fontSize: 14),
               ),
               trailing: Icon(Icons.chevron_right, color: iconColor),
-              onTap: () => _showPlaceholderDialog('Terms of Service'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
+              ),
             ),
             ListTile(
               leading: Icon(Icons.info_outline, color: iconColor),
@@ -428,7 +349,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 style: TextStyle(color: textColor, fontSize: 14),
               ),
               trailing: Icon(Icons.chevron_right, color: iconColor),
-              onTap: () => _showPlaceholderDialog('About Us'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutUsPage()),
+              ),
             ),
 
             if (user != null) ...[
@@ -483,6 +407,135 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           child: const Text('Close'),
         ),
       ],
+    );
+  }
+}
+
+class _UserPriceAlertsSection extends StatefulWidget {
+  const _UserPriceAlertsSection();
+
+  @override
+  State<_UserPriceAlertsSection> createState() =>
+      __UserPriceAlertsSectionState();
+}
+
+class __UserPriceAlertsSectionState extends State<_UserPriceAlertsSection> {
+  final _supabase = Supabase.instance.client;
+
+  Stream<List<Map<String, dynamic>>> _userAlertsStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
+
+    return _supabase
+        .from('price_alerts')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', user.uid)
+        .map(
+          (maps) => maps.where((item) => item['is_active'] == true).toList(),
+        );
+  }
+
+  Future<void> _deleteAlert(String alertId) async {
+    final confirm = await showGlassDialog<bool>(
+      context: context,
+      title: const Text('Remove Alert'),
+      content: const Text('Are you sure you want to remove this price alert?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF4757)),
+          child: const Text('Remove'),
+        ),
+      ],
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await _supabase.from('price_alerts').delete().eq('id', alertId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Alert removed successfully.')),
+      );
+    } catch (e) {
+      debugPrint('Failed to delete alert: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _userAlertsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        final alerts = snapshot.data ?? [];
+        if (alerts.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF12131A),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF252638)),
+            ),
+            child: const Text(
+              'You haven\'t set up any active price alerts yet.',
+              style: TextStyle(color: Color(0xFF5A5A78), fontSize: 13),
+            ),
+          );
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF12131A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF252638)),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: alerts.length,
+            separatorBuilder: (_, _) =>
+                const Divider(height: 1, color: Color(0xFF252638)),
+            itemBuilder: (context, index) {
+              final alert = alerts[index];
+              return ListTile(
+                title: Text(
+                  alert['product_title'] ?? 'Product',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14, color: Colors.white),
+                ),
+                subtitle: Text(
+                  'Target: ${alert['target_price']} ${alert['currency']}',
+                  style: const TextStyle(
+                    color: Color(0xFF00E676),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Color(0xFFFF4757),
+                    size: 20,
+                  ),
+                  onPressed: () => _deleteAlert(alert['id']),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

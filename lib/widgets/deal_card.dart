@@ -55,7 +55,7 @@ class DealCard extends StatelessWidget {
     final host = Uri.tryParse(deal.url)?.host ?? '';
 
     return SizedBox(
-      height: 130,
+      height: 130, // The height is fixed here.
       child: LiquidGlassBackground(
         child: Material(
           color: Colors.transparent,
@@ -78,7 +78,7 @@ class DealCard extends StatelessWidget {
                     vatLabel: vatLabel,
                   ),
                 ),
-                if (trailingActions != null) ...trailingActions!,
+                ...?trailingActions,
                 IconButton(
                   icon: const Icon(Icons.share_outlined, color: _kMutedLight),
                   onPressed: onShare,
@@ -93,8 +93,9 @@ class DealCard extends StatelessWidget {
 
   int? _computeDiscount() {
     final orig = deal.originalPrice;
-    if (orig == null || orig <= displayPrice || deal.currency != currency)
+    if (orig == null || orig <= displayPrice || deal.currency != currency) {
       return null;
+    }
     final current = displayPrice;
     final pct = ((orig - current) / orig * 100).round();
     return pct > 0 ? pct : null;

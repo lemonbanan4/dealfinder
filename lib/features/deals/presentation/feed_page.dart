@@ -21,6 +21,11 @@ import '../../alerts/presentation/price_alert_modal.dart';
 import '../../../services/share_service.dart';
 import '../../auth/presentation/login_page.dart';
 
+import '../../../widgets/glass_dialog.dart';
+import '../../legal/presentation/about_us_page.dart';
+import '../../legal/presentation/privacy_policy_page.dart';
+import '../../legal/presentation/terms_of_service_page.dart';
+
 part 'feed_page.g.dart';
 
 @immutable
@@ -68,25 +73,44 @@ class SearchQuery extends _$SearchQuery {
 
 @riverpod
 class Region extends _$Region {
+  @override
   String build() {
-    // Grab system locale properties directly
+    // 1. Calculate the system default instantly so the app doesn't freeze
     final locale = ui.PlatformDispatcher.instance.locale;
-    final country = locale.countryCode?.toUpperCase() ?? '';
+    final country = locale.countryCode?.toUpperCase();
     final language = locale.languageCode.toLowerCase();
 
-    // Route automatically based on country code or browser language
+    String defaultRegion = 'se';
     if (country == 'NO' ||
         language == 'no' ||
         language == 'nb' ||
         language == 'nn') {
-      return 'no';
+      defaultRegion = 'no';
     }
 
-    // Default fallback
-    return 'se';
+    // 2. Fire off a background task to check for a saved user preference
+    _loadSavedRegion();
+
+    // 3. Return the default immediately. If a saved preference is found,
+    // it will smoothly update the state a millisecond later.
+    return defaultRegion;
   }
 
-  void setRegion(String newRegion) {
+  Future<void> _loadSavedRegion() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedRegion = prefs.getString('user_selected_region');
+    if (savedRegion != null) {
+      state =
+          savedRegion; // Updates the UI automatically if a saved region exists
+    }
+  }
+
+  Future<void> setRegion(String newRegion) async {
+    // Save to device storage
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_selected_region', newRegion);
+
+    // Instantly update the UI state
     state = newRegion;
   }
 }
@@ -413,7 +437,9 @@ class _FeedPageState extends ConsumerState<FeedPage> {
             tooltip: 'Select Region',
             onSelected: (value) {
               // Instantly swap the database region
-              ref.read(regionProvider.notifier).setRegion(value);
+              ref
+                  .read(regionProvider.notifier)
+                  .setRegion(value); // This is now async
               // Refresh the feed to pull the new country's deals
               ref.read(dealFeedProvider.notifier).refresh();
             },
@@ -588,10 +614,18 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                             sliver: isGrid
                                 ? SliverGrid.builder(
                                     gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 2,
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          // Responsive cross-axis count
+                                          crossAxisCount:
+                                              (MediaQuery.of(
+                                                        context,
+                                                      ).size.width /
+                                                      200)
+                                                  .floor()
+                                                  .clamp(1, 4),
                                           crossAxisSpacing: 12,
                                           mainAxisSpacing: 12,
+                                          // Increased height to accommodate action buttons
                                           mainAxisExtent: 130,
                                         ),
                                     itemCount: displayDeals.length,
@@ -635,15 +669,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                             ),
                                             onPressed: () =>
                                                 _handleFavoriteTap(deal),
-                                          ),
-                                          // Price Alert button
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.notifications_none_rounded,
-                                              color: Color(0xFF00B4FF),
-                                            ),
-                                            onPressed: () =>
-                                                _handlePriceAlertTap(deal),
                                           ),
                                         ],
                                       );
@@ -693,15 +718,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                             ),
                                             onPressed: () =>
                                                 _handleFavoriteTap(deal),
-                                          ),
-                                          // Price Alert button
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.notifications_none_rounded,
-                                              color: Color(0xFF00B4FF),
-                                            ),
-                                            onPressed: () =>
-                                                _handlePriceAlertTap(deal),
                                           ),
                                         ],
                                       );
@@ -776,11 +792,37 @@ class _RecentlyViewedSliver extends ConsumerWidget {
   }
 }
 
-class _RecentlyViewedSliverContent extends StatelessWidget {
+class _RecentlyViewedSliverContent extends ConsumerWidget {
   const _RecentlyViewedSliverContent({required this.recentDeals});
   final List<Deal> recentDeals;
+
+  Future<void> _clearRecents(BuildContext context, WidgetRef ref) async {
+    final confirm = await showGlassDialog<bool>(
+      context: context,
+      title: const Text('Clear History'),
+      content: const Text(
+        'Are you sure you want to clear your recently viewed items?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF4757)),
+          child: const Text('Clear'),
+        ),
+      ],
+    );
+
+    if (confirm == true) {
+      ref.read(recentlyViewedProvider.notifier).clear();
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -798,9 +840,21 @@ class _RecentlyViewedSliverContent extends StatelessWidget {
                 Text(
                   'Recently Viewed',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => _clearRecents(context, ref),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF8A8AA0),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: const Text(
+                    'Clear All',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -1121,8 +1175,8 @@ class _TopDealsShimmer extends StatelessWidget {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: 3,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (_, __) =>
+                  separatorBuilder: (_, _) => const SizedBox(width: 10),
+                  itemBuilder: (_, _) =>
                       _TopDealSkeletonCard(shimmerColor: shimmerColor),
                 ),
               ),
@@ -1217,18 +1271,12 @@ class _ShimmerGrid extends StatefulWidget {
 
 class _ShimmerGridState extends State<_ShimmerGrid>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-      lowerBound: 0.25,
-      upperBound: 0.6,
-    )..repeat(reverse: true);
-  }
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+    lowerBound: 0.25,
+    upperBound: 0.6,
+  )..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -1257,15 +1305,18 @@ class _ShimmerGridState extends State<_ShimmerGrid>
                     itemCount: 6,
                     itemBuilder: (_, __) => AnimatedBuilder(
                       animation: _controller,
-                      builder: (context, _) =>
+                      builder: (_, __) =>
                           _SkeletonCard(opacity: _controller.value),
                     ),
                   )
                 : SliverList.separated(
                     itemCount: 5,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (_, __) =>
-                        _SkeletonCard(opacity: _controller.value),
+                    itemBuilder: (_, __) => AnimatedBuilder(
+                      animation: _controller,
+                      builder: (_, __) =>
+                          _SkeletonCard(opacity: _controller.value),
+                    ),
                   ),
           ),
         ],

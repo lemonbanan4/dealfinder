@@ -11,7 +11,7 @@ import '../../../providers/repositories.dart';
 import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';
 import 'scraper_configs_provider.dart';
-import '../presentation/feed_page.dart';
+import '../presentation/feed_page.dart' show regionProvider;
 
 part 'deals_provider.g.dart';
 
@@ -54,7 +54,7 @@ class DealFeedNotifier extends _$DealFeedNotifier {
 
   /// Refreshes the current list of deals
   Future<void> refresh() async {
-    final region = ref.read(regionProvider);
+    final region = await ref.read(regionProvider);
     await _fetchFromApi(region);
     await _scrapeAndSave();
   }

@@ -91,7 +91,7 @@ final class RegionProvider extends $NotifierProvider<Region, String> {
   }
 }
 
-String _$regionHash() => r'7b9053de5a2faf52280dc07f835356f1d54aedc8';
+String _$regionHash() => r'397389897bef42dcb237dc3a1f6e9b6f65a0366e';
 
 abstract class _$Region extends $Notifier<String> {
   String build();

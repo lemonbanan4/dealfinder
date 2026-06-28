@@ -11,7 +11,7 @@ Future<T?> showGlassDialog<T>({
 }) {
   return showDialog<T>(
     context: context,
-    barrierColor: Colors.black.withOpacity(0.3),
+    barrierColor: Colors.black.withValues(alpha: 0.3),
     builder: (context) {
       return BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
