@@ -8,7 +8,6 @@ import '../features/deals/presentation/feed_page.dart';
 import '../features/legal/presentation/about_us_page.dart';
 import '../features/legal/presentation/privacy_policy_page.dart';
 import '../features/legal/presentation/terms_of_service_page.dart';
-import '../features/settings/presentation/settings_page.dart';
 import 'app_logo.dart';
 import '../features/alerts/providers/unread_alerts_provider.dart';
 
@@ -16,7 +15,7 @@ import '../features/alerts/providers/unread_alerts_provider.dart';
 const _navDestinations = <(String, IconData, IconData)>[
   ('Feed', Icons.storefront_outlined, Icons.storefront),
   ('Alerts', Icons.notifications_outlined, Icons.notifications),
-  ('Settings', Icons.settings_outlined, Icons.settings),
+  //('Settings', Icons.settings_outlined, Icons.settings),
 ];
 
 class AppShell extends ConsumerStatefulWidget {
@@ -32,7 +31,8 @@ class _AppShellState extends ConsumerState<AppShell> {
   static const _pages = <Widget>[FeedPage(), AlertsPage()];
 
   Future<void> _onDestinationSelected(int index) async {
-    if (index == 1 && ref.read(authProvider) == null) {
+    // We added .value right here to check the actual user state!
+    if (index == 1 && ref.read(authProvider).value == null) {
       final signedIn = await Navigator.of(
         context,
       ).push<bool>(MaterialPageRoute<bool>(builder: (_) => const LoginPage()));

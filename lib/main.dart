@@ -18,11 +18,9 @@ void main() async {
   await Hive.initFlutter();
   await _openBoxes();
 
-  // INITIALIZE SUPABASE BEFORE RUNNING THE APP
   await Supabase.initialize(
     url: 'https://sarlvquwjdufemyizjwj.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhcmx2cXV3amR1ZmVteWl6andqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQ1NTgsImV4cCI6MjA5NzgyMDU1OH0.fcpQ-mRD-Rgi60oDLnmm3h24saZmn_c14En_vQEnU8Y',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhcmx2cXV3amR1ZmVteWl6andqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQ1NTgsImV4cCI6MjA5NzgyMDU1OH0.fcpQ-mRD-Rgi60oDLnmm3h24saZmn_c14En_vQEnU8Y',
   );
 
   try {
@@ -30,26 +28,19 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // On web debug builds skip App Check activation — register a debug
-    // token in the Firebase console for local development instead.
-    if (!kIsWeb || !kDebugMode) {
-      await FirebaseAppCheck.instance.activate(
-        providerAndroid: const AndroidPlayIntegrityProvider(),
-        providerApple: const AppleDeviceCheckProvider(),
-        providerWeb: ReCaptchaV3Provider(
-          '6LcFXRotAAAAAKe8n2KrlfimK8pjRVLlT2xbI9VU',
-        ),
-      );
-    }
-
-    // Initialize Firebase Cloud Messaging
+    // Completely disable App Check and Background Tasks on the Web to prevent crashes
     if (!kIsWeb) {
+      if (!kDebugMode) {
+        await FirebaseAppCheck.instance.activate(
+          providerAndroid: const AndroidPlayIntegrityProvider(),
+          providerApple: const AppleDeviceCheckProvider(),
+        );
+      }
+      
       await FCMService.initialize();
       initializeBackgroundTasks();
     }
   } catch (e) {
-    // Firebase unavailable until `flutterfire configure` is run.
-    // Auth and Firestore features will be disabled at runtime.
     debugPrint('[Firebase] init skipped: $e');
   }
 
