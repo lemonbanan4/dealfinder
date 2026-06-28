@@ -77,7 +77,7 @@ class Region extends _$Region {
   String build() {
     // 1. Calculate the system default instantly so the app doesn't freeze
     final locale = ui.PlatformDispatcher.instance.locale;
-    final country = locale.countryCode?.toUpperCase();
+    final country = locale.countryCode?.toUpperCase() ?? '';
     final language = locale.languageCode.toLowerCase();
 
     String defaultRegion = 'se';
