@@ -1,11 +1,11 @@
 {
-    "name": "dealfinder_pro",
-    "short_name": "dealfinder_pro",
+    "name": "PrisPuls - Superdeals right to your inbox",
+    "short_name": "PrisPuls",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox. Never miss a great price again!",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

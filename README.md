@@ -1,6 +1,6 @@
 # DealFinder Pro
 
-A next-level deal aggregator and price-alert app built with Flutter, targeting both **Web (WASM)** and **Mobile** from a single codebase. DealFinder Pro scrapes product listings, normalises prices into local currencies (NOK/SEK), and fires user-defined alerts when prices drop below a threshold.
+A next-level deal aggregator and price-alert app built with Flutter, targeting both **Web (WASM)** and **Mobile** from a single codebase. Get deals on your radar before they're gone. DealFinder Pro scrapes product listings, normalises prices into local currencies (NOK/SEK), and fires user-defined alerts when prices drop below a threshold.
 
 ---
 

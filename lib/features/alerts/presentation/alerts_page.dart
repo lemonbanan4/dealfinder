@@ -7,7 +7,6 @@ import '../providers/alert_configs_provider.dart';
 import '../domain/alert_config.dart';
 import 'edit_alert_sheet.dart';
 import '../../settings/providers/settings_provider.dart';
-import '../data/alert_repository.dart';
 
 class AlertsPage extends ConsumerWidget {
   const AlertsPage({super.key});
@@ -150,7 +149,7 @@ class _ActiveTargetsTab extends ConsumerWidget {
                   ),
                   value: settings.notificationsEnabled,
                   onChanged: (v) => notifier.toggleNotifications(enabled: v),
-                  activeColor: const Color(0xFF00B4FF),
+                  activeThumbColor: const Color(0xFF00B4FF),
                 ),
               ),
             ),
@@ -179,7 +178,7 @@ class _ActiveTargetsTab extends ConsumerWidget {
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: configs.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         return _ActiveTargetCard(config: configs[index]);
                       },

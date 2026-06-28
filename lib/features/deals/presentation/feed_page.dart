@@ -3,8 +3,6 @@ import 'dart:ui' as ui;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,9 +20,6 @@ import '../../../services/share_service.dart';
 import '../../auth/presentation/login_page.dart';
 
 import '../../../widgets/glass_dialog.dart';
-import '../../legal/presentation/about_us_page.dart';
-import '../../legal/presentation/privacy_policy_page.dart';
-import '../../legal/presentation/terms_of_service_page.dart';
 
 part 'feed_page.g.dart';
 
@@ -318,6 +313,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 
   @override
   Widget build(BuildContext context) {
+    print("Building FeedPage...");
     final dealFeedAsync = ref.watch(dealFeedProvider);
     final deals = dealFeedAsync.asData?.value ?? [];
     final filters = ref.watch(feedFiltersProvider); // This is fine
@@ -1303,18 +1299,18 @@ class _ShimmerGridState extends State<_ShimmerGrid>
                           mainAxisExtent: 130,
                         ),
                     itemCount: 6,
-                    itemBuilder: (_, __) => AnimatedBuilder(
+                    itemBuilder: (_, _) => AnimatedBuilder(
                       animation: _controller,
-                      builder: (_, __) =>
+                      builder: (_, _) =>
                           _SkeletonCard(opacity: _controller.value),
                     ),
                   )
                 : SliverList.separated(
                     itemCount: 5,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (_, __) => AnimatedBuilder(
+                    itemBuilder: (_, _) => AnimatedBuilder(
                       animation: _controller,
-                      builder: (_, __) =>
+                      builder: (_, _) =>
                           _SkeletonCard(opacity: _controller.value),
                     ),
                   ),
