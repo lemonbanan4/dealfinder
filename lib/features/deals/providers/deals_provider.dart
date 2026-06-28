@@ -54,7 +54,7 @@ class DealFeedNotifier extends _$DealFeedNotifier {
 
   /// Refreshes the current list of deals
   Future<void> refresh() async {
-    final region = await ref.read(regionProvider);
+    final region = ref.read(regionProvider);
     await _fetchFromApi(region);
     await _scrapeAndSave();
   }

@@ -11,10 +11,10 @@ def send_price_alert(req: https_fn.CallableRequest) -> any:
     Expected payload: {"user_id": "123...", "title": "Price Drop!", "body": "..."}
     """
     data = req.data
-    user_id = data.get("user_id")
-    title = data.get("title", "Price Drop Alert! 🎉")
-    body = data.get("body", "A product you are watching just dropped in price.")
-    product_url = data.get("product_url", "alerts_page")
+    user_id = data.get("user_id") if isinstance(data, dict) else None
+    title = data.get("title", "Price Drop Alert! 🎉") if isinstance(data, dict) else "Price Drop Alert! 🎉"
+    body = data.get("body", "A product you are watching just dropped in price.") if isinstance(data, dict) else "A product you are watching just dropped in price."
+    product_url = data.get("product_url", "alerts_page") if isinstance(data, dict) else "alerts_page"
 
     if not user_id:
         raise https_fn.HttpsError(
@@ -37,22 +37,8 @@ def send_price_alert(req: https_fn.CallableRequest) -> any:
 
     # Construct the multicast message for all of the user's devices
     message = messaging.MulticastMessage(
-        notification=messaging.Notification(
-            title=title,
-            body=body,
-        ),
+        notification=messaging.Notification(title=title, body=body),
         data={"product_url": str(product_url)},
-        android=messaging.AndroidConfig(
-            notification=messaging.AndroidNotification(
-                sound="notification_sound",
-                channel_id="dealfinder_price_alerts_v2"
-            )
-        ),
-        apns=messaging.APNSConfig(
-            payload=messaging.APNSPayload(
-                aps=messaging.Aps(sound="notification_sound.wav")
-            )
-        ),
         tokens=tokens,
     )
 
@@ -65,7 +51,7 @@ def send_price_alert(req: https_fn.CallableRequest) -> any:
         # Remove the invalid tokens from Firestore
         user_ref.update({"fcmTokens": firestore.ArrayRemove(failed_tokens)})
 
-    return {"success": True, "sent_count": response.success_count, "failed_count": response.failure_count}
+    return {"success": True, "sent_count": response.success_count}
 
 @https_fn.on_call(region="europe-north1")
 def delete_account(req: https_fn.CallableRequest) -> any:
@@ -76,7 +62,7 @@ def delete_account(req: https_fn.CallableRequest) -> any:
     if req.auth is None or not req.auth.uid:
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
-            message="User must be authenticated to delete their account."
+            message="User must be authenticated to delete."
         )
 
     uid = req.auth.uid
@@ -84,6 +70,7 @@ def delete_account(req: https_fn.CallableRequest) -> any:
 
     # 2. Delete the user's alert configs (subcollections must be deleted manually)
     configs_ref = db.collection("users").document(uid).collection("alert_configs")
+    docs = list(configs_ref.stream())
     for doc in configs_ref.stream():
         doc.reference.delete()
         

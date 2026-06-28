@@ -45,7 +45,14 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+
+# Try to load .env for local development
 load_dotenv()
+
+# If the env var isn't found, it falls back to the secret injected by GitHub
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+
 # ── Logging ──────────────────────────────────────────────────────────────────────
 
 logging.basicConfig(

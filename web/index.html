@@ -20,6 +20,15 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- 
+    Content-Security-Policy:
+    This is the fix for the white screen issue. Flutter's web engine uses
+    'unsafe-eval' to compile shaders and optimize performance. We also need
+    to allow connections to Supabase and scripts from Apple for Sign In.
+  -->
+    
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.web.app; script-src 'self' 'unsafe-eval' https://appleid.cdn-apple.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https:;">
+
   <!-- SEO -->
   <title>Sign up for Superdeals | PrisPuls</title>
   <meta name="description" content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox. Never miss a great price again!">
@@ -104,14 +113,9 @@
   </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <div class="loading">
+    <div class="loader"></div>
+  </div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

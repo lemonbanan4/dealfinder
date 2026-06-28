@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 
 import 'widgets/adaptive_scaffold.dart';
@@ -64,6 +63,7 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
           seedColor: const Color(0xFF006EFF),
           brightness: Brightness.light,
         ),
+        fontFamily: 'Poppins',
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
@@ -74,8 +74,8 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
         scaffoldBackgroundColor: isAmoled
             ? Colors.black
             : const Color(0xFF0A0B10),
+        fontFamily: 'Poppins',
         useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
       home: const AppShell(),
     );
