@@ -6,6 +6,8 @@ import '../providers/alerts_provider.dart';
 import '../providers/alert_configs_provider.dart';
 import '../domain/alert_config.dart';
 import 'edit_alert_sheet.dart';
+import '../../settings/providers/settings_provider.dart';
+import '../data/alert_repository.dart';
 
 class AlertsPage extends ConsumerWidget {
   const AlertsPage({super.key});
@@ -120,47 +122,74 @@ class _ActiveTargetsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final configsAsync = ref.watch(alertConfigsProvider);
+    final settings = ref.watch(appSettingsProvider);
+    final notifier = ref.read(appSettingsProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return configsAsync.when(
       data: (configs) {
-        if (configs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.track_changes_outlined,
-                  size: 64,
-                  color: Color(0xFF5A5A78),
+        return Column(
+          children: [
+            // ── The Settings Toggle Moved Here ──
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF12131A) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF252638)),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'No active targets',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                child: SwitchListTile(
+                  title: const Text(
+                    'Email Notifications',
+                    style: TextStyle(fontSize: 14),
                   ),
+                  subtitle: const Text(
+                    'Get notified when targets are hit',
+                    style: TextStyle(color: Color(0xFF5A5A78), fontSize: 12),
+                  ),
+                  value: settings.notificationsEnabled,
+                  onChanged: (v) => notifier.toggleNotifications(enabled: v),
+                  activeColor: const Color(0xFF00B4FF),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Add price targets from products to see them here.',
-                  style: TextStyle(color: Color(0xFF8A8AA0)),
-                ),
-              ],
+              ),
             ),
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: configs.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final config = configs[index];
-            return _ActiveTargetCard(config: config);
-          },
+
+            // ── The List of Targets ──
+            Expanded(
+              child: configs.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.track_changes_outlined,
+                            size: 64,
+                            color: Color(0xFF5A5A78),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No active targets',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: configs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        return _ActiveTargetCard(config: configs[index]);
+                      },
+                    ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error loading alerts')),
+      error: (err, stack) => const Center(child: Text('Error loading alerts')),
     );
   }
 }

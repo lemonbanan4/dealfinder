@@ -29,7 +29,7 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   int _selectedIndex = 0;
 
-  static const _pages = <Widget>[FeedPage(), AlertsPage(), SettingsPage()];
+  static const _pages = <Widget>[FeedPage(), AlertsPage()];
 
   Future<void> _onDestinationSelected(int index) async {
     if (index == 1 && ref.read(authProvider) == null) {
