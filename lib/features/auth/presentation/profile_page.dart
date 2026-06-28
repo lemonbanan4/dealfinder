@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -42,14 +41,148 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     await _handlePostSignOutCleanup();
   }
 
-  Future<void> _handlePostSignOutCleanup() async {
+  Future<void> _deleteAccount() async {
+    final confirm = await showGlassDialog<bool>(
+      context: context,
+      title: const Text('Delete Account'),
+      content: const Text(
+        'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFFFF4757)),
+          child: const Text('Delete'),
+        ),
+      ],
+    );
+
+    if (confirm != true) return;
+
+    // It's good practice to check if the widget is still mounted before showing a dialog.
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final callable = FirebaseFunctions.instanceFor(
+        region: 'europe-north1',
+      ).httpsCallable('delete_account');
+
+      await callable.call();
+      await _handlePostSignOutCleanup(isAccountDeletion: true);
+
+      if (mounted) {
+        Navigator.pop(context); // Dismiss profile page
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Dismiss loading dialog
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to delete account. Please try again.'),
+            backgroundColor: Color(0xFFFF4757),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handlePostSignOutCleanup({
+    bool isAccountDeletion = false,
+  }) async {
     await FirebaseAuth.instance.signOut();
     ref.invalidate(feedFiltersProvider);
     ref.read(recentlyViewedProvider.notifier).clear();
-    if (mounted) Navigator.pop(context);
+    if (mounted && !isAccountDeletion) Navigator.pop(context);
   }
 
-  /// Prequest a list of active alerts for the current user from Supabase
+  Future<void> _updateDisplayName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final ctrl = TextEditingController(text: user.displayName);
+    final newName = await showGlassDialog<String>(
+      context: context,
+      title: const Text('Update Display Name'),
+      content: TextField(
+        controller: ctrl,
+        decoration: const InputDecoration(hintText: 'Enter new name'),
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
+    );
+
+    if (newName != null && newName != user.displayName) {
+      await user.updateDisplayName(newName.isEmpty ? null : newName);
+      setState(() {});
+    }
+  }
+
+  Future<void> _updateProfilePicture() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final ctrl = TextEditingController(text: user.photoURL);
+    final newUrl = await showGlassDialog<String>(
+      context: context,
+      title: const Text('Update Profile Picture'),
+      content: TextField(
+        controller: ctrl,
+        decoration: const InputDecoration(
+          hintText: 'Enter image URL (https://...)',
+        ),
+        keyboardType: TextInputType.url,
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
+    );
+
+    if (newUrl != null && newUrl != user.photoURL) {
+      if (newUrl.isNotEmpty && Uri.tryParse(newUrl)?.isAbsolute == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image URL must start with https://'),
+              backgroundColor: Color(0xFFFF4757),
+            ),
+          );
+        }
+        return;
+      }
+      await user.updatePhotoURL(newUrl.isEmpty ? null : newUrl);
+      setState(() {});
+    }
+  }
+
   Stream<List<Map<String, dynamic>>> _userAlertsStream() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Stream.empty();
@@ -81,6 +214,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final userAsync = ref.watch(authProvider);
     final themeMode = ref.watch(themeProvider);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF12131A);
+    final iconColor = isDark
+        ? const Color(0xFF8A8AA0)
+        : const Color(0xFF5A5A78);
+
     return userAsync.when(
       data: (user) => Scaffold(
         appBar: AppBar(title: const Text('Profile & Settings')),
@@ -106,7 +245,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               const SizedBox(height: 24),
               const Divider(color: Color(0xFF252638)),
 
-              // ── LIVE PRICE ALERTS DASHBOARD SECTION ───────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 12,
@@ -203,41 +341,98 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               const Divider(color: Color(0xFF252638)),
             ],
 
-            // ── GENERAL SYSTEM SETTINGS ──────────────────────────────────────
             ListTile(
-              leading: const Icon(Icons.brightness_6, color: Color(0xFF8A8AA0)),
-              title: const Text(
+              leading: Icon(Icons.brightness_6, color: iconColor),
+              title: Text(
                 'Theme Appearance',
-                style: TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: textColor, fontSize: 14),
               ),
-              trailing: DropdownButton<AppTheme>(
-                value: themeMode,
-                dropdownColor: const Color(0xFF12131A),
-                style: const TextStyle(color: Colors.white),
-                underline: const SizedBox(),
-                items: const [
-                  DropdownMenuItem(
-                    value: AppTheme.system,
-                    child: Text('System Default'),
+              trailing: DropdownButtonHideUnderline(
+                child: DropdownButton<AppTheme>(
+                  value: themeMode,
+                  dropdownColor: isDark
+                      ? const Color(0xFF1A1B2A)
+                      : Colors.white,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
-                  DropdownMenuItem(
-                    value: AppTheme.light,
-                    child: Text('Light Mode'),
-                  ),
-                  DropdownMenuItem(
-                    value: AppTheme.dark,
-                    child: Text('Dark Mode'),
-                  ),
-                ],
-                onChanged: (mode) {
-                  if (mode != null) {
-                    ref.read(themeProvider.notifier).updateTheme(mode);
-                  }
-                },
+                  icon: Icon(Icons.arrow_drop_down, color: iconColor),
+                  items: const [
+                    DropdownMenuItem(
+                      value: AppTheme.system,
+                      child: Text('System Default'),
+                    ),
+                    DropdownMenuItem(
+                      value: AppTheme.light,
+                      child: Text('Light Mode'),
+                    ),
+                    DropdownMenuItem(
+                      value: AppTheme.dark,
+                      child: Text('Dark Mode'),
+                    ),
+                  ],
+                  onChanged: (mode) {
+                    if (mode != null) {
+                      ref.read(themeProvider.notifier).updateTheme(mode);
+                    }
+                  },
+                ),
               ),
             ),
             const Divider(color: Color(0xFF252638)),
+
+            ListTile(
+              leading: Icon(Icons.badge_outlined, color: iconColor),
+              title: Text(
+                'Update Display Name',
+                style: TextStyle(color: textColor, fontSize: 14),
+              ),
+              trailing: Icon(Icons.chevron_right, color: iconColor),
+              onTap: _updateDisplayName,
+            ),
+            ListTile(
+              leading: Icon(Icons.image_outlined, color: iconColor),
+              title: Text(
+                'Update Profile Picture',
+                style: TextStyle(color: textColor, fontSize: 14),
+              ),
+              trailing: Icon(Icons.chevron_right, color: iconColor),
+              onTap: _updateProfilePicture,
+            ),
+            const Divider(color: Color(0xFF252638)),
+
+            ListTile(
+              leading: Icon(Icons.privacy_tip_outlined, color: iconColor),
+              title: Text(
+                'Privacy Policy',
+                style: TextStyle(color: textColor, fontSize: 14),
+              ),
+              trailing: Icon(Icons.chevron_right, color: iconColor),
+              onTap: () => _showPlaceholderDialog('Privacy Policy'),
+            ),
+            ListTile(
+              leading: Icon(Icons.description_outlined, color: iconColor),
+              title: Text(
+                'Terms of Service',
+                style: TextStyle(color: textColor, fontSize: 14),
+              ),
+              trailing: Icon(Icons.chevron_right, color: iconColor),
+              onTap: () => _showPlaceholderDialog('Terms of Service'),
+            ),
+            ListTile(
+              leading: Icon(Icons.info_outline, color: iconColor),
+              title: Text(
+                'About Us',
+                style: TextStyle(color: textColor, fontSize: 14),
+              ),
+              trailing: Icon(Icons.chevron_right, color: iconColor),
+              onTap: () => _showPlaceholderDialog('About Us'),
+            ),
+
             if (user != null) ...[
+              const Divider(color: Color(0xFF252638)),
               ListTile(
                 leading: const Icon(Icons.logout, color: Color(0xFFFF4757)),
                 title: const Text(
@@ -245,10 +440,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   style: TextStyle(
                     color: Color(0xFFFF4757),
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 onTap: _signOut,
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_forever,
+                  color: Color(0xFFFF4757),
+                ),
+                title: const Text(
+                  'Delete Account',
+                  style: TextStyle(
+                    color: Color(0xFFFF4757),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onTap: _deleteAccount,
               ),
             ],
           ],
@@ -257,6 +467,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, s) => Scaffold(body: Center(child: Text('Error: $e'))),
+    );
+  }
+
+  void _showPlaceholderDialog(String title) {
+    showGlassDialog(
+      context: context,
+      title: Text(title),
+      content: Text(
+        'The $title section will be available soon as part of the launch deployment.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }
