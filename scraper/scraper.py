@@ -361,7 +361,7 @@ def _discount_pct(original: float, current: float) -> float:
 SENDER_EMAIL = "contact@orbitroutine.com"
 SENDER_PASSWORD = "ggtp txgh lxcw koka" 
 
-def send_alert_email(to_email, title, url, price, target):
+def send_alert_email(server, to_email, title, url, price, target):
     msg = MIMEMultipart()
     msg['From'] = SENDER_EMAIL
     msg['To'] = to_email
@@ -388,25 +388,32 @@ def send_alert_email(to_email, title, url, price, target):
         print(f"Failed to send email to {to_email}: {e}")
         return False
 
-def check_and_fire_price_alerts(supabase: Client):
+import smtplib
+from typing import List, Dict, Any
+
+def check_and_fire_price_alerts(supabase):
     print("Checking for triggered price alerts...")
     
     alerts_response = supabase.table('price_alerts').select('*').eq('is_active', True).execute()
-    active_alerts = alerts_response.data
+    
+    # Explicitly type-hint so your linter stops complaining about ['']
+    active_alerts: List[Dict[str, Any]] = alerts_response.data or []
 
     if not active_alerts:
         print("No active alerts to check.")
         return
     
     # Optimization: Fetch all product prices in one go
-    product_ids = {alert['product_id'] for alert in active_alerts}
+    product_ids = {str(alert['product_id']) for alert in active_alerts}
     products_response = supabase.table('products').select('id, currentPrice').in_('id', list(product_ids)).execute()
     
-    if not products_response.data:
+    products_data: List[Dict[str, Any]] = products_response.data or []
+    
+    if not products_data:
         print("Could not fetch current prices for alerted products.")
         return
 
-    price_map = {p['id']: p['currentPrice'] for p in products_response.data}
+    price_map = {str(p['id']): float(p['currentPrice']) for p in products_data}
     alerts_to_deactivate = []
     
     # Optimization: Use a single SMTP connection for all emails
@@ -416,35 +423,39 @@ def check_and_fire_price_alerts(supabase: Client):
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
 
         for alert in active_alerts:
-            current_price = price_map.get(alert['product_id'])
+            current_price = price_map.get(str(alert['product_id']))
             if current_price is None:
                 continue
 
-            if current_price <= alert['target_price']:
+            if current_price <= float(alert['target_price']):
                 print(f"HIT! {alert['product_title']} dropped to {current_price} for {alert['user_email']}")
                 
                 # Fire the email using the existing server connection
+                # MAKE SURE send_alert_email ACCEPTS 'server' AS A PARAMETER!
                 success = send_alert_email(
-                    to_email=alert['user_email'],
-                    title=alert['product_title'],
-                    url=alert['product_url'],
+                    server=server, 
+                    to_email=str(alert['user_email']),
+                    title=str(alert['product_title']),
+                    url=str(alert['product_url']),
                     price=current_price,
-                    target=alert['target_price']
+                    target=float(alert['target_price'])
                 )
                 
                 if success:
-                    alerts_to_deactivate.append(alert['id'])
+                    alerts_to_deactivate.append(str(alert['id']))
 
         server.quit()
 
+        # Deactivate all the alerts that were successfully fired
+        if alerts_to_deactivate:
+            supabase.table('price_alerts').update({'is_active': False}).in_('id', alerts_to_deactivate).execute()
+            print(f"Successfully deactivated {len(alerts_to_deactivate)} alerts.")
+
     except Exception as e:
-        print(f"An error occurred during email sending: {e}")
+        # This except block fixes the SyntaxError!
+        print(f"Failed to process SMTP connections or emails: {e}")
 
-    # Deactivate alerts in a single batch update
-    if alerts_to_deactivate:
-        print(f"Deactivating {len(alerts_to_deactivate)} alerts...")
-        supabase.table('price_alerts').update({'is_active': False}).in_('id', alerts_to_deactivate).execute()
-
+    return
 
 
 # ── Awin feed fetcher ─────────────────────────────────────────────────────────────
@@ -776,8 +787,14 @@ def scrape_store(store: StoreConfig) -> list[dict]:
 
 def main() -> None:
     # Initialize Supabase client
-    url: str = os.environ.get("SUPABASE_URL")
-    key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    url: str = os.environ.get("SUPABASE_URL") or ""
+    key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or ""
+    supabase: Client = create_client(url, key)
+
+    ## fail loudly if variables are missing
+    if not url or not key:
+        raise ValueError("Missing Supabase environment variables.")
+    
     supabase: Client = create_client(url, key)
 
     # # ── Firebase Admin SDK init ───────────────────────────────────────────────────

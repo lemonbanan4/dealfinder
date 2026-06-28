@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/constants.dart';
@@ -16,6 +17,13 @@ void main() async {
 
   await Hive.initFlutter();
   await _openBoxes();
+
+  // INITIALIZE SUPABASE BEFORE RUNNING THE APP
+  await Supabase.initialize(
+    url: 'https://sarlvquwjdufemyizjwj.supabase.co',
+    publishableKey: 'sb_publishable_i2ao0MRnbINciLoKf95wUg_Nb-WzChs',
+    //anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhcmx2cXV3amR1ZmVteWl6andqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQ1NTgsImV4cCI6MjA5NzgyMDU1OH0.fcpQ-mRD-Rgi60oDLnmm3h24saZmn_c14En_vQEnU8Y',
+  );
 
   try {
     await Firebase.initializeApp(
@@ -35,10 +43,10 @@ void main() async {
     }
 
     // Initialize Firebase Cloud Messaging
-    await FCMService.initialize();
-
-    // Initialize Workmanager for background tasks
-    initializeBackgroundTasks();
+    if (!kIsWeb) {
+      await FCMService.initialize();
+      initializeBackgroundTasks();
+    }
   } catch (e) {
     // Firebase unavailable until `flutterfire configure` is run.
     // Auth and Firestore features will be disabled at runtime.
