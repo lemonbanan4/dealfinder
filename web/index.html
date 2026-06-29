@@ -119,17 +119,7 @@
 
   <!-- When a new service worker activates (skipWaiting fires), reload once so
        users immediately get the latest build instead of staying on old cached content. -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', function () {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
-    }
-  </script>
+  <script src="sw_helper.js" defer></script>
 
   <script src="flutter_bootstrap.js" async></script>
 </body>
