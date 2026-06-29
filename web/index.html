@@ -27,7 +27,7 @@
     to allow connections to Supabase and scripts from Apple for Sign In.
   -->
     
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.web.app; script-src 'self' 'unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://www.gstatic.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.web.app; script-src 'self' 'unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://www.gstatic.com https://fonts.gstatic.com https://dealfinder-swr5.onrender.com https://www.ecb.europa.eu https://v6.exchangerate-api.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com https:;">
 
   <!-- SEO -->
   <title>Sign up for Superdeals | PrisPuls</title>
@@ -116,6 +116,21 @@
   <div class="loading">
     <div class="loader"></div>
   </div>
+
+  <!-- When a new service worker activates (skipWaiting fires), reload once so
+       users immediately get the latest build instead of staying on old cached content. -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

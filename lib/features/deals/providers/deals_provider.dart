@@ -30,7 +30,6 @@ class DealFeedNotifier extends _$DealFeedNotifier {
   }
 
   Future<List<Deal>> _fetchFromApi(String region) async {
-    state = const AsyncValue.loading();
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final response = await http.get(
@@ -41,23 +40,27 @@ class DealFeedNotifier extends _$DealFeedNotifier {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        final deals = data.map((json) => Deal.fromJson(json)).toList();
-        state = AsyncValue.data(deals);
-        return deals;
+        return data.map((json) => Deal.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load deals');
+        throw Exception('Failed to load deals: ${response.statusCode}');
       }
     } catch (e, s) {
-      state = AsyncValue.error(e, s);
-      return [];
+      // Re-throw so build() or refresh() can decide how to handle the error.
+      Error.throwWithStackTrace(e, s);
     }
   }
 
   /// Refreshes the current list of deals
   Future<void> refresh() async {
     final region = ref.read(regionProvider);
-    await _fetchFromApi(region);
-    await _scrapeAndSave();
+    state = const AsyncValue.loading();
+    try {
+      final deals = await _fetchFromApi(region);
+      state = AsyncValue.data(deals);
+      await _scrapeAndSave();
+    } catch (e, s) {
+      state = AsyncValue.error(e, s);
+    }
   }
 
   Future<void> _scrapeAndSave() async {

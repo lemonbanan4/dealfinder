@@ -15,19 +15,28 @@ import 'services/notification/fcm_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Hive.initFlutter();
-  await _openBoxes();
+  // ── Local storage ────────────────────────────────────────────────────────
+  try {
+    await Hive.initFlutter();
+    await _openBoxes();
+  } catch (e) {
+    debugPrint('[Hive] init failed: $e');
+  }
 
-  await Supabase.initialize(
-    url: 'https://sarlvquwjdufemyizjwj.supabase.co',
-    publishableKey: 'sb_publishable_i2ao0MRnbINciLoKf95wUg_Nb-WzChs',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhcmx2cXV3amR1ZmVteWl6andqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQ1NTgsImV4cCI6MjA5NzgyMDU1OH0.fcpQ-mRD-Rgi60oDLnmm3h24saZmn_c14En_vQEnU8Y',
-    authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.pkce,
-    ),
-  );
+  // ── Supabase ─────────────────────────────────────────────────────────────
+  try {
+    await Supabase.initialize(
+      url: 'https://sarlvquwjdufemyizjwj.supabase.co',
+      publishableKey: 'sb_publishable_i2ao0MRnbINciLoKf95wUg_Nb-WzChs',
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
+    );
+  } catch (e) {
+    debugPrint('[Supabase] init failed: $e');
+  }
 
+  // ── Firebase ─────────────────────────────────────────────────────────────
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -46,7 +55,7 @@ void main() async {
       initializeBackgroundTasks();
     }
   } catch (e) {
-    debugPrint('[Firebase] init skipped: $e');
+    debugPrint('[Firebase] init failed: $e');
   }
 
   runApp(const ProviderScope(child: PrisPulsApp()));

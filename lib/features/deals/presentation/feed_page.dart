@@ -331,7 +331,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 
   @override
   Widget build(BuildContext context) {
-    print('Building FeedPage...');
     final filters = ref.watch(feedFiltersProvider);
     final displayDeals = ref.watch(
       filteredDealsProvider,
