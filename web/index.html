@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -26,48 +27,32 @@
     'unsafe-eval' to compile shaders and optimize performance. We also need
     to allow connections to Supabase and scripts from Apple for Sign In.
   -->
-    
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.web.app; script-src 'self' 'unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://www.gstatic.com https://fonts.gstatic.com https://dealfinder-swr5.onrender.com https://www.ecb.europa.eu https://v6.exchangerate-api.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com https:;">
+
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' https://*.firebaseapp.com https://*.web.app; script-src 'self' 'unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://www.gstatic.com https://fonts.gstatic.com https://dealfinder-swr5.onrender.com https://www.ecb.europa.eu https://v6.exchangerate-api.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com https:;">
 
   <!-- SEO -->
   <title>Sign up for Superdeals | PrisPuls</title>
-  <meta name="description" content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox. Never miss a great price again!">
+  <meta name="description"
+    content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox. Never miss a great price again!">
   <link rel="canonical" href="https://www.prispuls.com" />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.prispuls.com">
   <meta property="og:title" content="Sign up for Superdeals | PrisPuls">
-  <meta property="og:description" content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox.">
+  <meta property="og:description"
+    content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox.">
   <meta property="og:image" content="https://www.prispuls.com/icons/Icon-512.png">
 
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://www.prispuls.com">
   <meta property="twitter:title" content="Sign up for Superdeals | PrisPuls">
-  <meta property="twitter:description" content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox.">
+  <meta property="twitter:description"
+    content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox.">
   <meta property="twitter:image" content="https://www.prispuls.com/icons/Icon-512.png">
 
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Sign up for Superdeals | PrisPuls",
-    "description": "Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox.",
-    "url": "https://www.prispuls.com",
-    "publisher": {
-      "@type": "Organization",
-      "name": "PrisPuls",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://www.prispuls.com/icons/Icon-512.png"
-      }
-    }
-  }
-  </script>
-
-  <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -94,8 +79,10 @@
     }
 
     .loader {
-      border: 8px solid #f3f3f3; /* Light grey */
-      border-top: 8px solid #0175C2; /* Blue from manifest */
+      border: 8px solid #f3f3f3;
+      /* Light grey */
+      border-top: 8px solid #0175C2;
+      /* Blue from manifest */
       border-radius: 50%;
       width: 60px;
       height: 60px;
@@ -106,16 +93,24 @@
       0% {
         transform: rotate(0deg);
       }
+
       100% {
         transform: rotate(360deg);
       }
     }
   </style>
 </head>
+
 <body>
   <div class="loading">
     <div class="loader"></div>
   </div>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json" src="structured_data.json"></script>
+
+  <script type="text/javascript"
+    src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
 
   <!-- When a new service worker activates (skipWaiting fires), reload once so
        users immediately get the latest build instead of staying on old cached content. -->
@@ -123,4 +118,5 @@
 
   <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>
