@@ -1,50 +1,89 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter/foundation.dart';
 
 import '../features/alerts/presentation/alerts_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/deals/presentation/feed_page.dart';
 import '../features/legal/presentation/about_us_page.dart';
+import '../features/settings/presentation/settings_page.dart';
 import '../features/legal/presentation/privacy_policy_page.dart';
 import '../features/legal/presentation/terms_of_service_page.dart';
 import 'app_logo.dart';
+import '../features/settings/providers/cookie_consent_provider.dart';
+import 'cookie_consent_banner.dart';
 import '../features/alerts/providers/unread_alerts_provider.dart';
+
+part 'adaptive_scaffold.g.dart';
 
 // Top-level nav destinations — shared by the custom sidebar and the mobile bar.
 const _navDestinations = <(String, IconData, IconData)>[
   ('Feed', Icons.storefront_outlined, Icons.storefront),
   ('Alerts', Icons.notifications_outlined, Icons.notifications),
-  //('Settings', Icons.settings_outlined, Icons.settings),
+  ('Settings', Icons.settings_outlined, Icons.settings),
 ];
 
-class AppShell extends ConsumerStatefulWidget {
-  const AppShell({super.key});
+const _pages = <Widget>[FeedPage(), AlertsPage(), SettingsPage()];
 
+@riverpod
+class AppShellIndex extends _$AppShellIndex {
   @override
-  ConsumerState<AppShell> createState() => _AppShellState();
-}
+  int build() => 0;
 
-class _AppShellState extends ConsumerState<AppShell> {
-  int _selectedIndex = 0;
-
-  static const _pages = <Widget>[FeedPage(), AlertsPage()];
-
-  Future<void> _onDestinationSelected(int index) async {
+  Future<void> onDestinationSelected(
+    BuildContext context,
+    WidgetRef ref,
+    int index,
+  ) async {
     // We added .value right here to check the actual user state!
     if (index == 1 && ref.read(authProvider).value == null) {
       final signedIn = await Navigator.of(
         context,
       ).push<bool>(MaterialPageRoute<bool>(builder: (_) => const LoginPage()));
-      if (signedIn == true && mounted) {
-        setState(() => _selectedIndex = 1);
+      if (signedIn == true) {
+        state = 1;
         ref.read(unreadAlertsProvider.notifier).updateCount(0);
       }
       return;
     }
-    setState(() => _selectedIndex = index);
+    state = index;
     if (index == 1) {
       ref.read(unreadAlertsProvider.notifier).updateCount(0);
+    }
+  }
+}
+
+class AppShell extends ConsumerWidget {
+  const AppShell({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      children: [
+        const Expanded(child: _AppShellMain()),
+        const CookieConsentBanner(),
+      ],
+    );
+  }
+}
+
+class _AppShellMain extends ConsumerStatefulWidget {
+  const _AppShellMain();
+
+  @override
+  ConsumerState<_AppShellMain> createState() => _AppShellMainState();
+}
+
+class _AppShellMainState extends ConsumerState<_AppShellMain> {
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(cookieConsentProvider.notifier).loadConsent(),
+      );
     }
   }
 
@@ -53,6 +92,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final width = MediaQuery.sizeOf(context).width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final unreadAlerts = ref.watch(unreadAlertsProvider);
+    final selectedIndex = ref.watch(appShellIndexProvider);
 
     if (width >= 720) {
       final isExtended = width >= 1200;
@@ -60,8 +100,10 @@ class _AppShellState extends ConsumerState<AppShell> {
         body: Row(
           children: [
             _CustomSidebar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _onDestinationSelected,
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (i) => ref
+                  .read(appShellIndexProvider.notifier)
+                  .onDestinationSelected(context, ref, i),
               extended: isExtended,
               isDark: isDark,
               unreadAlerts: unreadAlerts,
@@ -72,17 +114,19 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ? const Color(0xFF252638)
                   : Theme.of(context).dividerColor,
             ),
-            Expanded(child: _pages[_selectedIndex]),
+            Expanded(child: _pages[selectedIndex]),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: _pages[selectedIndex],
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onDestinationSelected,
+        selectedIndex: selectedIndex,
+        onDestinationSelected: (i) => ref
+            .read(appShellIndexProvider.notifier)
+            .onDestinationSelected(context, ref, i),
         backgroundColor: isDark ? const Color(0xFF0C0D15) : null,
         indicatorColor: isDark ? const Color(0xFF1E2035) : null,
         destinations: [

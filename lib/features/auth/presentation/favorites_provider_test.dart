@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dealfinder_app/features/auth/providers/auth_provider.dart';
-import 'package:dealfinder_app/features/deals/domain/deal.dart';
-import 'package:dealfinder_app/features/deals/presentation/feed_page.dart';
+import '../providers/auth_provider.dart';
+import '../../deals/domain/deal.dart';
+import '../../deals/presentation/feed_page.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -21,6 +21,14 @@ class MockUser extends Mock implements User {
 
 class MockSharedPreferences extends Mock implements SharedPreferences {}
 
+class FakeAuthProvider extends AuthProvider {
+  FakeAuthProvider(this._userStream);
+  final Stream<User?> _userStream;
+
+  @override
+  Stream<User?> build() => _userStream;
+}
+
 void main() {
   group('Favorites Provider', () {
     late ProviderContainer container;
@@ -30,27 +38,24 @@ void main() {
 
     const favoritesKey = 'favorite_products_pref';
 
-    final deal1 = Deal(
-      id: 'deal1',
-      title: 'Deal 1',
-      url: 'url1',
-      source: 'source1',
-      currentPrice: 100,
-      currency: 'USD',
-    );
-
     setUp(() {
-      // Initialize mocks for each test
       mockUser = MockUser();
       fakeFirestore = FakeFirebaseFirestore();
+      mockSharedPreferences = MockSharedPreferences();
     });
 
     tearDown(() {
-      container.dispose();
+      try {
+        container.dispose();
+      } catch (_) {}
     });
 
+    Future<void> awaitInitialization(ProviderContainer container) async {
+      await container.read(authProvider.future);
+      await container.read(favoritesProvider.future);
+    }
+
     test('initial state is empty and loads from SharedPreferences', () async {
-      // 1. Setup
       final mockPrefs = MockSharedPreferences();
       when(
         () => mockPrefs.getStringList(favoritesKey),
@@ -58,23 +63,19 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          sharedPreferencesProvider.overrideWithValue(mockPrefs),
-          // Provide a default for authProvider to avoid errors
-          authProvider.overrideWith((ref) => Stream.value(null)),
+          sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
+          firestoreProvider.overrideWithValue(fakeFirestore),
+          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(null)) as AuthProvider),
         ],
       );
 
-      // 2. Act
-      // The first read will trigger the build and load from prefs
-      await container.read(favoritesProvider.future);
-      final favorites = container.read(favoritesProvider);
+      await awaitInitialization(container);
+      final favorites = container.read(favoritesProvider).requireValue;
 
-      // 3. Assert
       expect(favorites, {'deal1', 'deal2'});
     });
 
     test('toggleFavorite adds a new favorite', () async {
-      // 1. Setup
       final mockPrefs = MockSharedPreferences();
       when(() => mockPrefs.getStringList(favoritesKey)).thenReturn([]);
       when(
@@ -83,38 +84,27 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          authProvider.overrideWith((ref) => Stream.value(mockUser)),
+          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(mockUser)) as AuthProvider),
           firestoreProvider.overrideWithValue(fakeFirestore),
-          sharedPreferencesProvider.overrideWithValue(mockPrefs),
+          sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
         ],
       );
 
-      // Replace the global instance for this test
-      // final originalFirestore = FirebaseFirestore.instance;
-      // FirebaseFirestore.instance = fakeFirestore;
+      await awaitInitialization(container);
 
       final notifier = container.read(favoritesProvider.notifier);
-      await notifier.build(); // Manually build to load initial state
-
-      // 2. Act
       await notifier.toggleFavorite('deal1');
 
-      // 3. Assert
-      expect(container.read(favoritesProvider), {'deal1'});
+      expect(container.read(favoritesProvider).requireValue, {'deal1'});
 
-      // Verify it was written to Firestore
       final doc = await fakeFirestore
           .collection('users')
           .doc(mockUser.uid)
           .get();
       expect(doc.data()?['favorites'], ['deal1']);
-
-      // Restore original instance
-      // FirebaseFirestore.instance = originalFirestore;
     });
 
     test('toggleFavorite removes an existing favorite', () async {
-      // 1. Setup
       final mockPrefs = MockSharedPreferences();
       when(
         () => mockPrefs.getStringList(favoritesKey),
@@ -125,9 +115,9 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          authProvider.overrideWith((ref) => Stream.value(mockUser)),
+          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(mockUser)) as AuthProvider),
           firestoreProvider.overrideWithValue(fakeFirestore),
-          sharedPreferencesProvider.overrideWithValue(mockPrefs),
+          sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
         ],
       );
 
@@ -135,42 +125,37 @@ void main() {
         'favorites': ['deal1', 'deal2'],
       });
 
-      final notifier = container.read(favoritesProvider.notifier);
-      await notifier.build(); // Load initial state
+      await awaitInitialization(container);
 
-      // 2. Act
+      final notifier = container.read(favoritesProvider.notifier);
       await notifier.toggleFavorite('deal1');
 
-      // 3. Assert
-      expect(container.read(favoritesProvider), {'deal2'});
+      expect(container.read(favoritesProvider).requireValue, {'deal2'});
 
       final doc = await fakeFirestore
           .collection('users')
           .doc(mockUser.uid)
           .get();
       expect(doc.data()?['favorites'], ['deal2']);
-
-      // FirebaseFirestore.instance = originalFirestore;
     });
 
     test('toggleFavorite throws exception if email is not verified', () async {
-      // 1. Setup
       final unverifiedUser = MockUser(emailVerified: false);
       final mockPrefs = MockSharedPreferences();
       when(() => mockPrefs.getStringList(favoritesKey)).thenReturn([]);
 
       container = ProviderContainer(
         overrides: [
-          authProvider.overrideWith((ref) => Stream.value(unverifiedUser)),
+          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(unverifiedUser)) as AuthProvider),
           firestoreProvider.overrideWithValue(fakeFirestore),
-          sharedPreferencesProvider.overrideWithValue(mockPrefs),
+          sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
         ],
       );
 
-      final notifier = container.read(favoritesProvider.notifier);
-      await notifier.build();
+      await awaitInitialization(container);
 
-      // 2. Act & 3. Assert
+      final notifier = container.read(favoritesProvider.notifier);
+
       expect(
         () => notifier.toggleFavorite('deal1'),
         throwsA(
@@ -192,25 +177,26 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          sharedPreferencesProvider.overrideWithValue(mockPrefs),
-          authProvider.overrideWith((ref) => Stream.value(null)),
+          sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
+          firestoreProvider.overrideWithValue(fakeFirestore),
+          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(null)) as AuthProvider),
         ],
       );
 
-      final notifier = container.read(favoritesProvider.notifier);
-      await notifier.build();
+      await awaitInitialization(container);
 
-      expect(container.read(favoritesProvider), {'deal1', 'deal2'});
+      final notifier = container.read(favoritesProvider.notifier);
+
+      expect(container.read(favoritesProvider).requireValue, {'deal1', 'deal2'});
 
       await notifier.clear();
 
-      expect(container.read(favoritesProvider), isEmpty);
+      expect(container.read(favoritesProvider).requireValue, isEmpty);
     });
 
     test(
       'clear removes all favorites from SharedPreferences and Firestore',
       () async {
-        // 1. Setup
         final mockPrefs = MockSharedPreferences();
         when(
           () => mockPrefs.getStringList(favoritesKey),
@@ -221,26 +207,22 @@ void main() {
 
         container = ProviderContainer(
           overrides: [
-            authProvider.overrideWith((ref) => Stream.value(mockUser)),
+            authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(mockUser)) as AuthProvider),
             firestoreProvider.overrideWithValue(fakeFirestore),
-            sharedPreferencesProvider.overrideWithValue(mockPrefs),
+            sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
           ],
         );
 
-        // Pre-populate firestore and state
         await fakeFirestore.collection('users').doc(mockUser.uid).set({
           'favorites': ['deal1', 'deal2'],
         });
-        final notifier = container.read(favoritesProvider.notifier);
-        await container.read(
-          favoritesProvider.future,
-        ); // Wait for initial build
 
-        // 2. Act
+        await awaitInitialization(container);
+
+        final notifier = container.read(favoritesProvider.notifier);
         await notifier.clear();
 
-        // 3. Assert
-        expect(container.read(favoritesProvider).asData?.value, isEmpty);
+        expect(container.read(favoritesProvider).requireValue, isEmpty);
         verify(() => mockPrefs.remove(favoritesKey)).called(1);
         final doc = await fakeFirestore
             .collection('users')

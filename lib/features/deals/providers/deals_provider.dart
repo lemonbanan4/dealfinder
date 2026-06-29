@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:http/http.dart' as http;
+import 'package:fl_chart/fl_chart.dart';
 
 import '../../../providers/repositories.dart';
 import '../../../services/currency_converter.dart';
@@ -118,3 +119,21 @@ final topDealsProvider = Provider<AsyncValue<List<Deal>>>((ref) {
     );
   });
 });
+
+@riverpod
+Future<List<FlSpot>> priceHistoryProvider(Ref ref, String productId) async {
+  final supabase = ref.watch(supabaseProvider);
+  final response = await supabase
+      .from('price_history')
+      .select('price, recorded_at')
+      .eq('product_id', productId)
+      .order('recorded_at', ascending: true);
+
+  final List<dynamic> list = response as List<dynamic>;
+  return list.map((item) {
+    final price = (item['price'] as num).toDouble();
+    final recordedAt = DateTime.parse(item['recorded_at'] as String);
+    final x = recordedAt.millisecondsSinceEpoch.toDouble();
+    return FlSpot(x, price);
+  }).toList();
+}

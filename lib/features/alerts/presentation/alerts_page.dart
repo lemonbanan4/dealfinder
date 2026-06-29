@@ -5,8 +5,9 @@ import '../../../widgets/app_logo.dart';
 import '../providers/alerts_provider.dart';
 import '../providers/alert_configs_provider.dart';
 import '../domain/alert_config.dart';
-import 'edit_alert_sheet.dart';
+import '../../settings/presentation/currency_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import 'edit_alert_sheet.dart';
 
 class AlertsPage extends ConsumerWidget {
   const AlertsPage({super.key});
@@ -28,8 +29,8 @@ class AlertsPage extends ConsumerWidget {
                 icon: Icon(
                   Icons.mark_email_read_outlined,
                   color: hasUnread
-                      ? const Color(0xFF00B4FF)
-                      : const Color(0xFF5A5A78),
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
                 ),
                 onPressed: hasUnread
                     ? () => ref.read(alertsProvider.notifier).markAllAsRead()
@@ -37,10 +38,12 @@ class AlertsPage extends ConsumerWidget {
               ),
             const SizedBox(width: 8),
           ],
-          bottom: const TabBar(
-            indicatorColor: Color(0xFF00B4FF),
-            labelColor: Color(0xFF00B4FF),
-            unselectedLabelColor: Color(0xFF5A5A78),
+          bottom: TabBar(
+            indicatorColor: Theme.of(context).colorScheme.primary,
+            labelColor: Theme.of(context).colorScheme.primary,
+            unselectedLabelColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant,
             tabs: [
               Tab(text: 'Triggered'),
               Tab(text: 'Active Targets'),
@@ -77,7 +80,7 @@ class _TriggeredAlertsTab extends ConsumerWidget {
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 24),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF4757),
+              color: Theme.of(context).colorScheme.error,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -121,71 +124,47 @@ class _ActiveTargetsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final configsAsync = ref.watch(alertConfigsProvider);
-    final settings = ref.watch(appSettingsProvider);
-    final notifier = ref.read(appSettingsProvider.notifier);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return configsAsync.when(
       data: (configs) {
-        return Column(
-          children: [
-            // ── The Settings Toggle Moved Here ──
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF12131A) : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF252638)),
-                ),
-                child: SwitchListTile(
-                  title: const Text(
-                    'Email Notifications',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  subtitle: const Text(
-                    'Get notified when targets are hit',
-                    style: TextStyle(color: Color(0xFF5A5A78), fontSize: 12),
-                  ),
-                  value: settings.notificationsEnabled,
-                  onChanged: (v) => notifier.toggleNotifications(enabled: v),
-                  activeThumbColor: const Color(0xFF00B4FF),
-                ),
-              ),
-            ),
-
-            // ── The List of Targets ──
-            Expanded(
-              child: configs.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.track_changes_outlined,
-                            size: 64,
-                            color: Color(0xFF5A5A78),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No active targets',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: configs.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        return _ActiveTargetCard(config: configs[index]);
-                      },
+        return configs.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.track_changes_outlined,
+                      size: 64,
+                      color: Color(
+                        0xFF5A5A78,
+                      ), // Kept for specific design choice
                     ),
-            ),
-          ],
-        );
+                    const SizedBox(height: 16),
+                    Text(
+                      'No active targets',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : RefreshIndicator(
+                onRefresh: () async {
+                  // Invalidate the provider to force a refetch
+                  ref.invalidate(alertConfigsProvider);
+                  // Keep showing the indicator until the data is re-fetched
+                  await ref.read(alertConfigsProvider.future);
+                },
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: configs.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    return _ActiveTargetCard(config: configs[index]);
+                  },
+                ),
+              );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => const Center(child: Text('Error loading alerts')),
@@ -199,6 +178,19 @@ class _ActiveTargetCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final currencyConverter = ref.watch(currencyConverterProvider);
+    final targetCurrency = settings.displayCurrency;
+
+    final convertedPrice = currencyConverter.when(
+      data: (rates) => rates != null
+          ? ref
+                .read(currencyConverterProvider.notifier)
+                .convert(config.targetPrice, config.currency, targetCurrency)
+          : config.targetPrice,
+      loading: () => config.targetPrice,
+      error: (_, _) => config.targetPrice,
+    );
     return Dismissible(
       key: ValueKey(config.id),
       direction: DismissDirection.endToStart,
@@ -206,7 +198,7 @@ class _ActiveTargetCard extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
-          color: const Color(0xFFFF4757),
+          color: Theme.of(context).colorScheme.error,
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
@@ -215,10 +207,10 @@ class _ActiveTargetCard extends ConsumerWidget {
         ref.read(alertRepositoryProvider).deleteAlertConfig(config.id);
       },
       child: Material(
-        color: const Color(0xFF12131A),
+        color: Theme.of(context).colorScheme.surfaceContainer,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFF252638)),
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -230,7 +222,7 @@ class _ActiveTargetCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF252638),
+                    color: Color(0xFF252638), // Kept for specific design choice
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -256,11 +248,15 @@ class _ActiveTargetCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Target: ${config.targetPrice.round()} SEK',
+                        'Target: ${convertedPrice.round()} $targetCurrency',
                         style: const TextStyle(
                           color: Color(0xFF00E676),
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
+                          fontFeatures: [
+                            // Use tabular numbers for prices to prevent layout shifts
+                            FontFeature.tabularFigures(),
+                          ],
                         ),
                       ),
                     ],
@@ -290,74 +286,106 @@ class _AlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor = isRead
+        ? theme.colorScheme.outlineVariant
+        : theme.colorScheme.primary.withAlpha(100);
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFF12131A),
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isRead
-              ? const Color(0xFF252638)
-              : const Color(0xFF00B4FF).withAlpha(100),
-          width: 1,
-        ),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isRead
-                    ? const Color(0xFF252638)
-                    : const Color(0xFF00B4FF).withAlpha(30),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.notifications_active_outlined,
-                color: isRead
-                    ? const Color(0xFF8A8AA0)
-                    : const Color(0xFF00B4FF),
-                size: 20,
-              ),
-            ),
+            _AlertIcon(isRead: isRead),
             const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: isRead ? const Color(0xFF8A8AA0) : Colors.white,
-                      fontSize: 14,
-                      fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    message,
-                    style: TextStyle(
-                      color: isRead
-                          ? const Color(0xFF5A5A78)
-                          : const Color(0xFF8A8AA0),
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    time,
-                    style: const TextStyle(
-                      color: Color(0xFF5A5A78),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
+            _AlertContent(
+              title: title,
+              message: message,
+              time: time,
+              isRead: isRead,
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AlertIcon extends StatelessWidget {
+  const _AlertIcon({required this.isRead});
+  final bool isRead;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isRead
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.primary.withAlpha(30),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.notifications_active_outlined,
+        color: isRead ? colorScheme.onSurfaceVariant : colorScheme.primary,
+        size: 20,
+      ),
+    );
+  }
+}
+
+class _AlertContent extends StatelessWidget {
+  const _AlertContent({
+    required this.title,
+    required this.message,
+    required this.time,
+    required this.isRead,
+  });
+
+  final String title;
+  final String message;
+  final String time;
+  final bool isRead;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: isRead
+                  ? colorScheme.onSurfaceVariant
+                  : colorScheme.onSurface,
+              fontSize: 14,
+              fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            time,
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 11),
+          ),
+        ],
       ),
     );
   }
@@ -375,7 +403,7 @@ class _EmptyAlertsState extends StatelessWidget {
           const Icon(
             Icons.notifications_off_outlined,
             size: 64,
-            color: Color(0xFF5A5A78),
+            color: Color(0xFF5A5A78), // Kept for specific design choice
           ),
           const SizedBox(height: 16),
           Text(
@@ -387,7 +415,9 @@ class _EmptyAlertsState extends StatelessWidget {
           const SizedBox(height: 8),
           const Text(
             'You will be notified here when prices drop.',
-            style: TextStyle(color: Color(0xFF8A8AA0)),
+            style: TextStyle(
+              color: Color(0xFF8A8AA0),
+            ), // Kept for specific design choice
           ),
         ],
       ),

@@ -1,786 +1,360 @@
-import 'dart:math' as math;
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../features/deals/domain/deal.dart';
-import '../features/deals/providers/deals_provider.dart';
-import 'liquid_glass_background.dart';
+import '../features/settings/presentation/currency_provider.dart';
+import '../features/settings/providers/settings_provider.dart';
 
-// Import your provider path
-// Import the model we made!
+enum DealCardView { grid, list }
 
-// Design tokens
-const _kPriceGreen = Color(0xFF00E676);
-const _kAccentBlue = Color(0xFF00B4FF);
-const _kDiscountRed = Color(0xFFFF4757);
-const _kMuted = Color(0xFF5A5A78);
-const _kMutedLight = Color(0xFF8A8AA0);
-
-String _formatAmount(double price) {
-  // Use intl for more robust and locale-aware formatting.
-  // The ' ' locale uses spaces as a group separator.
-  final format = NumberFormat.decimalPattern(' ');
-  return format.format(price.round());
-}
-
-class DealCard extends StatelessWidget {
+class DealCard extends ConsumerWidget {
   const DealCard({
     super.key,
     required this.deal,
-    required this.displayPrice,
-    required this.currency,
-    required this.onShare,
+    this.view = DealCardView.list,
+    // These are optional because for horizontal cards, the price is calculated inside
+    this.displayPrice,
+    this.currency,
     this.trailingActions,
-    this.onTap,
+    required this.onTap,
   });
 
   final Deal deal;
-  final double displayPrice;
-  final String currency;
+  final DealCardView view;
+  final double? displayPrice;
+  final String? currency;
   final List<Widget>? trailingActions;
-  final VoidCallback? onTap;
-  final VoidCallback? onShare;
+  final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    final discountPct = _computeDiscount();
-    final vatPrice = _withVat(displayPrice, currency);
-    final vatLabel = _vatLabel(currency);
-    final host = Uri.tryParse(deal.url)?.host ?? '';
-
-    return SizedBox(
-      height: 130, // The height is fixed here.
-      child: LiquidGlassBackground(
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            splashColor: _kAccentBlue.withAlpha(20),
-            highlightColor: _kAccentBlue.withAlpha(10),
-            onTap: onTap,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _ImagePanel(imageUrl: deal.imageUrl, discountPct: discountPct),
-                Expanded(
-                  child: _DetailsPanel(
-                    dealId: deal.id,
-                    title: deal.title,
-                    sourceName: deal.source,
-                    merchantHost: host,
-                    vatPrice: vatPrice,
-                    currency: currency,
-                    vatLabel: vatLabel,
-                  ),
-                ),
-                ...?trailingActions,
-                IconButton(
-                  icon: const Icon(Icons.share_outlined, color: _kMutedLight),
-                  onPressed: onShare,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  int? _computeDiscount() {
-    final orig = deal.originalPrice;
-    if (orig == null || orig <= displayPrice || deal.currency != currency) {
-      return null;
+  String _formatAmount(double price) {
+    final rounded = price.round();
+    final s = rounded.toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+      buf.write(s[i]);
     }
-    final current = displayPrice;
-    final pct = ((orig - current) / orig * 100).round();
-    return pct > 0 ? pct : null;
+    return buf.toString();
   }
-
-  // void _copyLink(BuildContext context) {
-  //   Clipboard.setData(ClipboardData(text: deal.url));
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(
-  //       content: Text('Link copied to clipboard'),
-  //       behavior: SnackBarBehavior.floating,
-  //       duration: Duration(seconds: 2),
-  //     ),
-  //   );
-  // }
-
-  static double _withVat(double price, String currency) {
-    // Awin feeds for SE/NO already include VAT. do not multiply !
-    if (currency == 'SEK' || currency == 'NOK') return price;
-    return price;
-  }
-
-  static String _vatLabel(String currency) => switch (currency) {
-    'NOK' => 'inkl. MVA',
-    'SEK' => 'inkl. moms',
-    _ => '',
-  };
-}
-
-// ─── Image panel (left 110 px) ────────────────────────────────────────────────
-
-class _ImagePanel extends StatelessWidget {
-  const _ImagePanel({required this.imageUrl, this.discountPct});
-  final String? imageUrl;
-  final int? discountPct;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 110,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Deep dark-blue base — matches the glass fill tone.
-          const ColoredBox(color: Color(0xFF060919)),
-          // Faint electric-blue refractive glow behind the product image.
-          Positioned(
-            top: 15,
-            left: 5,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _kAccentBlue.withAlpha(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: _kAccentBlue.withAlpha(55),
-                    blurRadius: 40,
-                    spreadRadius: 10,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          _buildImage(),
-          if (discountPct != null)
-            Positioned(
-              top: 8,
-              left: 8,
-              child: _DiscountBadge(pct: discountPct!),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImage() {
-    final url = imageUrl;
-    if (url == null || url.isEmpty) return const _ImageFallback();
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => const _ImageFallback(),
-    );
-  }
-}
-
-class _ImageFallback extends StatelessWidget {
-  const _ImageFallback();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1A1B2A), Color(0xFF23243A)],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.shopping_bag_outlined,
-          color: Color(0xFF3A3A58),
-          size: 32,
-        ),
-      ),
-    );
-  }
-}
-
-class _DiscountBadge extends StatelessWidget {
-  const _DiscountBadge({required this.pct});
-  final int pct;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: _kDiscountRed,
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: _kDiscountRed.withAlpha(100),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Text(
-        '-$pct%',
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-          fontSize: 11,
-          letterSpacing: -0.2,
-          height: 1,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Details panel (right, flexible) ─────────────────────────────────────────
-
-class _DetailsPanel extends StatelessWidget {
-  const _DetailsPanel({
-    required this.dealId,
-    required this.title,
-    required this.sourceName,
-    required this.merchantHost,
-    required this.vatPrice,
-    required this.currency,
-    required this.vatLabel,
-  });
-
-  final String dealId;
-  final String title;
-  final String sourceName;
-  final String merchantHost;
-  final double vatPrice;
-  final String currency;
-  final String vatLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                _MerchantRow(
-                  sourceName: sourceName,
-                  merchantHost: merchantHost,
-                ),
-              ],
-            ),
-          ),
-          _PriceTrend(dealId: dealId, currency: currency),
-          const SizedBox(height: 4),
-          _PriceRow(vatPrice: vatPrice, currency: currency, vatLabel: vatLabel),
-        ],
-      ),
-    );
-  }
-}
-
-class _MerchantRow extends StatelessWidget {
-  const _MerchantRow({required this.sourceName, required this.merchantHost});
-  final String sourceName;
-  final String merchantHost;
-
-  // Helper method
-  String _formatSourceName(String source) {
-    final lower = source.toLowerCase();
-    if (lower.contains('all_no') || lower.contains('all no')) {
-      return 'Norway Deals 🇳🇴';
-    }
-    if (lower.contains('all_se') || lower.contains('all se')) {
-      return 'Sweden Deals 🇸🇪';
-    }
-    return source; // Fallback
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _favicon(),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            _formatSourceName(sourceName),
-            style: const TextStyle(
-              color: _kMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _favicon() {
-    if (merchantHost.isEmpty) {
-      return const Icon(Icons.store_outlined, size: 14, color: _kMuted);
-    }
-    final url = 'https://www.google.com/s2/favicons?sz=16&domain=$merchantHost';
-    return SizedBox(
-      width: 14,
-      height: 14,
-      child: Image.network(
-        url,
-        width: 14,
-        height: 14,
-        errorBuilder: (_, _, _) =>
-            const Icon(Icons.store_outlined, size: 14, color: _kMuted),
-      ),
-    );
-  }
-}
-
-class _PriceRow extends StatelessWidget {
-  const _PriceRow({
-    required this.vatPrice,
-    required this.currency,
-    required this.vatLabel,
-  });
-  final double vatPrice;
-  final String currency;
-  final String vatLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              _formatAmount(vatPrice),
-              style: const TextStyle(
-                color: _kPriceGreen,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-                height: 1,
-              ),
-            ),
-            const SizedBox(width: 3),
-            Text(
-              currency,
-              style: const TextStyle(
-                color: _kPriceGreen,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        if (vatLabel.isNotEmpty)
-          Text(
-            vatLabel,
-            style: const TextStyle(color: _kMuted, fontSize: 10, height: 1.4),
-          ),
-      ],
-    );
-  }
-}
-
-// ─── 30-day price trend sparkline ─────────────────────────────────────────────
-
-class _PriceTrend extends StatelessWidget {
-  const _PriceTrend({required this.dealId, required this.currency});
-  final String dealId;
-  final String currency;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 25, // Give it a bit more height
-      child: PriceHistoryChart(
-        productId: dealId,
-        currency: currency,
-        simpleView: true,
-      ),
-    );
-  }
-}
-
-class _SparklinePainter extends CustomPainter {
-  const _SparklinePainter({required this.data});
-  final List<double> data;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (data.length < 2) return;
-
-    final min = data.reduce(math.min);
-    final max = data.reduce(math.max);
-    final range = (max - min).clamp(0.001, double.infinity);
-
-    List<Offset> points(double verticalPadding) {
-      return [
-        for (var i = 0; i < data.length; i++)
-          Offset(
-            i / (data.length - 1) * size.width,
-            size.height -
-                verticalPadding -
-                ((data[i] - min) / range) * (size.height - verticalPadding * 2),
-          ),
-      ];
-    }
-
-    final pts = points(1.5);
-
-    final linePath = Path()..moveTo(pts.first.dx, pts.first.dy);
-    for (final p in pts.skip(1)) {
-      linePath.lineTo(p.dx, p.dy);
-    }
-
-    canvas.drawPath(
-      linePath,
-      Paint()
-        ..color = _kMutedLight.withAlpha(160)
-        ..strokeWidth = 1.2
-        ..style = PaintingStyle.stroke
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round,
-    );
-
-    final fillPath = Path()..moveTo(pts.first.dx, pts.first.dy);
-    for (final p in pts.skip(1)) {
-      fillPath.lineTo(p.dx, p.dy);
-    }
-    fillPath
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(
-      fillPath,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [_kMutedLight.withAlpha(30), Colors.transparent],
-        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-        ..style = PaintingStyle.fill,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_SparklinePainter old) => false;
-}
-
-final priceHistoryProvider = FutureProvider.autoDispose
-    .family<List<FlSpot>, String>((ref, productId) async {
-      final supabase = ref.watch(supabaseProvider);
-      try {
-        final response = await supabase
-            .from('price_history')
-            .select('price, recorded_at')
-            .eq('product_id', productId)
-            .order('recorded_at', ascending: true);
-
-        if (response.isEmpty) {
-          return [];
-        }
-
-        final spots = <FlSpot>[];
-        for (var row in response) {
-          final date = DateTime.parse(row['recorded_at']).toLocal();
-          final x = date.millisecondsSinceEpoch.toDouble();
-          final y = (row['price'] as num).toDouble();
-          spots.add(FlSpot(x, y));
-        }
-        return spots;
-      } catch (e) {
-        debugPrint('Error fetching price history: $e');
-        rethrow;
-      }
-    });
-
-class PriceHistoryChart extends ConsumerWidget {
-  final String productId;
-  final String currency;
-  final bool simpleView;
-
-  const PriceHistoryChart({
-    super.key,
-    required this.productId,
-    required this.currency,
-    this.simpleView = false,
-  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final historyAsync = ref.watch(priceHistoryProvider(productId));
+    final isGridView = view == DealCardView.grid;
 
-    return historyAsync.when(
-      loading: () {
-        if (simpleView) {
-          // For simple view, show nothing while loading to avoid layout shifts.
-          return const SizedBox.shrink();
-        }
-        // Use a more sophisticated shimmer effect for the full chart view.
-        return const _ChartShimmer();
-      },
-      error: (err, stack) {
-        if (simpleView) return const SizedBox.shrink();
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    if (isGridView) {
+      return _GridCard(
+        deal: deal,
+        onTap: onTap,
+        displayPrice: displayPrice,
+        currency: currency,
+        trailingActions: trailingActions,
+      );
+    }
+
+    // LIST VIEW
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            // This is for the main list view
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Could not load price history.',
-                style: TextStyle(color: Color(0xFFFF4757), fontSize: 13),
-              ),
-              const SizedBox(height: 8),
-              IconButton(
-                icon: const Icon(Icons.refresh, color: _kMutedLight),
-                tooltip: 'Retry',
-                onPressed: () => ref.refresh(priceHistoryProvider(productId)),
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF252638),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+              // --- Image ---
+              SizedBox(
+                width: 110,
+                height: 110,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: deal.imageUrl != null && deal.imageUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: deal.imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.error),
+                        )
+                      : Container(
+                          color: Theme.of(context).colorScheme.secondary,
+                          child: const Icon(Icons.shopping_bag_outlined),
+                        ),
                 ),
+              ),
+              const SizedBox(width: 12),
+              // --- Details ---
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      deal.title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      deal.source,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const Spacer(),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${_formatAmount(displayPrice ?? 0)} ${currency ?? ''}',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                        ),
+                        if (deal.originalPrice != null &&
+                            (displayPrice ?? 0) < deal.originalPrice!)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8, bottom: 2),
+                            child: Text(
+                              _formatAmount(deal.originalPrice!),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // --- Actions ---
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [...?trailingActions],
               ),
             ],
           ),
-        );
-      },
-      data: (spots) {
-        if (simpleView) {
-          return CustomPaint(
-            painter: _SparklinePainter(data: spots.map((s) => s.y).toList()),
-            size: Size.infinite,
-          );
-        }
-
-        if (spots.length < 2) {
-          return Container(
-            height: 100,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFF12131A),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF252638)),
-            ),
-            child: const Text(
-              'Not enough price history yet.',
-              style: TextStyle(color: Color(0xFF5A5A78), fontSize: 13),
-            ),
-          );
-        }
-
-        // Calculate min/max for chart bounds
-        final yValues = spots.map((s) => s.y).toList();
-        final minP = yValues.reduce(math.min);
-        final maxP = yValues.reduce(math.max);
-        // Add a 10% buffer to the top and bottom of the chart
-        final minPrice = minP - (minP * 0.1);
-        final maxPrice = maxP + (maxP * 0.1);
-
-        return _FullChartView(
-          spots: spots,
-          minPrice: minPrice,
-          maxPrice: maxPrice,
-          currency: currency,
-        );
-      },
-    );
-  }
-}
-
-/// A widget that displays a shimmering placeholder for the price history chart.
-class _ChartShimmer extends StatelessWidget {
-  const _ChartShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: const Color(0xFF1A1B2A),
-      highlightColor: const Color(0xFF272839),
-      child: Container(
-        height: 220,
-        decoration: BoxDecoration(
-          // The color here is important for the shimmer effect to be visible.
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF252638)),
         ),
       ),
     );
   }
 }
 
-class _FullChartView extends StatelessWidget {
-  const _FullChartView({
-    required this.spots,
-    required this.minPrice,
-    required this.maxPrice,
-    required this.currency,
+class _GridCard extends ConsumerWidget {
+  const _GridCard({
+    required this.deal,
+    required this.onTap,
+    this.displayPrice,
+    this.currency,
+    this.trailingActions,
   });
+  final Deal deal;
+  final VoidCallback onTap;
+  final double? displayPrice;
+  final String? currency;
+  final List<Widget>? trailingActions;
 
-  final List<FlSpot> spots;
-  final double minPrice;
-  final double maxPrice;
-  final String currency;
+  String _formatAmount(double price) {
+    final rounded = price.round();
+    final s = rounded.toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+      buf.write(s[i]);
+    }
+    return buf.toString();
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 220,
-      padding: const EdgeInsets.only(right: 20, left: 10, top: 20, bottom: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF12131A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF252638)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF00B4FF).withAlpha(10),
-            blurRadius: 20,
-            spreadRadius: -5,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currencyState = ref.watch(currencyConverterProvider);
+    final pct = deal.discountPercent?.round() ?? 0;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 148,
+        height: 192,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainer,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
           ),
-        ],
-      ),
-      child: LineChart(
-        LineChartData(
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            horizontalInterval: (maxPrice - minPrice) / 4,
-            getDrawingHorizontalLine: (value) {
-              return const FlLine(color: Color(0xFF252638), strokeWidth: 1);
-            },
-          ),
-          titlesData: FlTitlesData(
-            show: true,
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 30,
-                interval: (spots.last.x - spots.first.x) / 3, // Show ~3 dates
-                getTitlesWidget: (value, meta) {
-                  final date = DateTime.fromMillisecondsSinceEpoch(
-                    value.toInt(),
-                  );
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      DateFormat('MMM d').format(date),
-                      style: const TextStyle(
-                        color: Color(0xFF5A5A78),
-                        fontSize: 11,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Image + discount badge ──────────────────────────────────
+            Stack(
+              children: [
+                SizedBox(
+                  height: 100,
+                  width: double.infinity,
+                  child: deal.imageUrl != null && deal.imageUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: deal.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, err) => ColoredBox(
+                            color: Theme.of(context).colorScheme.surface,
+                            child: Center(
+                              child: Icon(
+                                Icons.shopping_bag_outlined,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                        )
+                      : ColoredBox(
+                          color: Theme.of(context).colorScheme.surface,
+                          child: Center(
+                            child: Icon(
+                              Icons.shopping_bag_outlined,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                ),
+                if (pct > 0)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '-$pct%',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+              ],
             ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 45,
-                getTitlesWidget: (value, meta) {
-                  return Text(
-                    value.toInt().toString(),
-                    style: const TextStyle(
-                      color: Color(0xFF5A5A78),
-                      fontSize: 11,
+            // ── Details ─────────────────────────────────────────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      deal.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          minX: spots.first.x,
-          maxX: spots.last.x,
-          minY: minPrice,
-          maxY: maxPrice,
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              color: const Color(0xFF00B4FF),
-              barWidth: 3,
-              isStrokeCapRound: true,
-              dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF00B4FF).withAlpha(80),
-                    const Color(0xFF00B4FF).withAlpha(0),
+                    const Spacer(),
+                    _PriceDisplay(
+                      currencyState: currencyState,
+                      displayPrice: displayPrice ?? deal.currentPrice,
+                      targetCurrency: currency ?? deal.currency,
+                      displayOriginalPrice: deal.originalPrice,
+                      formatAmount: _formatAmount,
+                    ),
                   ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
                 ),
               ),
             ),
           ],
-          lineTouchData: LineTouchData(
-            touchTooltipData: LineTouchTooltipData(
-              // Tooltip styling
-              getTooltipItems: (touchedSpots) {
-                return touchedSpots.map((spot) {
-                  final date = DateTime.fromMillisecondsSinceEpoch(
-                    spot.x.toInt(),
-                  );
-                  return LineTooltipItem(
-                    '${spot.y.toInt()} $currency\n',
-                    const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    children: [
-                      TextSpan(
-                        text: DateFormat('MMM d, yyyy').format(date),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          fontWeight: FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList();
-              },
+        ),
+      ),
+    );
+  }
+}
+
+class _PriceDisplay extends StatelessWidget {
+  const _PriceDisplay({
+    required this.currencyState,
+    required this.displayPrice,
+    required this.targetCurrency,
+    this.displayOriginalPrice,
+    required this.formatAmount,
+  });
+
+  final AsyncValue<ExchangeRates?> currencyState;
+  final double displayPrice;
+  final String targetCurrency;
+  final double? displayOriginalPrice;
+  final String Function(double) formatAmount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return currencyState.when(
+      data: (_) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${formatAmount(displayPrice)} $targetCurrency',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: const Color(0xFF00E676), // Kept for specific design choice
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
             ),
+          ),
+          if (displayOriginalPrice != null) ...[
+            const SizedBox(height: 1),
+            Text(
+              '${formatAmount(displayOriginalPrice!)} $targetCurrency',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.7,
+                ),
+                decoration: TextDecoration.lineThrough,
+                decorationColor: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.7,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      loading: () => Shimmer.fromColors(
+        baseColor: theme.colorScheme.surfaceContainerHighest,
+        highlightColor: theme.colorScheme.surfaceBright,
+        child: Container(
+          height: 13,
+          width: 70,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
           ),
         ),
       ),
+      error: (_, _) => const Text('N/A'),
     );
   }
 }

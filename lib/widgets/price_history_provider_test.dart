@@ -1,85 +1,100 @@
-import 'package:dealfinder_app/features/deals/providers/deals_provider.dart';
-import 'package:dealfinder_app/widgets/deal_card.dart';
+import 'dart:async';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:dealfinder_pro/features/deals/providers/deals_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// 1. Create Mocks for Supabase dependencies
+// Mocks for Supabase dependencies
 class MockSupabaseClient extends Mock implements SupabaseClient {}
 
-class MockPostgrestClient extends Mock implements PostgrestClient {}
+class MockSupabaseQueryBuilder extends Mock implements SupabaseQueryBuilder {}
 
-class MockPostgrestQueryBuilder extends Mock
-    implements PostgrestQueryBuilder<Map<String, dynamic>> {}
+class FakePostgrestFilterBuilder extends Fake
+    implements PostgrestFilterBuilder<PostgrestList> {
+  FakePostgrestFilterBuilder(this._future);
+  final Future<PostgrestList> _future;
+
+  @override
+  PostgrestFilterBuilder<PostgrestList> eq(String column, Object? value) => this;
+
+  @override
+  PostgrestFilterBuilder<PostgrestList> order(
+    String column, {
+    bool ascending = false,
+    bool nullsFirst = false,
+    String? referencedTable,
+  }) =>
+      this;
+
+  @override
+  Future<R> then<R>(
+    FutureOr<R> Function(PostgrestList value) onValue, {
+    Function? onError,
+  }) {
+    return _future.then(onValue, onError: onError);
+  }
+}
 
 void main() {
   group('priceHistoryProvider', () {
     late ProviderContainer container;
     late MockSupabaseClient mockSupabaseClient;
-    late MockPostgrestClient mockPostgrestClient;
-    late MockPostgrestQueryBuilder mockQueryBuilder;
+    late MockSupabaseQueryBuilder mockQueryBuilder;
 
     setUp(() {
-      // 2. Initialize mocks before each test
       mockSupabaseClient = MockSupabaseClient();
-      mockPostgrestClient = MockPostgrestClient();
-      mockQueryBuilder = MockPostgrestQueryBuilder();
-
-      // 3. Stub the Supabase call chain
-      when(
-        () => mockSupabaseClient.from(any()),
-      ).thenReturn(mockPostgrestClient);
-      when(
-        () => mockPostgrestClient.select(any()),
-      ).thenReturn(mockQueryBuilder);
-      when(
-        () => mockQueryBuilder.eq(any(), any()),
-      ).thenReturn(mockQueryBuilder);
-      when(
-        () => mockQueryBuilder.order(any(), ascending: any(named: 'ascending')),
-      ).thenReturn(mockQueryBuilder);
-
-      // 4. Create a ProviderContainer and override the supabaseProvider
-      container = ProviderContainer(
-        overrides: [supabaseProvider.overrideWithValue(mockSupabaseClient)],
-      );
+      mockQueryBuilder = MockSupabaseQueryBuilder();
     });
 
     tearDown(() {
-      container.dispose();
+      try {
+        container.dispose();
+      } catch (_) {}
     });
 
-    test('returns a list of FlSpot on success', () async {
-      // Arrange: Define the mock response from Supabase
+    test('priceHistoryProvider returns a list of FlSpot on success', () async {
       final mockResponse = [
         {'price': 100.0, 'recorded_at': '2023-01-01T12:00:00Z'},
         {'price': 120.0, 'recorded_at': '2023-01-02T12:00:00Z'},
       ];
-      when(
-        () => mockQueryBuilder.then(any()),
-      ).thenAnswer((_) async => mockResponse);
-
-      // Act: Read the provider. The `future` will complete when the provider is done.
-      final result = await container.read(
-        priceHistoryProvider('product-1').future,
+      final fakeFilterBuilder = FakePostgrestFilterBuilder(
+        Future.value(PostgrestList.from(mockResponse)),
       );
 
-      // Assert: Check if the result is what we expect
+      when(() => mockSupabaseClient.from(any())).thenReturn(mockQueryBuilder);
+      when(() => mockQueryBuilder.select(any())).thenAnswer((_) => fakeFilterBuilder);
+
+      container = ProviderContainer(
+        overrides: [supabaseProvider.overrideWithValue(mockSupabaseClient)],
+      );
+
+      final result = await container.read(
+        priceHistoryProviderProvider('product-1').future,
+      );
+
       expect(result, isA<List<FlSpot>>());
       expect(result.length, 2);
       expect(result.first.y, 100.0);
       expect(result.last.y, 120.0);
     });
 
-    test('throws an exception on Supabase error', () async {
-      // Arrange: Make the Supabase call throw an error
+    test('priceHistoryProvider throws an exception on Supabase error', () async {
       final exception = Exception('Network error');
-      when(() => mockQueryBuilder.then(any())).thenThrow(exception);
+      final fakeFilterBuilder = FakePostgrestFilterBuilder(
+        Future.value([]).then<PostgrestList>((_) => throw exception),
+      );
 
-      // Act & Assert: Expect the provider's future to result in an error
+      when(() => mockSupabaseClient.from(any())).thenReturn(mockQueryBuilder);
+      when(() => mockQueryBuilder.select(any())).thenAnswer((_) => fakeFilterBuilder);
+
+      container = ProviderContainer(
+        overrides: [supabaseProvider.overrideWithValue(mockSupabaseClient)],
+      );
+
       expect(
-        container.read(priceHistoryProvider('product-1').future),
+        container.read(priceHistoryProviderProvider('product-1').future),
         throwsA(isA<Exception>()),
       );
     });

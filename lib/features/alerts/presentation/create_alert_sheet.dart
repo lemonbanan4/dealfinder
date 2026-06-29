@@ -65,6 +65,7 @@ class _CreateAlertSheetState extends ConsumerState<CreateAlertSheet> {
         productId: widget.deal.id,
         productTitle: widget.deal.title,
         targetPrice: targetPrice,
+        currency: widget.deal.currency,
         createdAt: DateTime.now(),
       );
       await ref.read(alertRepositoryProvider).saveAlertConfig(config);

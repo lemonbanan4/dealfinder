@@ -3,6 +3,7 @@ class AlertConfig {
   final String productId;
   final String productTitle;
   final double targetPrice;
+  final String currency;
   final DateTime createdAt;
 
   const AlertConfig({
@@ -10,6 +11,7 @@ class AlertConfig {
     required this.productId,
     required this.productTitle,
     required this.targetPrice,
+    this.currency = 'SEK',
     required this.createdAt,
   });
 
@@ -19,6 +21,7 @@ class AlertConfig {
       'productId': productId,
       'productTitle': productTitle,
       'targetPrice': targetPrice,
+      'currency': currency,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -29,6 +32,7 @@ class AlertConfig {
       productId: map['productId'] as String,
       productTitle: map['productTitle'] as String,
       targetPrice: (map['targetPrice'] as num).toDouble(),
+      currency: map['currency'] as String? ?? 'SEK',
       createdAt: DateTime.parse(map['createdAt'] as String),
     );
   }

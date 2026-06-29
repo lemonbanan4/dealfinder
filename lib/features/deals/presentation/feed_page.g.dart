@@ -91,7 +91,7 @@ final class RegionProvider extends $NotifierProvider<Region, String> {
   }
 }
 
-String _$regionHash() => r'397389897bef42dcb237dc3a1f6e9b6f65a0366e';
+String _$regionHash() => r'fcce81a0ff582c3d50cb4d79dcf4345909d1c772';
 
 abstract class _$Region extends $Notifier<String> {
   String build();
@@ -239,7 +239,7 @@ final class FavoritesNotifierProvider
   FavoritesNotifier create() => FavoritesNotifier();
 }
 
-String _$favoritesNotifierHash() => r'ab4a7aa70c2ba6faea1cf0c2b412880bd4641808';
+String _$favoritesNotifierHash() => r'27cf9a66299633e8cb94467d7a15a00882474b11';
 
 abstract class _$FavoritesNotifier extends $AsyncNotifier<Set<String>> {
   FutureOr<Set<String>> build();
@@ -258,3 +258,44 @@ abstract class _$FavoritesNotifier extends $AsyncNotifier<Set<String>> {
     return element.handleCreate(ref, build);
   }
 }
+
+@ProviderFor(filteredDeals)
+final filteredDealsProvider = FilteredDealsProvider._();
+
+final class FilteredDealsProvider
+    extends $FunctionalProvider<List<Deal>, List<Deal>, List<Deal>>
+    with $Provider<List<Deal>> {
+  FilteredDealsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'filteredDealsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$filteredDealsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<Deal>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  List<Deal> create(Ref ref) {
+    return filteredDeals(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<Deal> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<Deal>>(value),
+    );
+  }
+}
+
+String _$filteredDealsHash() => r'88964e8ecdcda5b62cc2f7092f24fdf850bfb4b4';

@@ -53,6 +53,7 @@ class _EditAlertSheetState extends ConsumerState<EditAlertSheet> {
         productId: widget.config.productId,
         productTitle: widget.config.productTitle,
         targetPrice: targetPrice,
+        currency: widget.config.currency,
         createdAt: widget.config.createdAt, // Retain original creation date
       );
 

@@ -1,4 +1,4 @@
-import 'package:dealfinder_app/features/auth/presentation/login_page.dart';
+import 'package:dealfinder_pro/features/auth/presentation/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +8,10 @@ import 'package:mocktail/mocktail.dart';
 // Mocks for Firebase Auth
 class MockGlobalKey extends Mock implements GlobalKey<FormState> {}
 
-class MockFormState extends Mock implements FormState {}
+class MockFormState extends Mock implements FormState {
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) => super.toString();
+}
 
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
@@ -38,7 +41,7 @@ void main() {
     container = ProviderContainer(
       overrides: [
         // Override the loginProvider to use the mock FirebaseAuth instance.
-        loginProvider.overrideWith((ref) => LoginNotifier(ref, mockAuth)),
+        loginProvider.overrideWith(() => LoginNotifier(mockAuth)),
       ],
     );
 
