@@ -69,11 +69,9 @@ class _DealSliverContent extends ConsumerWidget {
       const spacing = 10.0;
       final availableWidth = screenWidth - (horizontalPadding * 2);
       final crossAxisCount =
-          (availableWidth + spacing) ~/ (cardWidth + spacing);
-      if (crossAxisCount > 0) {
-        final rowCount = (deals.length / crossAxisCount).ceil();
-        containerHeight = rowCount * cardHeight + (rowCount - 1) * spacing + 20;
-      }
+          ((availableWidth + spacing) ~/ (cardWidth + spacing)).clamp(1, 10);
+      final rowCount = (deals.length / crossAxisCount).ceil();
+      containerHeight = rowCount * cardHeight + (rowCount - 1) * spacing + 20;
     }
 
     return SizedBox(
@@ -117,8 +115,8 @@ class _DealGridView extends ConsumerWidget {
         const double spacing = 10.0;
 
         final crossAxisCount =
-            (constraints.maxWidth - horizontalPadding * 2 + spacing) ~/
-            (cardWidth + spacing);
+            ((constraints.maxWidth - horizontalPadding * 2 + spacing) ~/
+            (cardWidth + spacing)).clamp(1, 10);
 
         return GridView.builder(
           physics: const NeverScrollableScrollPhysics(),

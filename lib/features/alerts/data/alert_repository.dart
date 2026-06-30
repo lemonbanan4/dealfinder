@@ -27,13 +27,18 @@ class AlertRepository {
   Stream<List<AlertConfig>> watchAlertConfigs() {
     final ref = _configsRef;
     if (ref == null) return Stream.value([]);
-    return ref.orderBy('createdAt', descending: true).snapshots().map((
-      snapshot,
-    ) {
-      return snapshot.docs
-          .map((doc) => AlertConfig.fromMap(doc.data()))
-          .toList();
-    });
+    return ref
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => AlertConfig.fromMap(doc.data()))
+              .toList();
+        })
+        .handleError((error) {
+          // Fallback to empty list on error
+          return <AlertConfig>[];
+        });
   }
 
   Future<void> deleteAlertConfig(String id) async {
