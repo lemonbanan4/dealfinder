@@ -1,7 +1,7 @@
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 # Get connection string from environment
@@ -33,6 +33,8 @@ def read_root():
 
 @app.get("/api/products")
 def get_products(region: str = Query(None, description="Region to filter")):
+    conn = None
+    cursor = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -59,11 +61,14 @@ def get_products(region: str = Query(None, description="Region to filter")):
         """
         cursor.execute(query, params)
         rows = cursor.fetchall()
-        cursor.close()
-        conn.close()
         return rows
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 if __name__ == "__main__":
