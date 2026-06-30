@@ -1,5 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../alerts/domain/alert_config.dart';
+import '../../alerts/providers/alert_configs_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 
 part 'price_alert_provider.g.dart';
@@ -37,7 +40,20 @@ class PriceAlertNotifier extends _$PriceAlertNotifier {
     };
 
     try {
+      // 1. Save to Supabase (used by scraper backend)
       await supabase.from('price_alerts').insert(alertData);
+
+      // 2. Save to Firestore (used by AlertsPage front-end)
+      final config = AlertConfig(
+        id: productId, // Use product ID as document ID for simple 1-to-1 alert configs
+        productId: productId,
+        productTitle: productTitle,
+        targetPrice: targetPrice,
+        currency: 'SEK',
+        createdAt: DateTime.now(),
+      );
+      await ref.read(alertRepositoryProvider).saveAlertConfig(config);
+
       return true;
     } catch (e) {
       // Log the error for debugging.

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/alert_config.dart';
 
@@ -43,5 +44,19 @@ class AlertRepository {
 
   Future<void> deleteAlertConfig(String id) async {
     await _configsRef?.doc(id).delete();
+
+    // Also delete from Supabase if user is signed in
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        await Supabase.instance.client
+            .from('price_alerts')
+            .delete()
+            .eq('product_id', id)
+            .eq('user_id', user.uid);
+      } catch (e) {
+        print('Failed to delete alert from Supabase: $e');
+      }
+    }
   }
 }

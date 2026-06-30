@@ -36,16 +36,40 @@ class DealFeedNotifier extends _$DealFeedNotifier {
         Uri.parse(
           'https://dealfinder-swr5.onrender.com/api/products?region=$region&t=$timestamp',
         ),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => Deal.fromJson(json)).toList();
+        final deals = data.map((json) => Deal.fromJson(json)).toList();
+        // Save to local cache
+        try {
+          await ref.read(dealRepositoryProvider).saveAll(deals);
+        } catch (e) {
+          log('Failed to save deals to Hive cache: $e');
+        }
+        return deals;
       } else {
         throw Exception('Failed to load deals: ${response.statusCode}');
       }
     } catch (e, s) {
-      // Re-throw so build() or refresh() can decide how to handle the error.
+      log('Failed to fetch deals from API, attempting local cache fallback...', error: e, stackTrace: s);
+      try {
+        final cached = ref.read(dealRepositoryProvider).getAll();
+        if (cached.isNotEmpty) {
+          // Filter cached deals by region matching 'all_se', 'all_no', or region code
+          final regionCode = region.toLowerCase();
+          final filtered = cached.where((d) {
+            final src = d.source.toLowerCase();
+            return src == regionCode || src == 'all_$regionCode';
+          }).toList();
+          if (filtered.isNotEmpty) {
+            return filtered;
+          }
+        }
+      } catch (cacheError) {
+        log('Failed to read from local Hive cache: $cacheError');
+      }
+      // Re-throw the original error if fallback also has no data or fails
       Error.throwWithStackTrace(e, s);
     }
   }
