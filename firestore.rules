@@ -53,10 +53,9 @@ service cloud.firestore {
       allow create, update: if isOwner(userId) && isEmailVerified() && isValidUserDoc();
       allow delete: if isOwner(userId);
 
-      // Price-alert configs — created/deleted by the owner, never patched
+      // Price-alert configs — created, updated, or deleted by the owner
       match /alert_configs/{configId} {
-        allow read, create, delete: if isOwner(userId) && isEmailVerified();
-        allow update: if false;
+        allow read, create, update, delete: if isOwner(userId) && isEmailVerified();
       }
     }
   }

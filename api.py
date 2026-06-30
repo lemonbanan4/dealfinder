@@ -11,9 +11,15 @@ app = FastAPI(title="Prispuls Product Engine")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://prispuls.com"], # Use ["https://prispuls.com"] for final production
+    allow_origins=[
+        "https://prispuls.com",
+        "https://www.prispuls.com",
+        "https://dealfinderpro-bc5be.web.app",
+        "https://dealfinderpro-bc5be.firebaseapp.com",
+    ],
+    allow_origin_regex=r"https?://localhost(:\d+)?|https?://127\.0\.0\.1(:\d+)?",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
