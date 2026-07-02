@@ -1,4 +1,5 @@
 """
+DealFinder FastAPI Scraper Service
 DealFinder backend scraper
 ==========================
 Fetches deals from Awin product feeds (Acer SE/NO) and HTML pages (Earfun),
@@ -7,20 +8,14 @@ FirestoreDealRepository in the Flutter app.
 
 Usage
 -----
-    python scraper.py
+Run locally with:
+    uvicorn scraper:app --reload
 
-Environment variables
----------------------
-    GOOGLE_APPLICATION_CREDENTIALS  Path to a service-account JSON key.
-                                    Omit when running on GCP (Cloud Run,
-                                    Cloud Functions) — ADC is used automatically.
-    SCRAPER_MIN_DISCOUNT_PCT        Minimum discount % to include a product
-                                    (default: 0 — all discounted products).
+The service exposes two endpoints:
+  - GET /: A simple health check endpoint.
+  - POST /run-scraper: Triggers the full scraping and database write process.
 
-Cron / Cloud Scheduler example
--------------------------------
-    # Every hour at :00
-    0 * * * * cd /path/to/scraper && python scraper.py >> /var/log/scraper.log 2>&1
+This service is designed to be deployed on Cloud Run and triggered by Cloud Scheduler.
 """
 
 import hashlib
@@ -28,6 +23,7 @@ import io
 import logging
 import os
 import re
+import asyncio
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dataclasses import dataclass, field
@@ -39,12 +35,17 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from supabase import create_client, Client
 
+from google.cloud import secretmanager
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+
+# --- FastAPI App Initialization ---
+app = FastAPI()
 
 # Try to load .env for local development
 load_dotenv()
@@ -363,12 +364,27 @@ def _discount_pct(original: float, current: float) -> float:
     return (original - current) / original * 100.0
 
 
+def access_secret_version(project_id: str, secret_id: str, version_id: str = "latest") -> str:
+    """
+    Access the payload for the given secret version and return it.
+    """
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+    response = client.access_secret_version(request={"name": name})
+    return response.payload.data.decode("UTF-8")
+
+
 # --- Email Alerting Logic --------------------------------------------------------
 # --- Sending emails logic
 SENDER_EMAIL = "contact@orbitroutine.com"
-SENDER_PASSWORD = "ggtp txgh lxcw koka" 
+# The password is now fetched from Secret Manager inside check_and_fire_price_alerts
+# SENDER_PASSWORD = "ggtp txgh lxcw koka" # REMOVED!
 
-def send_alert_email(server, to_email, title, url, price, target):
+def send_alert_email(
+    server: smtplib.SMTP,
+    to_email: str,
+    title: str, url: str, price: float, target: float
+):
     msg = MIMEMultipart()
     msg['From'] = SENDER_EMAIL
     msg['To'] = to_email
@@ -383,16 +399,14 @@ def send_alert_email(server, to_email, title, url, price, target):
     
     msg.attach(MIMEText(html_body, 'html'))
 
-    # Connect to Gmail's server and send
+    # Use the provided server connection to send the email
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.send_message(msg)
-        server.quit()
+        log.info("Successfully sent price alert email to %s", to_email)
         return True
     except Exception as e:
-        print(f"Failed to send email to {to_email}: {e}")
+        # Use logger instead of print for consistency
+        log.error("Failed to send email to %s: %s", to_email, e)
         return False
 
 import smtplib
@@ -403,47 +417,59 @@ def check_and_fire_price_alerts(supabase):
     
     alerts_response = supabase.table('price_alerts').select('*').eq('is_active', True).execute()
     
-    # Explicitly type-hint so your linter stops complaining about ['']
     active_alerts: List[Dict[str, Any]] = alerts_response.data or []
 
     if not active_alerts:
-        print("No active alerts to check.")
+        log.info("No active alerts to check.")
         return
     
-    # Optimization: Fetch all product prices in one go
+    # Fetch all product details in one query using the proper 'product_id' column name
     product_ids = {str(alert['product_id']) for alert in active_alerts}
-    products_response = supabase.table('products').select('id, currentPrice').in_('id', list(product_ids)).execute()
+    products_response = supabase.table('products').select('product_id, price, title, tracking_url').in_('product_id', list(product_ids)).execute()
     
     products_data: List[Dict[str, Any]] = products_response.data or []
     
     if not products_data:
-        print("Could not fetch current prices for alerted products.")
+        print("Could not fetch current prices/details for alerted products.")
         return
 
-    price_map = {str(p['id']): float(p['currentPrice']) for p in products_data}
+    product_map = {str(p['product_id']): p for p in products_data}
     alerts_to_deactivate = []
     
-    # Optimization: Use a single SMTP connection for all emails
     try:
+        # Fetch the password from Google Secret Manager
+        log.info("Fetching Gmail app password from Secret Manager...")
+        secret_payload = access_secret_version(
+            project_id="dealfinderpro-bc5be", secret_id="Scraper"
+        )
+        
+        sender_password = secret_payload.strip()
+        if sender_password.startswith("SENDER_PASSWORD="):
+            sender_password = sender_password[len("SENDER_PASSWORD="):].strip()
+        if sender_password.startswith('"') and sender_password.endswith('"'):
+            sender_password = sender_password[1:-1]
+        elif sender_password.startswith("'") and sender_password.endswith("'"):
+            sender_password = sender_password[1:-1]
+
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.login(SENDER_EMAIL, sender_password)
 
         for alert in active_alerts:
-            current_price = price_map.get(str(alert['product_id']))
-            if current_price is None:
+            product = product_map.get(str(alert['product_id']))
+            if product is None:
                 continue
 
+            current_price = float(product['price'])
             if current_price <= float(alert['target_price']):
                 print(f"HIT! {alert['product_title']} dropped to {current_price} for {alert['user_email']}")
                 
                 # Fire the email using the existing server connection
-                # MAKE SURE send_alert_email ACCEPTS 'server' AS A PARAMETER!
                 success = send_alert_email(
                     server=server, 
                     to_email=str(alert['user_email']),
-                    title=str(alert['product_title']),
-                    url=str(alert['product_url']),
+                    title=str(product['title']),
+                    url=str(product['tracking_url']),
                     price=current_price,
                     target=float(alert['target_price'])
                 )
@@ -459,7 +485,6 @@ def check_and_fire_price_alerts(supabase):
             print(f"Successfully deactivated {len(alerts_to_deactivate)} alerts.")
 
     except Exception as e:
-        # This except block fixes the SyntaxError!
         print(f"Failed to process SMTP connections or emails: {e}")
 
     return
@@ -725,8 +750,8 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
 
 # ── Firestore writer ──────────────────────────────────────────────────────────────
 
-# 1. Update the signature to accept the store ID
 def write_deals(deals: list[dict], store_id: str) -> int:
+    from psycopg2.extras import execute_values
     conn = get_db_connection()
     cur = conn.cursor()
     
@@ -735,7 +760,7 @@ def write_deals(deals: list[dict], store_id: str) -> int:
         product_id, feed_region, title, brand, price, 
         retail_price, tracking_url, image_url, description,
         stock_status, ean_code
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    ) VALUES %s
     ON CONFLICT (product_id) 
     DO UPDATE SET 
         price = EXCLUDED.price,
@@ -750,13 +775,13 @@ def write_deals(deals: list[dict], store_id: str) -> int:
 
     price_history_query = """
     INSERT INTO price_history (product_id, price)
-    VALUES (%s, %s);
+    VALUES %s ON CONFLICT DO NOTHING;
     """
     
-    for deal in deals:
-        cur.execute(upsert_query, (
+    product_values = [
+        (
             deal["id"],
-            store_id,  # Use the dynamic store ID passed here
+            store_id,
             deal["title"], 
             deal.get("brand", "unknown"),
             deal["currentPrice"],
@@ -764,19 +789,29 @@ def write_deals(deals: list[dict], store_id: str) -> int:
             deal["url"], 
             deal["imageUrl"],
             deal.get("description", ""),
-            "In Stock", # Assuming stock if it's in the feed
+            "In Stock",
             str(deal.get("ean")) if deal.get("ean") else None
-        ))
-
-        # Insert into price_history table
-        cur.execute(price_history_query, (
-            deal["id"],
-            deal["currentPrice"]
-        ))
+        )
+        for deal in deals
+    ]
     
-    conn.commit()
-    cur.close()
-    conn.close()
+    history_values = [
+        (deal["id"], deal["currentPrice"])
+        for deal in deals
+    ]
+
+    try:
+        execute_values(cur, upsert_query, product_values)
+        execute_values(cur, price_history_query, history_values)
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        log.error("Failed to execute batch insert: %s", e)
+        raise e
+    finally:
+        cur.close()
+        conn.close()
+
     return len(deals)
 
 # ── Per-store dispatch ────────────────────────────────────────────────────────────
@@ -792,29 +827,11 @@ def scrape_store(store: StoreConfig) -> list[dict]:
 
 # ── Entry point ───────────────────────────────────────────────────────────────────
 
-def main() -> None:
-    # Initialize Supabase client
-    url: str = os.environ.get("SUPABASE_URL") or ""
-    key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or ""
-    supabase: Client = create_client(url, key)
-
-    ## fail loudly if variables are missing
-    if not url or not key:
+def run_scraper_process():
+    if not supabase_url or not supabase_key:
         raise ValueError("Missing Supabase environment variables.")
     
-    supabase: Client = create_client(url, key)
-
-    # # ── Firebase Admin SDK init ───────────────────────────────────────────────────
-    # cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    # if cred_path:
-    #     cred = credentials.Certificate(cred_path)
-    #     firebase_admin.initialize_app(cred)
-    #     log.info("Firebase initialised with service account: %s", cred_path)
-    # else:
-    #     firebase_admin.initialize_app()
-    #     log.info("Firebase initialised using Application Default Credentials.")
-
-    # db = firestore.client()
+    supabase: Client = create_client(supabase_url, supabase_key)
 
     # ── Scrape and Write Store by Store ──────────────────────────────────────────
     for store in STORES:
@@ -822,7 +839,7 @@ def main() -> None:
             deals = scrape_store(store)
             if deals:
                 log.info("[%s] Writing %d deals to Supabase...", store.name, len(deals))
-                written = write_deals(deals, store.id) # Pass the store ID here
+                written = write_deals(deals, store.id)
                 log.info("[%s] Successfully wrote %d deals.", store.name, written)
         except Exception as exc:
             log.exception("[%s] Unexpected error — store skipped: %s", store.name, exc)
@@ -833,5 +850,28 @@ def main() -> None:
     check_and_fire_price_alerts(supabase)
 
 
+# --- API Endpoints ---------------------------------------------------------------
+
+@app.get("/")
+def health_check():
+    """A simple health check endpoint to confirm the service is running."""
+    return {"status": "ok", "message": "Scraper API is running."}
+
+
+@app.post("/run-scraper")
+async def trigger_scraper(background_tasks: BackgroundTasks):
+    """
+    Triggers the scraping process in the background.
+    This endpoint returns immediately with a confirmation message.
+    """
+    log.info("Received request to /run-scraper. Starting job in background.")
+    background_tasks.add_task(run_scraper_process)
+    return {"message": "Scraper job started in the background."}
+
+
+# This block allows running the script directly for legacy/testing purposes,
+# but it's not used when running with a web server like Uvicorn.
 if __name__ == "__main__":
-    main()
+    log.info("Running scraper directly as a script.")
+    run_scraper_process()
+    log.info("Script finished.")
