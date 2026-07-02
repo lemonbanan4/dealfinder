@@ -5,18 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dealfinder_pro/features/deals/data/favorites_repository.dart';
 
 import '../../deals/presentation/auth_repository.dart';
-import '../domain/user.dart';
+import '../../deals/presentation/user.dart';
 
 class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
-  AuthNotifier(this._authRepository) : super(const AsyncLoading()) {
-    _authStateChangesSubscription = _authRepository.authStateChanges().listen((
-      user,
-    ) {
-      state = AsyncData(user);
-    });
+  AuthNotifier(this._authRepository, this._ref) : super(const AsyncLoading()) {
+    _authStateChangesSubscription = _authRepository.authStateChanges().listen(
+      (user) {
+        state = AsyncData(user);
+      },
+    );
   }
 
   final AuthRepository _authRepository;
+  // Fix: store ref so signOut can invalidate providers
+  final Ref _ref;
   late final StreamSubscription<User?> _authStateChangesSubscription;
 
   Future<void> _runAuthMethod(Future<void> Function() method) async {
@@ -25,7 +27,6 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       await method();
       // The stream listener will automatically set the AsyncData state on success.
     } on fb.FirebaseAuthException catch (e) {
-      // Provide more specific error messages
       String message;
       if (e.code == 'weak-password') {
         message = 'The password provided is too weak.';
@@ -57,22 +58,25 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
   Future<void> signInWithGoogle() async =>
       _runAuthMethod(_authRepository.signInWithGoogle);
 
-  /// Sends a password reset email. This is a one-off action and does not
-  /// change the global auth state, so it returns a Future that the UI can await.
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _authRepository.sendPasswordResetEmail(email);
     } on fb.FirebaseAuthException catch (e) {
-      // Re-throw a more user-friendly message.
       throw 'Could not send reset email: ${e.message}';
     }
   }
 
   Future<void> signOut() async {
-    // Clear local favorites before signing out
-    await ref.read(favoritesRepositoryProvider).clearLocalFavorites();
+    // Clear local favorites before signing out so they don't leak to next user
+    await _ref.read(favoritesRepositoryProvider).clearLocalFavorites();
     await _authRepository.signOut();
-    ref.invalidate(favoritesNotifierProvider);
+    _ref.invalidate(favoritesNotifierProvider);
+  }
+
+  Future<void> deleteAccount() async {
+    await _runAuthMethod(() async {
+      await fb.FirebaseAuth.instance.currentUser?.delete();
+    });
   }
 
   @override
@@ -85,5 +89,6 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
 final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((
   ref,
 ) {
-  return AuthNotifier(ref.watch(authRepositoryProvider));
+  // Pass ref into notifier so it can read/invalidate other providers
+  return AuthNotifier(ref.watch(authRepositoryProvider), ref);
 });

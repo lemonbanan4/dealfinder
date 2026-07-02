@@ -1,8 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dealfinder_pro/features/auth/domain/user.dart';
+1import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dealfinder_pro/features/deals/presentation/user.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
 
 part 'favorites_repository.g.dart';
 
@@ -19,7 +22,7 @@ class FavoritesRepository {
   FavoritesRepository(this._firestore, this._ref);
 
   final FirebaseFirestore _firestore;
-  final ProviderRef _ref;
+  final Ref _ref;
 
   DocumentReference<Map<String, dynamic>>? _userFavoritesDoc(User? user) {
     if (user == null) return null;
@@ -101,6 +104,6 @@ class FavoritesRepository {
 
 /// A simple provider to expose the user object from the authProvider
 @riverpod
-User? authedUser(AuthedUserRef ref) {
+User? authedUser(Ref ref) {
   return ref.watch(authProvider).value;
 }

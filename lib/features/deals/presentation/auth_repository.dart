@@ -1,26 +1,22 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
-import '../domain/user.dart';
+import '../presentation/user.dart';
 
 /// An authentication repository that interacts with Firebase Authentication.
+///
+/// Note: Google Sign-In is handled via Firebase's built-in popup/redirect flow
+/// on web. For native iOS/Android add google_sign_in to pubspec.yaml and
+/// uncomment the GoogleSignIn code below.
 class AuthRepository {
-  AuthRepository(this._firebaseAuth)
-      // Bug 8 / Improvement 9 fix: GoogleSignIn must be a persistent field,
-      // not instantiated inline. A new instance on every call can fail on iOS
-      // because the platform channel expects the same object that was registered.
-      : _googleSignIn = GoogleSignIn();
+  AuthRepository(this._firebaseAuth);
 
   final fb.FirebaseAuth _firebaseAuth;
-  final GoogleSignIn _googleSignIn;
 
   /// Maps the Firebase User stream to our custom User model.
   Stream<User?> authStateChanges() {
     return _firebaseAuth.authStateChanges().map((firebaseUser) {
-      if (firebaseUser == null) {
-        return null;
-      }
+      if (firebaseUser == null) return null;
       return User(id: firebaseUser.uid, email: firebaseUser.email);
     });
   }
@@ -44,31 +40,19 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    // Sign out from both Firebase and Google so the account picker
-    // shows on the next sign-in attempt.
-    await Future.wait([
-      _firebaseAuth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    await _firebaseAuth.signOut();
   }
 
+  /// Signs in with Google via Firebase popup (web) or redirect (native).
+  /// For native platforms add `google_sign_in` to pubspec.yaml.
   Future<void> signInWithGoogle() async {
-    // Reuse the persistent _googleSignIn instance — critical on iOS
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-    if (googleUser == null) {
-      // The user cancelled the sign-in
-      return;
+    final provider = fb.GoogleAuthProvider();
+    try {
+      await _firebaseAuth.signInWithPopup(provider);
+    } catch (_) {
+      // Popup was blocked or user cancelled — try redirect as fallback
+      await _firebaseAuth.signInWithRedirect(provider);
     }
-
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-    final credential = fb.GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    await _firebaseAuth.signInWithCredential(credential);
   }
 }
 

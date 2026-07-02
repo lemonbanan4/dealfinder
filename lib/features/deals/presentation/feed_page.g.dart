@@ -239,7 +239,7 @@ final class FavoritesNotifierProvider
   FavoritesNotifier create() => FavoritesNotifier();
 }
 
-String _$favoritesNotifierHash() => r'27cf9a66299633e8cb94467d7a15a00882474b11';
+String _$favoritesNotifierHash() => r'9057c003a16cbad90701fade4cbba69c6ed58867';
 
 abstract class _$FavoritesNotifier extends $AsyncNotifier<Set<String>> {
   FutureOr<Set<String>> build();
@@ -298,4 +298,4 @@ final class FilteredDealsProvider
   }
 }
 
-String _$filteredDealsHash() => r'88964e8ecdcda5b62cc2f7092f24fdf850bfb4b4';
+String _$filteredDealsHash() => r'7538e8d85c6187337cba8827cf4f32331ad3d17d';

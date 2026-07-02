@@ -77,11 +77,6 @@ class ScraperService {
 
     final url = _resolve(config.baseUrl, href);
 
-    // Use the idSelector if provided, as it's a more stable identifier than the URL.
-    final idKey = config.idSelector != null
-        ? item.querySelector(config.idSelector!)?.text.trim()
-        : null;
-
     String? imageUrl;
     if (config.imageSelector case final sel?) {
       final el = item.querySelector(sel);
@@ -92,8 +87,8 @@ class ScraperService {
 
     return Deal(
       // v5 UUID is deterministic on URL so the same product maps to the same
-      // ID across scrape runs. Prioritize the raw product ID if available.
-      id: _uuid.v5(_urlNamespace, idKey ?? url),
+      // ID across scrape runs.
+      id: _uuid.v5(_urlNamespace, url),
       title: title,
       url: url,
       source: config.name,
