@@ -1,72 +1,35 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'app.dart';
-import 'core/constants.dart';
+import 'features/deals/presentation/home_page.dart';
 import 'firebase_options.dart';
-import 'services/background_refresh_service.dart';
-import 'services/notification/fcm_service.dart';
 
 void main() async {
+  // Ensure that Flutter bindings are initialized.
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialize Firebase
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // ── Local storage ────────────────────────────────────────────────────────
-  try {
-    await Hive.initFlutter();
-    await _openBoxes();
-  } catch (e) {
-    debugPrint('[Hive] init failed: $e');
-  }
-
-  // ── Supabase ─────────────────────────────────────────────────────────────
-  try {
-    await Supabase.initialize(
-      url: 'https://sarlvquwjdufemyizjwj.supabase.co',
-      publishableKey: 'sb_publishable_i2ao0MRnbINciLoKf95wUg_Nb-WzChs',
-      authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
-      ),
-    );
-  } catch (e) {
-    debugPrint('[Supabase] init failed: $e');
-  }
-
-  // ── Firebase ─────────────────────────────────────────────────────────────
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-
-    // Completely disable App Check and Background Tasks on the Web to prevent crashes
-    if (!kIsWeb) {
-      if (!kDebugMode) {
-        await FirebaseAppCheck.instance.activate(
-          providerAndroid: const AndroidPlayIntegrityProvider(),
-          providerApple: const AppleDeviceCheckProvider(),
-        );
-      }
-
-      await FCMService.initialize();
-      initializeBackgroundTasks();
-    }
-  } catch (e) {
-    debugPrint('[Firebase] init failed: $e');
-  }
-
-  runApp(const ProviderScope(child: PrisPulsApp()));
+  await Supabase.initialize(
+    url: 'https://sarlvquwjdufemyizjwj.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhcmx2cXV3amR1ZmVteWl6andqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNDQ1NTgsImV4cCI6MjA5NzgyMDU1OH0.fcpQ-mRD-Rgi60oDLnmm3h24saZmn_c14En_vQEnU8Y',
+  );
+  // Wrap the entire app in a ProviderScope for Riverpod.
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-Future<void> _openBoxes() async {
-  await Future.wait([
-    Hive.openBox<String>(HiveBoxes.deals),
-    Hive.openBox<String>(HiveBoxes.alerts),
-    Hive.openBox<String>(HiveBoxes.settings),
-    Hive.openBox<String>(HiveBoxes.currencyRates),
-    Hive.openBox<String>(HiveBoxes.scraperConfigs),
-  ]);
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'DealFinder',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const HomePage(),
+    );
+  }
 }

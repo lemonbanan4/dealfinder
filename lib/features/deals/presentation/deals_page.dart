@@ -1,98 +1,58 @@
+import 'dart:async';
+
+import 'package:dealfinder_pro/features/deals/domain/deal.dart';
+import 'package:dealfinder_pro/features/deals/providers/recently_viewed_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../domain/deal.dart';
-import '../data/deals_repository.dart';
-import 'feed_page.dart';
+import '../../../services/supabase_service.dart';
+import 'deals_notifier.dart';
+import 'widgets/deal_card_skeleton.dart';
 import 'deal_slivers.dart';
+import 'feed_page.dart';
 
-const _dealsPerPage = 20;
+// These providers control the filters for the deals list.
+final searchQueryProvider = StateProvider<String>((ref) => '');
+final sortOrderProvider = StateProvider<DealSort>((ref) => DealSort.relevance);
+final categoryProvider = StateProvider<String>((ref) => 'All');
 
-@immutable
-class DealsState {
-  const DealsState({
-    this.deals = const [],
-    this.isLoading = false,
-    this.isLoadingMore = false,
-    this.error,
-    this.hasMore = true,
-  });
+// Bug 5 fix: expose a combined filter state that can be watched/read cleanly
+final dealsFilterProvider = Provider<({String query, DealSort sort, String category})>((ref) {
+  return (
+    query: ref.watch(searchQueryProvider),
+    sort: ref.watch(sortOrderProvider),
+    category: ref.watch(categoryProvider),
+  );
+});
 
-  final List<Deal> deals;
-  final bool isLoading;
-  final bool isLoadingMore;
-  final Object? error;
-  final bool hasMore;
+/// Fetches the full Deal objects for the recently viewed deal IDs.
+@riverpod
+Stream<List<Deal>> recentlyViewedDeals(RecentlyViewedDealsRef ref) {
+  final supabase = ref.watch(supabaseProvider);
+  final recentlyViewedIds = ref.watch(recentlyViewedProvider);
 
-  DealsState copyWith({
-    List<Deal>? deals,
-    bool? isLoading,
-    bool? isLoadingMore,
-    Object? error,
-    bool? hasMore,
-  }) {
-    return DealsState(
-      deals: deals ?? this.deals,
-      isLoading: isLoading ?? this.isLoading,
-      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-      error: error,
-      hasMore: hasMore ?? this.hasMore,
-    );
+  if (recentlyViewedIds.isEmpty) {
+    return Stream.value([]);
   }
+
+  // Bug 6 fix: correct primary key is 'product_id', not 'id'
+  return supabase
+      .from('products')
+      .stream(primaryKey: ['product_id'])
+      .in_('product_id', recentlyViewedIds)
+      .map((dealMaps) => dealMaps.map(Deal.fromJson).toList());
 }
 
-class DealsNotifier extends Notifier<DealsState> {
-  @override
-  DealsState build() {
-    // Fetch the first page of deals when the provider is initialized.
-    _fetchDeals();
-    return const DealsState(isLoading: true);
-  }
+/// Static list of categories for the filter bar.
+const List<String> dealCategories = [
+  'All',
+  'Laptops/PC',
+  'PC Accessories',
+  'Home Electronics',
+  'Vacuum Cleaners',
+];
 
-  Future<void> _fetchDeals({bool isRefresh = false}) async {
-    final dealsRepository = ref.read(dealsRepositoryProvider);
-    try {
-      final deals = await dealsRepository.fetchDeals(page: 1);
-      state = DealsState(deals: deals, hasMore: deals.length == _dealsPerPage);
-    } catch (e, stack) {
-      state = DealsState(error: e);
-      debugPrintStack(stackTrace: stack, label: e.toString());
-    }
-  }
-
-  Future<void> fetchNextPage() async {
-    // Avoid fetching more if we are already loading or have no more deals.
-    if (state.isLoadingMore || !state.hasMore) return;
-
-    state = state.copyWith(isLoadingMore: true);
-
-    final dealsRepository = ref.read(dealsRepositoryProvider);
-    try {
-      final page = (state.deals.length / _dealsPerPage).floor() + 1;
-      final newDeals = await dealsRepository.fetchDeals(page: page);
-      state = state.copyWith(
-        deals: [...state.deals, ...newDeals],
-        hasMore: newDeals.length == _dealsPerPage,
-        isLoadingMore: false,
-      );
-    } catch (e, stack) {
-      // In case of an error, stop trying to load more.
-      state = state.copyWith(error: e, hasMore: false, isLoadingMore: false);
-      debugPrintStack(stackTrace: stack, label: e.toString());
-    }
-  }
-
-  Future<void> refresh() async {
-    state = const DealsState(isLoading: true);
-    await _fetchDeals(isRefresh: true);
-  }
-}
-
-final dealsProvider = NotifierProvider.autoDispose<DealsNotifier, DealsState>(
-  DealsNotifier.new,
-);
-
-/// A full-page example demonstrating how to use DealsSliver with a provider.
 class DealsPage extends ConsumerStatefulWidget {
   const DealsPage({super.key});
 
@@ -101,121 +61,208 @@ class DealsPage extends ConsumerStatefulWidget {
 }
 
 class _DealsPageState extends ConsumerState<DealsPage> {
-  // Local state to manage the view type (grid/list)
-  FeedView _feedView = FeedView.list;
+  final _searchController = TextEditingController();
+  // Improvement 6: ValueNotifier instead of setState for clear-button visibility
+  late final ValueNotifier<bool> _showClear;
+  Timer? _debounce;
   final _scrollController = ScrollController();
+  // Improvement 7: scroll controller for category chip bar
+  final _chipScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _showClear = ValueNotifier(false);
     _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _debounce?.cancel();
+    _searchController.dispose();
+    _showClear.dispose();
+    _chipScrollController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      ref.read(dealsProvider.notifier).fetchNextPage();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Bug 5 fix: use the correct parametrised provider
+    final filter = ref.watch(dealsFilterProvider);
+    final dealsAsync = ref.watch(dealsNotifierProvider(filter.query, filter.sort));
+    final dealsState = dealsAsync.valueOrNull;
+    final category = ref.watch(categoryProvider);
+
     return Scaffold(
-      // Use a listener to show a SnackBar on errors during pagination.
-      body: Scaffold(
-        appBar: AppBar(
-          title: const Text('Today\'s Deals'),
-          actions: [
-            // Toggle button for grid/list view
-            IconButton(
-              icon: Icon(
-                _feedView == FeedView.list ? Icons.grid_view : Icons.view_list,
+      appBar: AppBar(
+        title: const Text('Today\'s Deals'),
+        actions: [
+          PopupMenuButton<DealSort>(
+            icon: const Icon(Icons.sort),
+            onSelected: (sort) {
+              ref.read(sortOrderProvider.notifier).state = sort;
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: DealSort.relevance,
+                child: Text('Relevance'),
               ),
-              onPressed: () {
-                setState(() {
-                  _feedView = _feedView == FeedView.list
-                      ? FeedView.grid
-                      : FeedView.list;
-                });
-              },
-            ),
-          ],
-        ),
-        body: RefreshIndicator(
-          onRefresh: () => ref.read(dealsProvider.notifier).refresh(),
-          child: CustomScrollView(
-            controller: _scrollController,
-            // Add a physics that allows scrolling when the list is short
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              // Use a SliverPadding for consistent spacing.
-              SliverPadding(
-                padding: const EdgeInsets.all(16.0),
-                sliver: Consumer(
-                  builder: (context, ref, child) {
-                    final dealsState = ref.watch(dealsProvider);
-
-                    if (dealsState.isLoading && dealsState.deals.isEmpty) {
-                      return DealsSliver(
-                        deals: const [],
-                        onFavoriteTap: (_) {},
-                        view: _feedView,
-                        isLoading: true,
-                      );
-                    }
-
-                    if (dealsState.error != null && dealsState.deals.isEmpty) {
-                      return SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 60,
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Text('Could not fetch deals.'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () =>
-                                  ref.read(dealsProvider.notifier).refresh(),
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return DealsSliver(
-                      deals: dealsState.deals,
-                      onFavoriteTap: (deal) {
-                        debugPrint('Tapped favorite on ${deal.title}');
+              const PopupMenuItem(
+                value: DealSort.priceAsc,
+                child: Text('Price: Low to High'),
+              ),
+              const PopupMenuItem(
+                value: DealSort.priceDesc,
+                child: Text('Price: High to Low'),
+              ),
+            ],
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight + 50),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ValueListenableBuilder<bool>(
+                  // Improvement 6: no setState rebuild for just show/hide clear
+                  valueListenable: _showClear,
+                  builder: (context, showClear, _) => TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Search deals...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      contentPadding: EdgeInsets.zero,
+                      suffixIcon: showClear
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: _clearSearch,
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 50,
+                child: ListView.separated(
+                  controller: _chipScrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: dealCategories.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final cat = dealCategories[index];
+                    return ChoiceChip(
+                      label: Text(cat),
+                      selected: category == cat,
+                      onSelected: (isSelected) {
+                        if (isSelected) {
+                          ref.read(categoryProvider.notifier).state = cat;
+                          // Improvement 7: scroll selected chip into view
+                          _chipScrollController.animateTo(
+                            index * 100.0,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOut,
+                          );
+                        }
                       },
-                      view: _feedView,
-                      isLoadingMore: dealsState.isLoadingMore,
-                      hasPaginationError:
-                          dealsState.error != null &&
-                          dealsState.deals.isNotEmpty,
-                      onRetry: () =>
-                          ref.read(dealsProvider.notifier).fetchNextPage(),
                     );
                   },
                 ),
               ),
-            ],
+            ], // Bug 3 fix: was `)` here instead of `]`
           ),
         ),
       ),
+      body: RefreshIndicator.adaptive(
+        onRefresh: () async {
+          // Bug 5 fix: invalidate the correct parametrised provider
+          ref.invalidate(dealsNotifierProvider(filter.query, filter.sort));
+        },
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            // --- Recently Viewed Section ---
+            ref.watch(recentlyViewedDealsProvider).when(
+                  data: (recentDeals) {
+                    if (recentDeals.isEmpty) {
+                      return const SliverToBoxAdapter(child: SizedBox.shrink());
+                    }
+                    return RecentlyViewedSliver(deals: recentDeals);
+                  },
+                  loading: () =>
+                      const SliverToBoxAdapter(child: SizedBox.shrink()),
+                  error: (e, s) =>
+                      const SliverToBoxAdapter(child: SizedBox.shrink()),
+                ),
+            // --- Loading shimmer on first load ---
+            if (dealsAsync.isLoading && (dealsState?.deals.isEmpty ?? true))
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => const DealCardSkeleton(),
+                  childCount: 5,
+                ),
+              ),
+            // --- Error on first load ---
+            if (dealsAsync.hasError && (dealsState?.deals.isEmpty ?? true))
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text('Failed to load deals: ${dealsAsync.error}'),
+                  ),
+                ),
+              ),
+            DealsSliver(
+              deals: dealsState?.deals ?? [],
+              isEmpty: (dealsState?.deals.isEmpty ?? true) && !dealsAsync.isLoading,
+              view: FeedView.list,
+              onFavoriteTap: (deal) {},
+              isLoadingMore: dealsAsync.isLoading && (dealsState?.deals.isNotEmpty ?? false),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      final filter = ref.read(dealsFilterProvider);
+      ref.read(dealsNotifierProvider(filter.query, filter.sort).notifier).fetchNextPage();
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    // Trigger loading when we are 90% of the way to the bottom.
+    return currentScroll >= (maxScroll * 0.9);
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      ref.read(searchQueryProvider.notifier).state = query.trim();
+    });
+    // Improvement 6: ValueNotifier update — no full rebuild
+    _showClear.value = query.isNotEmpty;
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    ref.read(searchQueryProvider.notifier).state = '';
+    _showClear.value = false;
   }
 }

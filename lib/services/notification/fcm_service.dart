@@ -85,22 +85,20 @@ class FCMService {
   }
 
   static Future<void> _handleNotificationTap(String? payload) async {
-    final context = navigatorKey.currentContext;
+    final navigator = navigatorKey.currentState;
 
     // If payload is a URL, open it in the browser
     if (payload != null && payload.startsWith('http')) {
       final uri = Uri.tryParse(payload);
       if (uri != null && await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
       }
+      return;
     }
 
     // Fallback: Open the alerts page
-    if (context != null) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const AlertsPage()));
+    if (navigator != null && navigator.mounted) {
+      navigator.push(MaterialPageRoute(builder: (_) => const AlertsPage()));
     }
   }
 }

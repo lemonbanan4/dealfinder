@@ -2,13 +2,26 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../features/deals/domain/deal.dart';
+import '../features/deals/presentation/local_favorites_notifier.dart';
 import '../features/settings/presentation/currency_provider.dart';
-import '../features/settings/providers/settings_provider.dart';
 
 enum DealCardView { grid, list }
+
+/// Improvement 1: shared top-level formatter — was duplicated in DealCard
+/// and _GridCard. Formats an integer price with thousands-space separators
+/// (e.g. 1234567 → "1 234 567").
+String _formatAmount(double price) {
+  final rounded = price.round();
+  final s = rounded.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return buf.toString();
+}
 
 class DealCard extends ConsumerWidget {
   const DealCard({
@@ -29,16 +42,7 @@ class DealCard extends ConsumerWidget {
   final List<Widget>? trailingActions;
   final VoidCallback onTap;
 
-  String _formatAmount(double price) {
-    final rounded = price.round();
-    final s = rounded.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-      buf.write(s[i]);
-    }
-    return buf.toString();
-  }
+
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -167,21 +171,17 @@ class _GridCard extends ConsumerWidget {
   final String? currency;
   final List<Widget>? trailingActions;
 
-  String _formatAmount(double price) {
-    final rounded = price.round();
-    final s = rounded.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-      buf.write(s[i]);
-    }
-    return buf.toString();
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currencyState = ref.watch(currencyConverterProvider);
     final pct = deal.discountPercent?.round() ?? 0;
+
+    final isFavorite = ref.watch(
+      favoritesNotifierProvider.select(
+        (favs) => favs.value?.contains(deal.id) ?? false,
+      ),
+    );
 
     return GestureDetector(
       onTap: onTap,
@@ -258,6 +258,22 @@ class _GridCard extends ConsumerWidget {
                       ),
                     ),
                   ),
+                // --- Favorite Button ---
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.white.withOpacity(0.8),
+                    ),
+                    onPressed: () => ref
+                        .read(favoritesNotifierProvider.notifier)
+                        .toggleFavorite(deal.id),
+                  ),
+                ),
               ],
             ),
             // ── Details ─────────────────────────────────────────────────

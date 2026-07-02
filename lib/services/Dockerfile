@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY scraper_api.py .
+COPY scraper.py .
 
 EXPOSE 8080
-CMD ["uvicorn", "scraper_api:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "scraper:app", "--host", "0.0.0.0", "--port", "8080"]

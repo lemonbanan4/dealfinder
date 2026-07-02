@@ -1,84 +1,106 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dealfinder_pro/features/auth/domain/user.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../auth/providers/auth_provider.dart';
+part 'favorites_repository.g.dart';
+
+const _localFavoritesKey = 'local_favorite_deals';
 
 /// A repository to manage user's favorite deals, syncing between
 /// local preferences and Firestore for authenticated users.
+@riverpod
+FavoritesRepository favoritesRepository(FavoritesRepositoryRef ref) {
+  return FavoritesRepository(FirebaseFirestore.instance, ref);
+}
+
 class FavoritesRepository {
-  FavoritesRepository(this._prefs, this._firestore, this.ref);
+  FavoritesRepository(this._firestore, this._ref);
 
-  final Ref ref;
-  final SharedPreferences _prefs;
   final FirebaseFirestore _firestore;
+  final ProviderRef _ref;
 
-  static const _key = 'favorite_products_pref';
+  DocumentReference<Map<String, dynamic>>? _userFavoritesDoc(User? user) {
+    if (user == null) return null;
+    return _firestore.collection('users').doc(user.id);
+  }
 
   /// Fetches favorites. If a user is logged in, it syncs from Firestore
   /// to local storage first, then returns the local data.
   Future<Set<String>> getFavorites(User? user) async {
+    final prefs = await SharedPreferences.getInstance();
+    final localFavorites =
+        prefs.getStringList(_localFavoritesKey)?.toSet() ?? {};
+
     if (user != null) {
       try {
-        final doc = await _firestore.collection('users').doc(user.uid).get();
-        if (doc.exists && doc.data() != null) {
-          final data = doc.data()!;
-          if (data.containsKey('favorites')) {
-            final firestoreFavs = List<String>.from(data['favorites']);
-            // Sync to local prefs for offline access and consistency.
-            await _prefs.setStringList(_key, firestoreFavs);
-            return firestoreFavs.toSet();
-          }
+        final doc = await _userFavoritesDoc(user)!.get();
+        final remoteData = doc.data();
+        final remoteFavorites =
+            remoteData != null && remoteData.containsKey('favorites')
+            ? List<String>.from(remoteData['favorites']).toSet()
+            : <String>{};
+
+        // Merge local and remote, giving remote precedence for the initial sync.
+        final mergedFavorites = localFavorites.union(remoteFavorites);
+
+        if (mergedFavorites.isNotEmpty) {
+          // Write the merged set back to both sources to ensure they are in sync.
+          await prefs.setStringList(
+            _localFavoritesKey,
+            mergedFavorites.toList(),
+          );
+          await _userFavoritesDoc(user)!.set({
+            'favorites': mergedFavorites.toList(),
+          }, SetOptions(merge: true));
         }
+        return mergedFavorites;
       } catch (e) {
-        debugPrint('Failed to load favorites from Firestore: $e');
+        debugPrint('Failed to load/sync favorites from Firestore: $e');
         // Fallback to local prefs if Firestore fails.
+        return localFavorites;
       }
     }
-    // For logged-out users or on Firestore error, load from local prefs.
-    return _prefs.getStringList(_key)?.toSet() ?? {};
+    // For logged-out users, just return local favorites.
+    return localFavorites;
   }
 
   /// Toggles a favorite and persists the change to local storage and
   /// Firestore (if the user is authenticated).
-  Future<Set<String>> toggleFavorite(String productId, User? user) async {
-    final currentFavs = _prefs.getStringList(_key)?.toSet() ?? {};
-    final newFavs = Set<String>.from(currentFavs);
+  Future<void> toggleFavorite(String dealId, User? user) async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentFavorites =
+        prefs.getStringList(_localFavoritesKey)?.toSet() ?? {};
 
-    if (newFavs.contains(productId)) {
-      newFavs.remove(productId);
+    final newFavorites = Set<String>.from(currentFavorites);
+    if (newFavorites.contains(dealId)) {
+      newFavorites.remove(dealId);
     } else {
-      newFavs.add(productId);
+      newFavorites.add(dealId);
     }
 
-    await _prefs.setStringList(_key, newFavs.toList());
+    // Always update local storage for immediate offline access.
+    await prefs.setStringList(_localFavoritesKey, newFavorites.toList());
 
+    // If the user is logged in, also update Firestore.
     if (user != null) {
-      await _firestore.collection('users').doc(user.uid).set({
-        'favorites': newFavs.toList(),
-      }, SetOptions(merge: true));
+      await _userFavoritesDoc(
+        user,
+      )!.set({'favorites': newFavorites.toList()}, SetOptions(merge: true));
     }
-    return newFavs;
   }
 
-  /// Clears all favorites from local storage and Firestore.
-  Future<void> clearFavorites(User? user) async {
-    await _prefs.remove(_key);
-    if (user != null) {
-      await _firestore.collection('users').doc(user.uid).set({
-        'favorites': [],
-      }, SetOptions(merge: true));
-    }
+  /// Clears local favorites. Called on user sign-out to prevent
+  /// one user's local favorites from leaking to the next.
+  Future<void> clearLocalFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_localFavoritesKey);
   }
 }
 
-// Build the repository using a FutureProvider so it has access to the SharedPreferences and Firestore instances.
-final favoritesRepositoryProvider = FutureProvider<FavoritesRepository>((
-  ref,
-) async {
-  final prefs = await ref.watch(sharedPreferencesProvider.future);
-  final firestore = ref.watch(firestoreProvider);
-  return FavoritesRepository(prefs, firestore, ref);
-});
+/// A simple provider to expose the user object from the authProvider
+@riverpod
+User? authedUser(AuthedUserRef ref) {
+  return ref.watch(authProvider).value;
+}

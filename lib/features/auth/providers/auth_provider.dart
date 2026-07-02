@@ -1,69 +1,89 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dealfinder_pro/features/deals/data/favorites_repository.dart';
 
-final authProvider = StreamNotifierProvider<AuthProvider, User?>(
-  AuthProvider.new,
-);
+import '../../deals/presentation/auth_repository.dart';
+import '../domain/user.dart';
 
-final firestoreProvider = Provider<FirebaseFirestore>((ref) {
-  return FirebaseFirestore.instance;
-});
+class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
+  AuthNotifier(this._authRepository) : super(const AsyncLoading()) {
+    _authStateChangesSubscription = _authRepository.authStateChanges().listen((
+      user,
+    ) {
+      state = AsyncData(user);
+    });
+  }
 
-final sharedPreferencesProvider = FutureProvider<SharedPreferences>((
-  ref,
-) async {
-  return await SharedPreferences.getInstance();
-});
+  final AuthRepository _authRepository;
+  late final StreamSubscription<User?> _authStateChangesSubscription;
 
-class AuthProvider extends StreamNotifier<User?> {
-  @override
-  Stream<User?> build() {
-    return FirebaseAuth.instance.authStateChanges();
+  Future<void> _runAuthMethod(Future<void> Function() method) async {
+    state = const AsyncLoading();
+    try {
+      await method();
+      // The stream listener will automatically set the AsyncData state on success.
+    } on fb.FirebaseAuthException catch (e) {
+      // Provide more specific error messages
+      String message;
+      if (e.code == 'weak-password') {
+        message = 'The password provided is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'An account already exists for that email.';
+      } else if (e.code == 'user-not-found' || e.code == 'wrong-password') {
+        message = 'Invalid email or password.';
+      } else {
+        message = 'An error occurred. Please try again.';
+      }
+      state = AsyncError(message, e.stackTrace ?? StackTrace.current);
+    } catch (e, st) {
+      state = AsyncError('An unexpected error occurred.', st);
+    }
+  }
+
+  Future<void> signInWithEmailAndPassword(String email, String password) async {
+    await _runAuthMethod(
+      () => _authRepository.signInWithEmailAndPassword(email, password),
+    );
+  }
+
+  Future<void> signUpWithEmailAndPassword(String email, String password) async {
+    await _runAuthMethod(
+      () => _authRepository.signUpWithEmailAndPassword(email, password),
+    );
+  }
+
+  Future<void> signInWithGoogle() async =>
+      _runAuthMethod(_authRepository.signInWithGoogle);
+
+  /// Sends a password reset email. This is a one-off action and does not
+  /// change the global auth state, so it returns a Future that the UI can await.
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _authRepository.sendPasswordResetEmail(email);
+    } on fb.FirebaseAuthException catch (e) {
+      // Re-throw a more user-friendly message.
+      throw 'Could not send reset email: ${e.message}';
+    }
   }
 
   Future<void> signOut() async {
-    await FirebaseAuth.instance.signOut();
+    // Clear local favorites before signing out
+    await ref.read(favoritesRepositoryProvider).clearLocalFavorites();
+    await _authRepository.signOut();
+    ref.invalidate(favoritesNotifierProvider);
   }
 
-  Future<void> deleteAccount() async {
-    // Assuming you have an edge function or similar to delete user data.
-    // This part would need to be implemented.
-    // e.g., await ref.read(functionsProvider).httpsCallable('deleteUser').call();
-    await FirebaseAuth.instance.currentUser?.delete();
-    await signOut();
-  }
-
-  Future<void> updateUserName(String newName) async {
-    final user = state.value;
-    if (user == null) throw Exception('User not logged in');
-
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await user.updateDisplayName(newName);
-      // The authStateChanges stream will emit a new user object,
-      // but we can also return it here for immediate UI update.
-      await user.reload();
-      return FirebaseAuth.instance.currentUser;
-    });
-  }
-
-  Future<void> updatePassword(String newPassword) async {
-    final user = state.value;
-    if (user == null) throw Exception('User not logged in');
-
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await user.updatePassword(newPassword);
-      // The authStateChanges stream will emit the new user object after reload.
-      await user.reload();
-      // We return the reloaded user for immediate feedback, though the stream will also update.
-      return FirebaseAuth.instance.currentUser;
-    });
-    // Re-throw the error on failure to be caught by the UI
-    state.whenOrNull(error: (e, s) => throw e);
+  @override
+  void dispose() {
+    _authStateChangesSubscription.cancel();
+    super.dispose();
   }
 }
+
+final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((
+  ref,
+) {
+  return AuthNotifier(ref.watch(authRepositoryProvider));
+});

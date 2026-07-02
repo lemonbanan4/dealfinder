@@ -23,19 +23,17 @@ import io
 import logging
 import os
 import re
-import asyncio
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import execute_values
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks
 from supabase import create_client, Client
 
 from google.cloud import secretmanager
@@ -409,11 +407,8 @@ def send_alert_email(
         log.error("Failed to send email to %s: %s", to_email, e)
         return False
 
-import smtplib
-from typing import List, Dict, Any
-
 def check_and_fire_price_alerts(supabase):
-    print("Checking for triggered price alerts...")
+    log.info("Checking for triggered price alerts...")
     
     alerts_response = supabase.table('price_alerts').select('*').eq('is_active', True).execute()
     
@@ -430,7 +425,7 @@ def check_and_fire_price_alerts(supabase):
     products_data: List[Dict[str, Any]] = products_response.data or []
     
     if not products_data:
-        print("Could not fetch current prices/details for alerted products.")
+        log.warning("Could not fetch current prices/details for alerted products.")
         return
 
     product_map = {str(p['product_id']): p for p in products_data}
@@ -462,7 +457,7 @@ def check_and_fire_price_alerts(supabase):
 
             current_price = float(product['price'])
             if current_price <= float(alert['target_price']):
-                print(f"HIT! {alert['product_title']} dropped to {current_price} for {alert['user_email']}")
+                log.info("HIT! %s dropped to %s for %s", alert['product_title'], current_price, alert['user_email'])
                 
                 # Fire the email using the existing server connection
                 success = send_alert_email(
@@ -482,10 +477,10 @@ def check_and_fire_price_alerts(supabase):
         # Deactivate all the alerts that were successfully fired
         if alerts_to_deactivate:
             supabase.table('price_alerts').update({'is_active': False}).in_('id', alerts_to_deactivate).execute()
-            print(f"Successfully deactivated {len(alerts_to_deactivate)} alerts.")
+            log.info("Successfully deactivated %d alerts.", len(alerts_to_deactivate))
 
     except Exception as e:
-        print(f"Failed to process SMTP connections or emails: {e}")
+        log.error("Failed to process SMTP connections or emails: %s", e)
 
     return
 
@@ -539,10 +534,6 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
         df = df[df["currency"].str.upper() == cfg.currency_filter.upper()]
 
     
-    # Only clean rrp_price if the store actually has that column
-    if rrp_col and rrp_col in df.columns:
-        df[rrp_col] = pd.to_numeric(df[rrp_col], errors="coerce")
-
     df[price_col] = pd.to_numeric(df[price_col], errors="coerce")
     if rrp_col and rrp_col in df.columns:
         df[rrp_col] = pd.to_numeric(df[rrp_col], errors="coerce")
@@ -751,7 +742,6 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
 # ── Firestore writer ──────────────────────────────────────────────────────────────
 
 def write_deals(deals: list[dict], store_id: str) -> int:
-    from psycopg2.extras import execute_values
     conn = get_db_connection()
     cur = conn.cursor()
     

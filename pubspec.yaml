@@ -63,6 +63,7 @@ dependencies:
   firebase_analytics: ^12.4.3
   riverpod_generator: ^4.0.4
   mocktail: ^1.0.5
+  dio: ^5.10.0
 
 dev_dependencies:
   flutter_test:

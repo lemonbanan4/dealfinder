@@ -24,6 +24,8 @@ class DealsSliver extends ConsumerWidget {
   final bool isLoading;
   final bool isLoadingMore;
   final void Function(Deal) onFavoriteTap;
+  final bool isEmpty;
+  final Object? error;
   final bool hasPaginationError;
   final VoidCallback? onRetry;
 
@@ -34,6 +36,8 @@ class DealsSliver extends ConsumerWidget {
     required this.view,
     this.isLoading = false,
     this.isLoadingMore = false,
+    this.isEmpty = false,
+    this.error,
     this.hasPaginationError = false,
     this.onRetry,
   });
@@ -46,6 +50,31 @@ class DealsSliver extends ConsumerWidget {
       return _buildShimmer(
         context,
         view == FeedView.grid ? DealCardView.grid : DealCardView.list,
+      );
+    }
+
+    if (error != null && deals.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Something went wrong:\n$error',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (isEmpty) {
+      return const SliverFillRemaining(
+        child: Center(
+          child: Text(
+            'No deals found.\nTry a different search or category!',
+            textAlign: TextAlign.center,
+          ),
+        ),
       );
     }
 
@@ -103,9 +132,7 @@ class DealsSliver extends ConsumerWidget {
     if (view == FeedView.grid) {
       return SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: (MediaQuery.of(context).size.width / 200)
-              .floor()
-              .clamp(1, 4),
+          crossAxisCount: _gridCrossAxisCount(context),
           mainAxisSpacing: 12,
           childAspectRatio: 0.8,
         ),
@@ -151,9 +178,16 @@ class DealsSliver extends ConsumerWidget {
     return const Center(child: CircularProgressIndicator());
   }
 
-  void _onDealTap(WidgetRef ref, Deal deal) {
+  // Bug 7 fix: await launchUrl and handle errors gracefully
+  Future<void> _onDealTap(WidgetRef ref, Deal deal) async {
     ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
-    launchUrl(Uri.parse(deal.url), mode: LaunchMode.externalApplication);
+    final uri = Uri.tryParse(deal.url);
+    if (uri == null) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // URL could not be launched (no browser or invalid scheme) — fail silently
+    }
   }
 
   void _onShareTap(Deal deal) {
@@ -171,9 +205,7 @@ class DealsSliver extends ConsumerWidget {
     if (isGridView) {
       return SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: (MediaQuery.of(context).size.width / 200)
-              .floor()
-              .clamp(1, 4),
+          crossAxisCount: _gridCrossAxisCount(context),
           mainAxisSpacing: 12,
           childAspectRatio: 0.8,
         ),
@@ -184,7 +216,7 @@ class DealsSliver extends ConsumerWidget {
     } else {
       return SliverList.separated(
         itemCount: itemCount,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) =>
             const _ShimmerDealCard(view: DealCardView.list),
       );
@@ -286,3 +318,9 @@ Widget _shimmerContainer({double? width, double? height}) {
     ),
   );
 }
+
+/// Improvement 3: single source of truth for responsive grid column count.
+/// Extracted from the duplicated inline calculation that was in both the
+/// deals grid and the shimmer grid.
+int _gridCrossAxisCount(BuildContext context) =>
+    (MediaQuery.of(context).size.width / 200).floor().clamp(1, 4);
