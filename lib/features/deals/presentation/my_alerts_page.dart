@@ -40,20 +40,24 @@ class MyAlertsPage extends ConsumerWidget {
     if (confirm == true && context.mounted) {
       try {
         await ref.read(myAlertsProvider.notifier).deleteAlert(alert.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Alert deleted.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Alert deleted.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete alert: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete alert: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }

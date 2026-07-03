@@ -6,6 +6,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../settings/presentation/settings_page.dart';
 import 'feed_page.dart';
 import '../providers/deals_provider.dart';
+import '../providers/favorites_provider.dart';
 
 class FeedAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const FeedAppBar({
@@ -71,7 +72,7 @@ class FeedAppBar extends ConsumerWidget implements PreferredSizeWidget {
         IconButton(
           tooltip: filters.showFavoritesOnly ? 'Show All' : 'Show Favorites',
           icon: Badge(
-            isLabelVisible: favorites.asData?.value.isNotEmpty ?? false,
+            isLabelVisible: favorites.value?.isNotEmpty ?? false,
             backgroundColor: Theme.of(context).colorScheme.primary,
             child: Icon(
               filters.showFavoritesOnly

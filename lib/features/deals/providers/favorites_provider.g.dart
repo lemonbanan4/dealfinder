@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'local_favorites_notifier.dart';
+part of 'favorites_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -33,7 +33,7 @@ final class FavoritesNotifierProvider
   FavoritesNotifier create() => FavoritesNotifier();
 }
 
-String _$favoritesNotifierHash() => r'3d60c1f1071378937afc2c9802ac3909f04f9c58';
+String _$favoritesNotifierHash() => r'4986d36fb7f09281011c934ea43991d369f0adfa';
 
 abstract class _$FavoritesNotifier extends $AsyncNotifier<Set<String>> {
   FutureOr<Set<String>> build();

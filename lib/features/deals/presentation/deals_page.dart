@@ -1,47 +1,46 @@
 import 'dart:async';
 
-import 'package:dealfinder_pro/features/deals/domain/deal.dart';
-import 'package:dealfinder_pro/features/deals/providers/recently_viewed_provider.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../services/supabase_service.dart';
 import 'deals_notifier.dart';
-import 'widgets/deal_card_skeleton.dart';
+import '../../settings/presentation/deal_card_skeleton.dart';
+import 'recently_viewed_sliver.dart';
 import 'deal_slivers.dart';
 import 'feed_page.dart';
 
-// These providers control the filters for the deals list.
-final searchQueryProvider = StateProvider<String>((ref) => '');
-final sortOrderProvider = StateProvider<DealSort>((ref) => DealSort.relevance);
-final categoryProvider = StateProvider<String>((ref) => 'All');
+part 'deals_page.g.dart';
 
-// Bug 5 fix: expose a combined filter state that can be watched/read cleanly
-final dealsFilterProvider = Provider<({String query, DealSort sort, String category})>((ref) {
+@riverpod
+class SearchQuery extends _$SearchQuery {
+  @override
+  String build() => '';
+  void update(String value) => state = value;
+}
+
+@riverpod
+class SortOrder extends _$SortOrder {
+  @override
+  DealSort build() => DealSort.relevance;
+  void update(DealSort value) => state = value;
+}
+
+@riverpod
+class Category extends _$Category {
+  @override
+  String build() => 'All';
+  void update(String value) => state = value;
+}
+
+@riverpod
+({String query, DealSort sort, String category}) dealsFilter(Ref ref) {
   return (
     query: ref.watch(searchQueryProvider),
     sort: ref.watch(sortOrderProvider),
     category: ref.watch(categoryProvider),
   );
-});
-
-/// Fetches the full Deal objects for the recently viewed deal IDs.
-@riverpod
-Stream<List<Deal>> recentlyViewedDeals(RecentlyViewedDealsRef ref) {
-  final supabase = ref.watch(supabaseProvider);
-  final recentlyViewedIds = ref.watch(recentlyViewedProvider);
-
-  if (recentlyViewedIds.isEmpty) {
-    return Stream.value([]);
-  }
-
-  // Bug 6 fix: correct primary key is 'product_id', not 'id'
-  return supabase
-      .from('products')
-      .stream(primaryKey: ['product_id'])
-      .in_('product_id', recentlyViewedIds)
-      .map((dealMaps) => dealMaps.map(Deal.fromJson).toList());
 }
 
 /// Static list of categories for the filter bar.
@@ -92,8 +91,8 @@ class _DealsPageState extends ConsumerState<DealsPage> {
   Widget build(BuildContext context) {
     // Bug 5 fix: use the correct parametrised provider
     final filter = ref.watch(dealsFilterProvider);
-    final dealsAsync = ref.watch(dealsNotifierProvider(filter.query, filter.sort));
-    final dealsState = dealsAsync.valueOrNull;
+    final dealsAsync = ref.watch(dealsProvider(filter.query, filter.sort));
+    final dealsState = dealsAsync.value;
     final category = ref.watch(categoryProvider);
 
     return Scaffold(
@@ -103,7 +102,7 @@ class _DealsPageState extends ConsumerState<DealsPage> {
           PopupMenuButton<DealSort>(
             icon: const Icon(Icons.sort),
             onSelected: (sort) {
-              ref.read(sortOrderProvider.notifier).state = sort;
+              ref.read(sortOrderProvider.notifier).update(sort);
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -167,13 +166,15 @@ class _DealsPageState extends ConsumerState<DealsPage> {
                       selected: category == cat,
                       onSelected: (isSelected) {
                         if (isSelected) {
-                          ref.read(categoryProvider.notifier).state = cat;
+                          ref.read(categoryProvider.notifier).update(cat);
                           // Improvement 7: scroll selected chip into view
-                          _chipScrollController.animateTo(
-                            index * 100.0,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOut,
-                          );
+                          if (_chipScrollController.hasClients) {
+                            _chipScrollController.animateTo(
+                              index * 100.0,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          }
                         }
                       },
                     );
@@ -187,24 +188,13 @@ class _DealsPageState extends ConsumerState<DealsPage> {
       body: RefreshIndicator.adaptive(
         onRefresh: () async {
           // Bug 5 fix: invalidate the correct parametrised provider
-          ref.invalidate(dealsNotifierProvider(filter.query, filter.sort));
+          ref.invalidate(dealsProvider(filter.query, filter.sort));
         },
         child: CustomScrollView(
           controller: _scrollController,
           slivers: [
             // --- Recently Viewed Section ---
-            ref.watch(recentlyViewedDealsProvider).when(
-                  data: (recentDeals) {
-                    if (recentDeals.isEmpty) {
-                      return const SliverToBoxAdapter(child: SizedBox.shrink());
-                    }
-                    return RecentlyViewedSliver(deals: recentDeals);
-                  },
-                  loading: () =>
-                      const SliverToBoxAdapter(child: SizedBox.shrink()),
-                  error: (e, s) =>
-                      const SliverToBoxAdapter(child: SizedBox.shrink()),
-                ),
+            const RecentlyViewedSliver(),
             // --- Loading shimmer on first load ---
             if (dealsAsync.isLoading && (dealsState?.deals.isEmpty ?? true))
               SliverList(
@@ -239,7 +229,7 @@ class _DealsPageState extends ConsumerState<DealsPage> {
   void _onScroll() {
     if (_isBottom) {
       final filter = ref.read(dealsFilterProvider);
-      ref.read(dealsNotifierProvider(filter.query, filter.sort).notifier).fetchNextPage();
+      ref.read(dealsProvider(filter.query, filter.sort).notifier).fetchNextPage();
     }
   }
 
@@ -254,7 +244,7 @@ class _DealsPageState extends ConsumerState<DealsPage> {
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      ref.read(searchQueryProvider.notifier).state = query.trim();
+      ref.read(searchQueryProvider.notifier).update(query.trim());
     });
     // Improvement 6: ValueNotifier update — no full rebuild
     _showClear.value = query.isNotEmpty;
@@ -262,7 +252,7 @@ class _DealsPageState extends ConsumerState<DealsPage> {
 
   void _clearSearch() {
     _searchController.clear();
-    ref.read(searchQueryProvider.notifier).state = '';
+    ref.read(searchQueryProvider.notifier).update('');
     _showClear.value = false;
   }
 }

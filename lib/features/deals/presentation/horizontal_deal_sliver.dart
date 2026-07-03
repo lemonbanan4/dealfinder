@@ -21,7 +21,7 @@ class HorizontalDealSliver extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dealsAsync = ref.watch(dealsProvider);
+    final dealsAsync = ref.watch(dealsProvider) as AsyncValue<List<Deal>>;
 
     return dealsAsync.when(
       loading: () => const TopDealsShimmer(),

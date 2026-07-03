@@ -21,21 +21,36 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- 
+  <!--
     Content-Security-Policy:
-    This is the fix for the white screen issue. Flutter's web engine uses
-    'unsafe-eval' to compile shaders and optimize performance. We also need
-    to allow connections to Supabase and scripts from Apple for Sign In.
+    - script-src: 'wasm-unsafe-eval' (Flutter's CanvasKit/Skwasm renderer compiles to WebAssembly,
+      not JS eval). 'unsafe-inline' is also required — the Firebase JS SDK (firebase_core,
+      firestore, functions, app_check, auth, messaging) injects inline <script> tags at runtime
+      for its internal iframes/App Check/auth helpers. These are dynamically generated per
+      session, so hash-listing isn't viable and this is a static site with no per-request nonce
+      generation. Without 'unsafe-inline' here, Firebase init throws and the app hangs on the
+      loading spinner forever.
+      NOTE: 'strict-dynamic' is intentionally NOT used here — this is a static Firebase Hosting
+      site with no per-request nonce generation, so 'strict-dynamic' would strip the host
+      allowlist below and silently block every script (Apple Sign-In, Firebase, Corbado, Flutter
+      bootstrap) in browsers that support it. Host-based allowlisting is the correct strict policy
+      for a purely static deployment.
+    - style-src: 'unsafe-inline' is required — Flutter's web engine (CanvasKit) injects inline
+      <style> tags and style attributes at runtime for text measurement, semantics, and canvas
+      positioning. There is no nonce/hash mechanism for this dynamic engine-generated CSS, so
+      removing 'unsafe-inline' here breaks rendering (app hangs on the loading spinner forever).
+    - connect-src: all required external endpoints for Supabase, Firebase, fonts, and APIs.
   -->
-
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self' https://*.firebaseapp.com https://*.web.app;
-    script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com https://*.firebaseio.com;
+    script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com https://*.firebaseio.com;
     connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://www.gstatic.com https://fonts.gstatic.com https://dealfinder-swr5.onrender.com https://www.ecb.europa.eu https://v6.exchangerate-api.com;
     frame-src 'self' https://appleid.apple.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: https:;
-    font-src 'self' data: https://fonts.gstatic.com https:;">
+    font-src 'self' data: https://fonts.gstatic.com https:;
+    base-uri 'self';
+    object-src 'none';">
 
   <!-- SEO -->
   <title>Sign up for Superdeals | PrisPuls</title>
@@ -71,44 +86,13 @@
 
   <link rel="manifest" href="manifest.json">
 
+  <!-- Loading spinner styles (external – CSP compliant) -->
+  <link rel="stylesheet" href="flutter_loader.css">
+
   <script type="text/javascript"
     src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
   <script type="text/javascript" src="corbado_bundle.js"></script>
 
-  <style>
-    .loading {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 0;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      -ms-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-    }
-
-    .loader {
-      border: 8px solid #f3f3f3;
-      /* Light grey */
-      border-top: 8px solid #0175C2;
-      /* Blue from manifest */
-      border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-  </style>
 </head>
 
 <body>

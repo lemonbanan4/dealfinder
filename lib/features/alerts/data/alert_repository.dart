@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/alert_config.dart';
@@ -55,7 +56,7 @@ class AlertRepository {
             .eq('product_id', id)
             .eq('user_id', user.uid);
       } catch (e) {
-        print('Failed to delete alert from Supabase: $e');
+        debugPrint('Failed to delete alert from Supabase: $e');
       }
     }
   }

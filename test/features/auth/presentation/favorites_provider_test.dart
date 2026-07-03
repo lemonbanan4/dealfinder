@@ -1,9 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../providers/auth_provider.dart';
-import '../../deals/domain/deal.dart';
-import '../../deals/presentation/feed_page.dart';
+import 'dart:async';
+
+import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
+import 'package:dealfinder_pro/features/deals/presentation/user.dart';
+import 'package:dealfinder_pro/features/deals/providers/favorites_provider.dart';
+import 'package:dealfinder_pro/providers/repositories.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -12,21 +13,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Mocks
 class MockUser extends Mock implements User {
   @override
-  final String uid;
+  final String id;
+  @override
+  final String? email;
   @override
   final bool emailVerified;
 
-  MockUser({this.uid = 'test_uid', this.emailVerified = true});
-}
-
-class MockSharedPreferences extends Mock implements SharedPreferences {}
-
-class FakeAuthProvider extends AuthProvider {
-  FakeAuthProvider(this._userStream);
-  final Stream<User?> _userStream;
+  MockUser({this.id = 'test_uid', this.email = 'test@example.com', this.emailVerified = true});
 
   @override
-  Stream<User?> build() => _userStream;
+  String get uid => id;
+}
+
+
+
+class FakeAuth extends Auth {
+  FakeAuth(this._user);
+  final User? _user;
+
+  @override
+  FutureOr<User?> build() => _user;
 }
 
 void main() {
@@ -36,7 +42,7 @@ void main() {
     late FakeFirebaseFirestore fakeFirestore;
     late MockSharedPreferences mockSharedPreferences;
 
-    const favoritesKey = 'favorite_products_pref';
+    const favoritesKey = 'local_favorite_deals';
 
     setUp(() {
       mockUser = MockUser();
@@ -65,14 +71,13 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
           firestoreProvider.overrideWithValue(fakeFirestore),
-          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(null)) as AuthProvider),
+          authProvider.overrideWith(() => FakeAuth(null)),
         ],
       );
 
       await awaitInitialization(container);
-      final favorites = container.read(favoritesProvider).requireValue;
 
-      expect(favorites, {'deal1', 'deal2'});
+      expect(container.read(favoritesProvider).requireValue, {'deal1', 'deal2'});
     });
 
     test('toggleFavorite adds a new favorite', () async {
@@ -84,7 +89,7 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(mockUser)) as AuthProvider),
+          authProvider.overrideWith(() => FakeAuth(mockUser)),
           firestoreProvider.overrideWithValue(fakeFirestore),
           sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
         ],
@@ -115,7 +120,7 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(mockUser)) as AuthProvider),
+          authProvider.overrideWith(() => FakeAuth(mockUser)),
           firestoreProvider.overrideWithValue(fakeFirestore),
           sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
         ],
@@ -146,7 +151,7 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
-          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(unverifiedUser)) as AuthProvider),
+          authProvider.overrideWith(() => FakeAuth(unverifiedUser)),
           firestoreProvider.overrideWithValue(fakeFirestore),
           sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
         ],
@@ -157,7 +162,7 @@ void main() {
       final notifier = container.read(favoritesProvider.notifier);
 
       expect(
-        () => notifier.toggleFavorite('deal1'),
+        notifier.toggleFavorite('deal1'),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -179,7 +184,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
           firestoreProvider.overrideWithValue(fakeFirestore),
-          authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(null)) as AuthProvider),
+          authProvider.overrideWith(() => FakeAuth(null)),
         ],
       );
 
@@ -207,7 +212,7 @@ void main() {
 
         container = ProviderContainer(
           overrides: [
-            authProvider.overrideWith(() => FakeAuthProvider(Stream<User?>.value(mockUser)) as AuthProvider),
+            authProvider.overrideWith(() => FakeAuth(mockUser)),
             firestoreProvider.overrideWithValue(fakeFirestore),
             sharedPreferencesProvider.overrideWithValue(AsyncValue.data(mockPrefs)),
           ],

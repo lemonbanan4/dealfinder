@@ -1,27 +1,23 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../features/deals/domain/deal.dart';
-import '../features/deals/presentation/local_favorites_notifier.dart';
+import '../features/deals/providers/favorites_provider.dart';
 import '../features/settings/presentation/currency_provider.dart';
+import '../theme/glass_colors.dart';
+import '../utils/formatters.dart';
+import 'glass_container.dart';
+import 'price_display.dart';
+import 'price_sparkline.dart';
+
+/// Deep-charcoal glass fill for deal cards specifically, per the premium
+/// grid design: a solid-feeling dark panel rather than the translucent
+/// white glass used elsewhere in the app.
+const _cardFill = Color.fromRGBO(11, 14, 20, 0.82);
+const _cardFillHover = Color.fromRGBO(11, 14, 20, 0.92);
 
 enum DealCardView { grid, list }
-
-/// Improvement 1: shared top-level formatter — was duplicated in DealCard
-/// and _GridCard. Formats an integer price with thousands-space separators
-/// (e.g. 1234567 → "1 234 567").
-String _formatAmount(double price) {
-  final rounded = price.round();
-  final s = rounded.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-    buf.write(s[i]);
-  }
-  return buf.toString();
-}
 
 class DealCard extends ConsumerWidget {
   const DealCard({
@@ -42,8 +38,6 @@ class DealCard extends ConsumerWidget {
   final List<Widget>? trailingActions;
   final VoidCallback onTap;
 
-
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isGridView = view == DealCardView.grid;
@@ -59,21 +53,18 @@ class DealCard extends ConsumerWidget {
     }
 
     // LIST VIEW
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            // This is for the main list view
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    return GlassContainer(
+      borderRadius: 16,
+      onTap: onTap,
+      padding: const EdgeInsets.all(12),
+      fillColor: _cardFill,
+      hoverFillColor: _cardFillHover,
+      borderColor: GlassColors.glowBorder,
+      hoverBorderColor: GlassColors.glowBorderHover,
+      child: Row(
+        // This is for the main list view
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
               // --- Image ---
               SizedBox(
                 width: 110,
@@ -116,11 +107,13 @@ class DealCard extends ConsumerWidget {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const Spacer(),
+                    PriceSparkline(productId: deal.id, height: 24),
+                    const SizedBox(height: 2),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '${_formatAmount(displayPrice ?? 0)} ${currency ?? ''}',
+                          '${formatAmount(displayPrice ?? 0)} ${currency ?? ''}',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -132,7 +125,7 @@ class DealCard extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.only(left: 8, bottom: 2),
                             child: Text(
-                              _formatAmount(deal.originalPrice!),
+                              formatAmount(deal.originalPrice!),
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     decoration: TextDecoration.lineThrough,
@@ -151,8 +144,6 @@ class DealCard extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -171,34 +162,27 @@ class _GridCard extends ConsumerWidget {
   final String? currency;
   final List<Widget>? trailingActions;
 
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currencyState = ref.watch(currencyConverterProvider);
     final pct = deal.discountPercent?.round() ?? 0;
 
     final isFavorite = ref.watch(
-      favoritesNotifierProvider.select(
+      favoritesProvider.select(
         (favs) => favs.value?.contains(deal.id) ?? false,
       ),
     );
 
-    return GestureDetector(
+    return GlassContainer(
+      borderRadius: 12,
       onTap: onTap,
-      child: Container(
-        width: 148,
-        height: 192,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainer,
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      fillColor: _cardFill,
+      hoverFillColor: _cardFillHover,
+      borderColor: GlassColors.glowBorder,
+      hoverBorderColor: GlassColors.glowBorderHover,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             // ── Image + discount badge ──────────────────────────────────
             Stack(
               children: [
@@ -267,11 +251,23 @@ class _GridCard extends ConsumerWidget {
                       isFavorite ? Icons.favorite : Icons.favorite_border,
                       color: isFavorite
                           ? Theme.of(context).colorScheme.primary
-                          : Colors.white.withOpacity(0.8),
+                          : Colors.white.withValues(alpha: 0.8),
                     ),
-                    onPressed: () => ref
-                        .read(favoritesNotifierProvider.notifier)
-                        .toggleFavorite(deal.id),
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(favoritesProvider.notifier)
+                            .toggleFavorite(deal.id);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Could not update favorite.'),
+                            ),
+                          );
+                        }
+                      }
+                    },
                   ),
                 ),
               ],
@@ -292,13 +288,14 @@ class _GridCard extends ConsumerWidget {
                         height: 1.3,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    PriceSparkline(productId: deal.id, height: 30),
                     const Spacer(),
-                    _PriceDisplay(
+                    PriceDisplay(
                       currencyState: currencyState,
                       displayPrice: displayPrice ?? deal.currentPrice,
                       targetCurrency: currency ?? deal.currency,
                       displayOriginalPrice: deal.originalPrice,
-                      formatAmount: _formatAmount,
                     ),
                   ],
                 ),
@@ -306,71 +303,7 @@ class _GridCard extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
 
-class _PriceDisplay extends StatelessWidget {
-  const _PriceDisplay({
-    required this.currencyState,
-    required this.displayPrice,
-    required this.targetCurrency,
-    this.displayOriginalPrice,
-    required this.formatAmount,
-  });
-
-  final AsyncValue<ExchangeRates?> currencyState;
-  final double displayPrice;
-  final String targetCurrency;
-  final double? displayOriginalPrice;
-  final String Function(double) formatAmount;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return currencyState.when(
-      data: (_) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${formatAmount(displayPrice)} $targetCurrency',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: const Color(0xFF00E676), // Kept for specific design choice
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
-            ),
-          ),
-          if (displayOriginalPrice != null) ...[
-            const SizedBox(height: 1),
-            Text(
-              '${formatAmount(displayOriginalPrice!)} $targetCurrency',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
-                ),
-                decoration: TextDecoration.lineThrough,
-                decorationColor: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-      loading: () => Shimmer.fromColors(
-        baseColor: theme.colorScheme.surfaceContainerHighest,
-        highlightColor: theme.colorScheme.surfaceBright,
-        child: Container(
-          height: 13,
-          width: 70,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-      ),
-      error: (_, _) => const Text('N/A'),
-    );
-  }
-}

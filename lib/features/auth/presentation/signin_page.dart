@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'forgot_password_page.dart';
-import '../../../utils/validators.dart';
+import '../providers/validators.dart';
 import 'signup_page.dart';
 import '../providers/auth_provider.dart';
 

@@ -1,4 +1,4 @@
-import 'package:dealfinder_pro/providers/currency_provider.dart';
+import 'package:dealfinder_pro/features/settings/presentation/currency_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

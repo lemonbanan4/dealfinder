@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../providers/currency_provider.dart';
-import 'local_favorites_notifier.dart';
+import '../../settings/presentation/currency_provider.dart';
+import '../providers/favorites_provider.dart';
 import '../domain/deal.dart';
 
 class DealDetailsPage extends ConsumerWidget {
@@ -25,15 +25,17 @@ class DealDetailsPage extends ConsumerWidget {
     final formattedPrice = ref.watch(
       formattedPriceProvider(price: deal.currentPrice, currency: deal.currency),
     );
-    final originalPrice = ref.watch(
-      formattedPriceProvider(
-        price: deal.originalPrice,
-        currency: deal.currency,
-      ),
-    );
+    final originalPrice = deal.originalPrice != null
+        ? ref.watch(
+            formattedPriceProvider(
+              price: deal.originalPrice!,
+              currency: deal.currency,
+            ),
+          )
+        : null;
 
     final isFavorite = ref.watch(
-      favoritesNotifierProvider.select(
+      favoritesProvider.select(
         (favs) => favs.value?.contains(deal.id) ?? false,
       ),
     );
@@ -78,7 +80,7 @@ class DealDetailsPage extends ConsumerWidget {
                   color: isFavorite ? theme.colorScheme.primary : null,
                 ),
                 onPressed: () => ref
-                    .read(favoritesNotifierProvider.notifier)
+                    .read(favoritesProvider.notifier)
                     .toggleFavorite(deal.id),
               ),
             ],
@@ -106,7 +108,7 @@ class DealDetailsPage extends ConsumerWidget {
                       if (deal.originalPrice != null &&
                           deal.originalPrice! > deal.currentPrice)
                         Text(
-                          originalPrice,
+                          originalPrice!,
                           style: theme.textTheme.titleLarge?.copyWith(
                             decoration: TextDecoration.lineThrough,
                             color: theme.colorScheme.onSurfaceVariant,

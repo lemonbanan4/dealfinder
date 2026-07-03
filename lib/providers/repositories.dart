@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../features/alerts/data/alert_repository.dart';
 import '../features/alerts/data/firestore_alert_repository.dart';
@@ -76,4 +78,14 @@ final firestoreDealRepositoryProvider = Provider<FirestoreDealRepository>(
 final affiliateRouterProvider = Provider<AffiliateRouter>(
   (_) => const AffiliateRouter(),
   name: 'affiliateRouterProvider',
+);
+
+final sharedPreferencesProvider = FutureProvider<SharedPreferences>(
+  (_) => SharedPreferences.getInstance(),
+  name: 'sharedPreferencesProvider',
+);
+
+final firestoreProvider = Provider<FirebaseFirestore>(
+  (_) => FirebaseFirestore.instance,
+  name: 'firestoreProvider',
 );

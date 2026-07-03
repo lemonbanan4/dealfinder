@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -57,7 +58,7 @@ class PriceAlertNotifier extends _$PriceAlertNotifier {
       return true;
     } catch (e) {
       // Log the error for debugging.
-      print('Failed to save price alert: $e');
+      debugPrint('Failed to save price alert: $e');
       return false;
     }
   }

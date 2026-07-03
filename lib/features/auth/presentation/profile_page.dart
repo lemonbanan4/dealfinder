@@ -1,13 +1,15 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:flutter/material.dart';
+import 'login_page.dart';
 import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
-import '../../deals/presentation/feed_page.dart'
-    show favoritesProvider, feedFiltersProvider;
+import '../../deals/presentation/feed_page.dart' show feedFiltersProvider;
+import '../../deals/presentation/user.dart';
 import '../../deals/providers/recently_viewed_provider.dart';
+import '../../deals/providers/deals_provider.dart';
 import '../../settings/providers/theme_provider.dart';
 import '../../../widgets/glass_dialog.dart';
 import '../../legal/presentation/about_us_page.dart';
@@ -22,7 +24,7 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
-  final _supabase = Supabase.instance.client;
+
 
   Future<void> _signOut() async {
     final confirm = await showGlassDialog<bool>(
@@ -186,18 +188,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  Future<void> _deleteAlert(String alertId) async {
-    try {
-      await _supabase.from('price_alerts').delete().eq('id', alertId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Alert removed successfully.')),
-        );
-      }
-    } catch (e) {
-      debugPrint('Failed to delete alert: $e');
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +207,57 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         body: ListView(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
           children: [
+            if (user == null) ...[
+              Card(
+                color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: isDark ? const Color(0xFF252638) : Colors.grey[200]!,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.account_circle_outlined,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Sign in to save favorites and manage your profile.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => LoginPage()),
+                          );
+                        },
+                        child: const Text('Sign In or Create Account'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
             if (user != null) ...[
               Center(
                 child: const Icon(
@@ -251,7 +293,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ),
 
-              const _UserPriceAlertsSection(),
+              _UserPriceAlertsSection(user: user),
               const SizedBox(height: 24),
               const Divider(color: Color(0xFF252638)),
             ],
@@ -393,43 +435,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       error: (e, s) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
   }
-
-  void _showPlaceholderDialog(String title) {
-    showGlassDialog(
-      context: context,
-      title: Text(title),
-      content: Text(
-        'The $title section will be available soon as part of the launch deployment.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
 }
 
-class _UserPriceAlertsSection extends StatefulWidget {
-  const _UserPriceAlertsSection();
+class _UserPriceAlertsSection extends ConsumerStatefulWidget {
+  const _UserPriceAlertsSection({required this.user});
+  final User user;
 
   @override
-  State<_UserPriceAlertsSection> createState() =>
+  ConsumerState<_UserPriceAlertsSection> createState() =>
       __UserPriceAlertsSectionState();
 }
 
-class __UserPriceAlertsSectionState extends State<_UserPriceAlertsSection> {
-  final _supabase = Supabase.instance.client;
+class __UserPriceAlertsSectionState extends ConsumerState<_UserPriceAlertsSection> {
+  SupabaseClient get _supabase => ref.read(supabaseProvider);
 
   Stream<List<Map<String, dynamic>>> _userAlertsStream() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const Stream.empty();
-
     return _supabase
         .from('price_alerts')
         .stream(primaryKey: ['id'])
-        .eq('user_id', user.uid)
+        .eq('user_id', widget.user.uid)
         .map(
           (maps) => maps.where((item) => item['is_active'] == true).toList(),
         );
@@ -457,9 +481,11 @@ class __UserPriceAlertsSectionState extends State<_UserPriceAlertsSection> {
 
     try {
       await _supabase.from('price_alerts').delete().eq('id', alertId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Alert removed successfully.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Alert removed successfully.')),
+        );
+      }
     } catch (e) {
       debugPrint('Failed to delete alert: $e');
     }

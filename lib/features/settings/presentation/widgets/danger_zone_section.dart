@@ -56,7 +56,7 @@ class DangerZoneSection extends ConsumerWidget {
       ],
     );
 
-    if (confirm != true) return;
+    if (confirm != true || !context.mounted) return;
 
     showDialog(
       context: context,

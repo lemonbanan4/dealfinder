@@ -1,6 +1,7 @@
 import 'package:dealfinder_pro/features/deals/data/deals_repository.dart';
 import 'package:dealfinder_pro/features/deals/domain/deal.dart';
 import 'package:dealfinder_pro/features/deals/presentation/deals_page.dart';
+import 'package:dealfinder_pro/features/deals/presentation/deals_notifier.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -46,16 +47,23 @@ void main() {
       } catch (_) {}
     });
 
+    final provider = dealsProvider('', DealSort.relevance);
+
     void initNotifier() {
-      container.listen(dealsProvider, (previous, next) {});
-      notifier = container.read(dealsProvider.notifier);
+      container.listen(provider, (previous, next) {});
+      notifier = container.read(provider.notifier);
     }
 
     test('Initial state is loading, then fetches first page', () async {
       // Arrange
       final mockDeals = createMockDeals(20);
       when(
-        () => mockDealsRepository.fetchDeals(page: 1),
+        () => mockDealsRepository.fetchDeals(
+          page: 1,
+          query: any(named: 'query'),
+          sort: any(named: 'sort'),
+          category: any(named: 'category'),
+        ),
       ).thenAnswer((_) async => mockDeals);
 
       // Act
@@ -63,17 +71,22 @@ void main() {
       await pumpEventQueue();
 
       // Assert
-      final state = container.read(dealsProvider);
-      expect(state.deals.length, 20);
+      final state = container.read(provider);
+      expect(state.value!.deals.length, 20);
       expect(state.isLoading, isFalse);
-      expect(state.hasMore, isTrue);
+      expect(state.value!.hasMore, isTrue);
     });
 
     test('fetchNextPage appends new deals to the state', () async {
       // Arrange: Set up initial state
       final initialDeals = createMockDeals(20, startingId: 1);
       when(
-        () => mockDealsRepository.fetchDeals(page: 1),
+        () => mockDealsRepository.fetchDeals(
+          page: 1,
+          query: any(named: 'query'),
+          sort: any(named: 'sort'),
+          category: any(named: 'category'),
+        ),
       ).thenAnswer((_) async => initialDeals);
       
       initNotifier();
@@ -82,44 +95,60 @@ void main() {
       // Arrange: Set up for the next page fetch
       final nextDeals = createMockDeals(10, startingId: 21);
       when(
-        () => mockDealsRepository.fetchDeals(page: 2),
+        () => mockDealsRepository.fetchDeals(
+          page: 2,
+          query: any(named: 'query'),
+          sort: any(named: 'sort'),
+          category: any(named: 'category'),
+        ),
       ).thenAnswer((_) async => nextDeals);
 
       // Act
       await notifier.fetchNextPage();
 
       // Assert
-      final state = container.read(dealsProvider);
-      expect(state.deals.length, 30); // 20 initial + 10 new
-      expect(state.isLoadingMore, isFalse);
-      expect(state.hasMore, isFalse); // Fetched less than a full page
-      expect(state.deals.last.title, 'Deal 30');
+      final state = container.read(provider);
+      expect(state.value!.deals.length, 30); // 20 initial + 10 new
+      expect(state.value!.hasMore, isFalse); // Fetched less than a full page
+      expect(state.value!.deals.last.title, 'Deal 30');
     });
 
     test('refresh clears existing deals and fetches page 1', () async {
       // Arrange: Set up initial state with some deals
       final initialDeals = createMockDeals(20, startingId: 1);
       when(
-        () => mockDealsRepository.fetchDeals(page: 1),
+        () => mockDealsRepository.fetchDeals(
+          page: 1,
+          query: any(named: 'query'),
+          sort: any(named: 'sort'),
+          category: any(named: 'category'),
+        ),
       ).thenAnswer((_) async => initialDeals);
       
       initNotifier();
       await pumpEventQueue(); // Wait for initial fetch
-      expect(container.read(dealsProvider).deals.length, 20);
+      expect(container.read(provider).value!.deals.length, 20);
 
       // Arrange: Set up for the refresh call
       final refreshedDeals = createMockDeals(5, startingId: 101);
       when(
-        () => mockDealsRepository.fetchDeals(page: 1),
+        () => mockDealsRepository.fetchDeals(
+          page: 1,
+          query: any(named: 'query'),
+          sort: any(named: 'sort'),
+          category: any(named: 'category'),
+        ),
       ).thenAnswer((_) async => refreshedDeals);
 
       // Act
-      await notifier.refresh();
+      // Refresh is triggered by invalidating/refreshing the provider
+      final future = container.refresh(provider.future);
+      await future;
 
       // Assert
-      final state = container.read(dealsProvider);
-      expect(state.deals.length, 5);
-      expect(state.deals.first.title, 'Deal 101');
+      final state = container.read(provider);
+      expect(state.value!.deals.length, 5);
+      expect(state.value!.deals.first.title, 'Deal 101');
       expect(state.isLoading, isFalse);
     });
   });

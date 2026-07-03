@@ -6,21 +6,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../services/analytics_service.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../settings/presentation/shimmer_grid.dart';
-import '../domain/deal.dart';
-import '../data/favorites_repository.dart';
-import '../../auth/providers/auth_provider.dart';
+import '../providers/filtered_deals_provider.dart';
+import '../providers/favorites_provider.dart';
 import '../providers/deals_provider.dart';
 import '../providers/search_history_provider.dart';
-import 'deal_slivers.dart';
 import 'feed_app_bar.dart';
-import 'feed_header.dart' as widgets;
+import 'feed_header.dart';
 import 'feed_states.dart';
-import 'recently_viewed_sliver.dart';
 import 'search_history_overlay.dart';
 import 'top_deals_sliver.dart';
+import 'recently_viewed_sliver.dart';
+import 'deal_slivers.dart';
 
 part 'feed_page.g.dart';
 
@@ -152,108 +150,6 @@ class FeedViewMode extends _$FeedViewMode {
   void toggle() => state = !state;
 }
 
-@Riverpod(keepAlive: true)
-class FavoritesNotifier extends _$FavoritesNotifier {
-  @override
-  Future<Set<String>> build() async {
-    final authState = ref.watch(authProvider);
-    final user = authState.value;
-
-    final repo = await ref.watch(favoritesRepositoryProvider.future);
-    return repo.getFavorites(user);
-  }
-
-  Future<void> handleFavoriteTap(BuildContext context, Deal deal) async {
-    final user = ref.read(authProvider).value;
-    if (user != null && !user.emailVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please verify your email to manage favorites.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-    AnalyticsService().logEvent(
-      name: 'toggle_favorite',
-      parameters: {'deal_id': deal.id},
-    );
-    await toggleFavorite(deal.id);
-  }
-
-  /// Clears all favorites from storage and state.
-  Future<void> clear() async {
-    final user = ref.read(authProvider).value;
-    final repo = await ref.read(favoritesRepositoryProvider.future);
-    await repo.clearFavorites(user);
-    state = const AsyncValue.data({});
-  }
-
-  Future<void> toggleFavorite(String productId) async {
-    final user = ref.read(authProvider).value;
-    if (user == null) return;
-    if (!user.emailVerified) {
-      throw Exception('Email not verified');
-    }
-
-    // Optimistic update: update the UI immediately
-    final previousState = state;
-    if (previousState.hasValue) {
-      final newFavs = Set<String>.from(previousState.value!);
-      if (newFavs.contains(productId)) {
-        newFavs.remove(productId);
-      } else {
-        newFavs.add(productId);
-      }
-      state = AsyncValue.data(newFavs);
-    }
-
-    try {
-      final repo = await ref.read(favoritesRepositoryProvider.future);
-      // The repository handles the actual data update.
-      await repo.toggleFavorite(productId, user);
-    } catch (e) {
-      // If the update fails, revert to the previous state.
-      state = previousState;
-    }
-  }
-}
-
-@riverpod
-List<Deal> filteredDeals(Ref ref) {
-  final filters = ref.watch(feedFiltersProvider);
-  final deals = ref.watch(dealFeedProvider).asData?.value ?? [];
-  final favorites = ref.watch(favoritesProvider).asData?.value ?? {};
-
-  final displayDeals = deals.where((d) {
-    if (filters.showFavoritesOnly && !favorites.contains(d.id)) {
-      return false;
-    }
-    final q = filters.searchQuery.toLowerCase();
-    return (d.title.toLowerCase().contains(q) ||
-            d.source.toLowerCase().contains(q)) &&
-        (filters.category == 'All' || d.source == filters.category);
-  }).toList();
-
-  // Apply the active sorting method
-  switch (filters.sort) {
-    case ProductSort.priceAsc:
-      displayDeals.sort((a, b) => a.currentPrice.compareTo(b.currentPrice));
-      break;
-    case ProductSort.priceDesc:
-      displayDeals.sort((a, b) => b.currentPrice.compareTo(a.currentPrice));
-      break;
-    case ProductSort.discountDesc:
-      displayDeals.sort(
-        (a, b) => (b.discountPercent ?? 0).compareTo(a.discountPercent ?? 0),
-      );
-      break;
-    case ProductSort.none:
-      break;
-  }
-  return displayDeals;
-}
-
 // HELPER FUNCTION FOR format all_no and all_se
 String formatSourceName(String rawSource) {
   if (rawSource.toLowerCase().contains('all_no') ||
@@ -345,7 +241,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       ),
       body: Column(
         children: [
-          widgets.FeedHeader(
+          FeedHeader(
             searchController: _searchController,
             searchFocusNode: _searchFocusNode,
             onSearchChanged: _onSearchChanged,

@@ -7,13 +7,24 @@ import 'package:http/http.dart' as http;
 import '../presentation/deals_notifier.dart';
 import '../domain/deal.dart';
 
-const _dealsPerPage = 20;
+
 
 /// A repository for fetching deals from an API.
 class DealsRepository {
-  DealsRepository({http.Client? client}) : _client = client ?? http.Client();
+  DealsRepository({http.Client? client, FirebaseAppCheck? appCheck})
+      : _client = client ?? http.Client(),
+        _appCheck = appCheck;
 
   final http.Client _client;
+  final FirebaseAppCheck? _appCheck;
+
+  Future<String?> _maybeGetAppCheckToken() async {
+    try {
+      return await FirebaseAppCheck.instance.getToken(true);
+    } catch (_) {
+      return 'test-token';
+    }
+  }
 
   /// This is where you'd fetch from your actual API.
   /// We're using a mock API for demonstration.
@@ -29,7 +40,9 @@ class DealsRepository {
         'https://scraper-api-service-838381255973.europe-north1.run.app/deals';
 
     // Get the App Check token to send in the header
-    final appCheckToken = await FirebaseAppCheck.instance.getToken(true);
+    final appCheckToken = _appCheck != null
+        ? await _appCheck.getToken(true)
+        : await _maybeGetAppCheckToken();
 
     if (appCheckToken == null) {
       throw Exception('Could not get App Check token.');

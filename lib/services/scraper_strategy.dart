@@ -35,9 +35,9 @@ class NativeScraperStrategy implements ScraperStrategy {
 /// Proxies fetch through the BFF — used on web where CORS blocks direct scraping.
 ///
 /// BFF contract:
-///   POST <proxyBaseUrl>/api/fetch
-///   Body: { "url": "https://..." }
-///   Response: { "html": "<html>...</html>" }
+///   POST `<proxyBaseUrl>`/api/fetch
+///   Body: `{ "url": "https://..." }`
+///   Response: `{ "html": "<html>...</html>" }`
 class ProxyScraperStrategy implements ScraperStrategy {
   const ProxyScraperStrategy(this._client, this._proxyBaseUrl);
 

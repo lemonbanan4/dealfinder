@@ -15,6 +15,7 @@ import 'app_logo.dart';
 import '../features/settings/providers/cookie_consent_provider.dart';
 import 'cookie_consent_banner.dart';
 import '../features/alerts/providers/unread_alerts_provider.dart';
+import '../theme/glass_colors.dart';
 
 part 'adaptive_scaffold.g.dart';
 
@@ -111,7 +112,7 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
             Container(
               width: 1,
               color: isDark
-                  ? const Color(0xFF252638)
+                  ? GlassColors.glowBorder
                   : Theme.of(context).dividerColor,
             ),
             Expanded(child: _pages[selectedIndex]),
@@ -127,7 +128,7 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
         onDestinationSelected: (i) => ref
             .read(appShellIndexProvider.notifier)
             .onDestinationSelected(context, ref, i),
-        backgroundColor: isDark ? const Color(0xFF0C0D15) : null,
+        backgroundColor: isDark ? GlassColors.background : null,
         indicatorColor: isDark ? const Color(0xFF1E2035) : null,
         destinations: [
           for (final (label, icon, selected) in _navDestinations)
@@ -173,8 +174,8 @@ class _CustomSidebar extends StatelessWidget {
   final bool isDark;
   final int unreadAlerts;
 
-  static const _kBg = Color(0xFF0C0D15);
-  static const _kBorder = Color(0xFF252638);
+  static const _kBg = GlassColors.background;
+  static const _kBorder = GlassColors.glowBorder;
   static const _kDimmer = Color(0xFF3A3A52);
 
   @override

@@ -10,6 +10,7 @@ import 'features/settings/providers/theme_provider.dart';
 import 'services/notification/fcm_service.dart';
 import 'features/settings/providers/cookie_consent_provider.dart';
 import 'services/analytics_service.dart';
+import 'theme/glass_colors.dart';
 
 class PrisPulsApp extends ConsumerStatefulWidget {
   const PrisPulsApp({super.key});
@@ -92,13 +93,18 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {TargetPlatform.android: CupertinoPageTransitionsBuilder()},
         ),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF006EFF),
-          brightness: Brightness.dark,
-        ),
+        colorScheme:
+            ColorScheme.fromSeed(
+              seedColor: const Color(0xFF006EFF),
+              brightness: Brightness.dark,
+            ).copyWith(
+              surface: GlassColors.background,
+              surfaceContainer: GlassColors.surface,
+              outlineVariant: GlassColors.glowBorder,
+            ),
         scaffoldBackgroundColor: isAmoled
             ? Colors.black
-            : const Color(0xFF0A0B10),
+            : GlassColors.background,
         fontFamily: 'Poppins',
         useMaterial3: true,
       ),

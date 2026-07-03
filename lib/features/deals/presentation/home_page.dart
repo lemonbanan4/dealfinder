@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../deals/presentation/deals_page.dart';
-import '../../profile/presentation/profile_page.dart';
+import '../../auth/presentation/profile_page.dart';
 import '../../deals/presentation/favorites_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {

@@ -1,24 +1,42 @@
+import 'dart:async';
 import 'package:dealfinder_pro/features/auth/presentation/forgot_password_page.dart';
 import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
+import 'package:dealfinder_pro/features/deals/presentation/user.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 
-import '../mocks.dart';
+// Fake Auth notifier for testing
+class FakeAuth extends Auth {
+  FakeAuth();
+
+  bool sendResetCalled = false;
+  String? resetEmail;
+
+  @override
+  FutureOr<User?> build() => null;
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    sendResetCalled = true;
+    resetEmail = email;
+  }
+}
 
 void main() {
-  late MockAuthNotifier mockAuthNotifier;
+  late FakeAuth fakeAuth;
 
   setUp(() {
-    mockAuthNotifier = MockAuthNotifier();
+    fakeAuth = FakeAuth();
   });
 
   // Helper to pump the widget with necessary providers
   Future<void> pumpForgotPasswordPage(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [authProvider.overrideWith((ref) => mockAuthNotifier)],
+        overrides: [
+          authProvider.overrideWith(() => fakeAuth),
+        ],
         child: const MaterialApp(home: ForgotPasswordPage()),
       ),
     );
@@ -27,13 +45,6 @@ void main() {
   testWidgets('Forgot Password Success Screen shows correct widgets', (
     WidgetTester tester,
   ) async {
-    // Arrange: Set up the mock to successfully send the reset email
-    when(
-      () => mockAuthNotifier.sendPasswordResetEmail(any()),
-    ).thenAnswer((_) async {
-      return null;
-    });
-
     await pumpForgotPasswordPage(tester);
 
     // Act: Enter an email and tap the "Send Reset Link" button
@@ -42,6 +53,8 @@ void main() {
     await tester.pumpAndSettle(); // Wait for animations and state changes
 
     // Assert: Verify that the success screen is now visible
+    expect(fakeAuth.sendResetCalled, isTrue);
+    expect(fakeAuth.resetEmail, 'test@example.com');
 
     // 1. Check for the success icon
     expect(find.byIcon(Icons.mark_email_read_outlined), findsOneWidget);

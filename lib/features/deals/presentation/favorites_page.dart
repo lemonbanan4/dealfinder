@@ -4,17 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/deal.dart';
 import 'deal_details_page.dart';
 import 'deals_notifier.dart';
-import 'local_favorites_notifier.dart';
+import '../providers/favorites_provider.dart';
 import '../../../widgets/deal_card.dart';
 
 /// A provider that filters the deals and returns only the favorites.
 final favoriteDealsProvider = Provider<List<Deal>>((ref) {
   final dealsState = ref
-      .watch(dealsNotifierProvider('', DealSort.relevance))
+      .watch(dealsProvider('', DealSort.relevance))
       .asData
       ?.value;
   final allDeals = dealsState?.deals ?? [];
-  final favoriteIds = ref.watch(favoritesNotifierProvider).valueOrNull ?? {};
+  final favoriteIds = ref.watch(favoritesProvider).value ?? {};
 
   if (favoriteIds.isEmpty || allDeals.isEmpty) {
     return [];
@@ -33,9 +33,9 @@ class FavoritesPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('My Favorites')),
       body: RefreshIndicator.adaptive(
         onRefresh: () async {
-          ref.invalidate(favoritesNotifierProvider);
+          ref.invalidate(favoritesProvider);
           return ref.refresh(
-            dealsNotifierProvider('', DealSort.relevance).future,
+            dealsProvider('', DealSort.relevance).future,
           );
         },
         child: favoriteDeals.isEmpty

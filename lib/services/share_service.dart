@@ -12,7 +12,9 @@ class ShareService {
       await Clipboard.setData(ClipboardData(text: url));
     } else {
       // On Mobile, use the native share dialog
-      await Share.share('Check out this deal: $title\n$url');
+      await SharePlus.instance.share(
+        ShareParams(text: 'Check out this deal: $title\n$url'),
+      );
     }
   }
 }

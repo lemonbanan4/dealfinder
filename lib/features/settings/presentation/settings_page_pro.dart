@@ -6,9 +6,9 @@ import '../../auth/providers/auth_provider.dart';
 import '../../legal/presentation/about_us_page.dart';
 import '../../legal/presentation/privacy_policy_page.dart';
 import '../../legal/presentation/terms_of_service_page.dart';
-import '../../../providers/theme_provider.dart';
-import '../widgets/settings_group.dart';
-import '../widgets/settings_list_tile.dart';
+import '../providers/theme_provider.dart';
+import '../../../widgets/settings_group.dart';
+import '../../../widgets/settings_list_tile.dart';
 
 /// A modern, well-structured settings page.
 class SettingsPagePro extends ConsumerWidget {
@@ -17,7 +17,7 @@ class SettingsPagePro extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).value;
-    final currentTheme = ref.watch(themeModeProvider);
+    final currentTheme = ref.watch(themeProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -80,10 +80,10 @@ class SettingsPagePro extends ConsumerWidget {
                 title: 'Dark Mode',
                 trailing: CupertinoSwitch(
                   // The switch is on if the theme is dark.
-                  value: currentTheme == ThemeMode.dark,
+                  value: currentTheme == AppTheme.dark,
                   onChanged: (value) {
                     // Call the notifier to toggle the theme.
-                    ref.read(themeModeProvider.notifier).toggle(value);
+                    ref.read(themeProvider.notifier).updateTheme(value ? AppTheme.dark : AppTheme.light);
                   },
                 ),
                 onTap: null, // The switch handles the interaction
@@ -185,10 +185,10 @@ class SettingsPagePro extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text(confirmText),
                 style: TextButton.styleFrom(
                   foregroundColor: Theme.of(context).colorScheme.error,
                 ),
+                child: Text(confirmText),
               ),
             ],
           ),

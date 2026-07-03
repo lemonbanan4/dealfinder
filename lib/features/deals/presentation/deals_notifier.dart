@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dealfinder_pro/features/deals/presentation/deals_page.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../domain/deal.dart';
+import '../domain/deal.dart';
 import '../data/deals_repository.dart';
 
 part 'deals_notifier.g.dart';
@@ -46,11 +46,11 @@ class DealsState {
 class DealsNotifier extends _$DealsNotifier {
   @override
   Future<DealsState> build(String query, DealSort sort) async {
-    final category = ref.watch(dealCategoryNotifierProvider);
+    final category = ref.watch(categoryProvider);
     final deals = await ref
         .watch(dealsRepositoryProvider)
         .fetchDeals(page: 1, query: query, sort: sort, category: category);
-    return DealsState(deals: deals, page: 1, hasMore: deals.isNotEmpty);
+    return DealsState(deals: deals, page: 1, hasMore: deals.length == 20);
   }
 
   Future<void> fetchNextPage() async {
@@ -59,7 +59,7 @@ class DealsNotifier extends _$DealsNotifier {
 
     state = const AsyncLoading<DealsState>().copyWithPrevious(state);
 
-    final category = ref.read(dealCategoryNotifierProvider);
+    final category = ref.read(categoryProvider);
     final currentValue = state.value;
     if (currentValue == null) return;
 
@@ -68,8 +68,8 @@ class DealsNotifier extends _$DealsNotifier {
         .read(dealsRepositoryProvider)
         .fetchDeals(
           page: nextPage,
-          query: buildArg.query,
-          sort: buildArg.sort,
+          query: query,
+          sort: sort,
           category: category,
         );
 
@@ -77,7 +77,7 @@ class DealsNotifier extends _$DealsNotifier {
       currentValue.copyWith(
         deals: [...currentValue.deals, ...newDeals],
         page: nextPage,
-        hasMore: newDeals.isNotEmpty,
+        hasMore: newDeals.length == 20,
       ),
     );
   }

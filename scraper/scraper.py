@@ -126,11 +126,11 @@ class StoreConfig:
 STORES: list[StoreConfig] = [
 
     StoreConfig(
-        id="all_se",
-        name="ALL SE Deals",
+        id="acer_se",
+        name="Acer Sweden",
         currency="SEK",
         awin=AwinConfig(
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/cid/61,62,72,73,71,74,75,76,77,78,63,80,82,64,83,84,85,65,86,88,90,89,91,67,92,94,33,53,52,603,66,128,130,133,212,209,210,211,68,69,213,220,221,70,224,225,226,227,228,229,4,5,10,11,537,19,15,14,6,20,22,23,24,25,7,30,32,619,8,35,618,43,9,45,46,50,421,605,604,599,422,433,434,436,532,428,474,475,476,477,423,608,437,438,441,444,445,424,451,448,453,449,452,450,425,455,457,459,460,456,458,426,616,463,464,465,466,427,625,597,473,469,617,470,429,430,481,615,483,484,485,488,529,596,431,432,490/fid/62983,80731/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/62983/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
             currency_filter="SEK",
             column_map={
             "id": "merchant_product_id",
@@ -143,13 +143,327 @@ STORES: list[StoreConfig] = [
         ),
     ),
 
-    # Example of using the consolidated SE feed
+        # Just add a new block to your STORES list in scraper.py
     StoreConfig(
-        id="all_no",
-        name="All NO Deals",
+        id="samsung_se",
+        name="Samsung Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/80731/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="navimow_se",
+        name="Navimow Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/111829/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="diamondsmile_se",
+        name="Diamond Smile Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/92875/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="babubas_se",
+        name="Babubas Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/109860/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+    # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="sharkninja_se",
+        name="SharkNinja Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/98123/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="deluxehomeartshop_se",
+        name="Deluxe Home Art Shop Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/110453/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+
+    # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="Bazta_se",
+        name="Bazta Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/111947/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+
+    # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+    id="perfumeza_se",
+    name="Perfumeza Sweden",
+    currency="SEK",
+    awin=AwinConfig(
+        # Paste the specific feed URL you got from the Awin interface for this store
+        feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/112410/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+        currency_filter="SEK",
+        column_map={
+            "id": "merchant_product_id", # Verify these column names in your Awin feed
+            "title": "product_name",
+            "price": "search_price",
+            "link": "aw_deep_link",
+            "image": "aw_image_url",
+        }
+    ),
+    ),
+
+
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="plusshop_se",
+        name="PlusShop Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/111985/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="bloomcabin_se",
+        name="BloomCabin Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/109678/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="dyson_se",
+        name="Dyson Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/71335/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+    ### ---------- NORWAY deals ---------
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="bloomcabin_no",
+        name="Bloomcabin Norway",
         currency="NOK",
         awin=AwinConfig(
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/cid/61,62,72,73,71,74,75,76,77,78,63,80,82,64,83,84,85,65,86,88,90,89,91,67,92,94,33,53,52,603,66,128,130,133,212,209,210,211,68,69,213,220,221,70,224,225,226,227,228,229,4,5,10,11,537,19,15,14,6,20,22,23,24,25,7,30,32,619,8,35,618,43,9,45,46,50,634,230,231,538,235,238,241,556,245,521,576,575,577,579,361,633,362,366,367,368,371,369,363,372,373,374,377,375,535,364,378,365,383,385,390,392,394,399,402,404,406,407,347,348,354,350,351,349,357,358,360/fid/51735,62985/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/109677/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="NOK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="dyson_no",
+        name="Dyson Norway",
+        currency="NOK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/71347/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="NOK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="sharkninja_no",
+        name="SharkNinja Norway",
+        currency="NOK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/115464/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="NOK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="acer_no",
+        name="Acer Norway",
+        currency="NOK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/62985/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="NOK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+        # Just add a new block to your STORES list in scraper.py
+    StoreConfig(
+        id="byvoks_no",
+        name="Byvoks Norway",
+        currency="NOK",
+        awin=AwinConfig(
+            # Paste the specific feed URL you got from the Awin interface for this store
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/99323/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            currency_filter="NOK",
+            column_map={
+                "id": "merchant_product_id", # Verify these column names in your Awin feed
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+
+
+    # Example of using the consolidated SE feed
+    StoreConfig(
+        id="samsung_no",
+        name="Samsung NO",
+        currency="NOK",
+        awin=AwinConfig(
+            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/84515/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
             currency_filter="NOK",
             column_map={
             "id": "merchant_product_id",

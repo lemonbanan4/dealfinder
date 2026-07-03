@@ -11,6 +11,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../domain/deal.dart';
 import 'price_alert_bottom_sheet.dart';
 import '../providers/recently_viewed_provider.dart';
+import '../providers/favorites_provider.dart';
 import 'feed_page.dart';
 
 /// A single, reusable sliver that can render deals as either a grid or a list.
@@ -101,7 +102,7 @@ class DealsSliver extends ConsumerWidget {
         },
         trailingActions: [
           IconButton(
-            icon: (favorites.asData?.value.contains(deal.id) ?? false)
+            icon: (favorites.value?.contains(deal.id) ?? false)
                 ? Icon(
                     Icons.favorite,
                     color: Theme.of(context).colorScheme.error,
@@ -131,11 +132,7 @@ class DealsSliver extends ConsumerWidget {
 
     if (view == FeedView.grid) {
       return SliverGrid.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: _gridCrossAxisCount(context),
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.8,
-        ),
+        gridDelegate: dealGridDelegate,
         itemCount: deals.length + (isLoadingMore || _showError ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == deals.length) {
@@ -204,11 +201,7 @@ class DealsSliver extends ConsumerWidget {
 
     if (isGridView) {
       return SliverGrid.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: _gridCrossAxisCount(context),
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.8,
-        ),
+        gridDelegate: dealGridDelegate,
         itemCount: itemCount,
         itemBuilder: (context, index) =>
             const _ShimmerDealCard(view: DealCardView.grid),
@@ -303,7 +296,9 @@ class _GridShimmer extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: _shimmerContainer(height: 192),
+      // No fixed height: the SliverGrid's mainAxisExtent (see
+      // [dealGridDelegate]) already gives this tile a tight size.
+      child: _shimmerContainer(),
     );
   }
 }
@@ -319,8 +314,14 @@ Widget _shimmerContainer({double? width, double? height}) {
   );
 }
 
-/// Improvement 3: single source of truth for responsive grid column count.
-/// Extracted from the duplicated inline calculation that was in both the
-/// deals grid and the shimmer grid.
-int _gridCrossAxisCount(BuildContext context) =>
-    (MediaQuery.of(context).size.width / 200).floor().clamp(1, 4);
+/// Shared delegate for every deal grid (real + shimmer). Uses a fixed max
+/// tile width instead of a manually clamped column count: on wide screens
+/// this adds more columns of a consistent premium card size, rather than
+/// stretching a capped number of columns into oversized cells (which also
+/// blew up the cards' BackdropFilter blur area into a flat grey smear).
+const dealGridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
+  maxCrossAxisExtent: 220,
+  mainAxisExtent: 268,
+  crossAxisSpacing: 12,
+  mainAxisSpacing: 12,
+);

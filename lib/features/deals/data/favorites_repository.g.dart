@@ -62,7 +62,7 @@ final class FavoritesRepositoryProvider
 }
 
 String _$favoritesRepositoryHash() =>
-    r'e9459b6f230c02b700cde7e6f253752e91dcb6dd';
+    r'd090277ca0db8b5cf1dc1eec34591d32945c7a5c';
 
 /// A simple provider to expose the user object from the authProvider
 

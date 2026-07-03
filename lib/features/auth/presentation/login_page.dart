@@ -2,6 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../theme/glass_colors.dart';
+import '../../deals/presentation/user.dart' as domain;
+import '../providers/auth_provider.dart';
+
 final loginProvider =
     NotifierProvider<LoginNotifier, LoginState>(
       () => LoginNotifier(FirebaseAuth.instance),
@@ -113,86 +117,140 @@ class LoginNotifier extends Notifier<LoginState> {
   }
 }
 
-class LoginPage extends ConsumerWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends ConsumerState<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isGoogleLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      await ref.read(authProvider.notifier).signInWithGoogle();
+      // Success/error/navigation are handled by the ref.listen in build() —
+      // it reacts to authProvider regardless of which sign-in path triggered it.
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
+  void _showForgotPasswordDialog() {
+    final notifier = ref.read(loginProvider.notifier);
+    final emailDialogController = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: emailDialogController,
+            autofocus: true,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              hintText: 'Enter your email address',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final email = emailDialogController.text.trim();
+                if (email.isNotEmpty) {
+                  await notifier.resetPassword(email);
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'If an account exists, a password reset link has been sent.',
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Send Link'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(loginProvider);
     final notifier = ref.read(loginProvider.notifier);
-    final formKey = GlobalKey<FormState>();
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     ref.listen<LoginState>(loginProvider, (previous, next) {
       if (next.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.error!),
-            backgroundColor: Theme.of(context).colorScheme.error,
+            backgroundColor: theme.colorScheme.error,
           ),
         );
       }
     });
 
-    void showForgotPasswordDialog() {
-      final emailDialogController = TextEditingController();
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            title: const Text('Reset Password'),
-            content: TextField(
-              controller: emailDialogController,
-              autofocus: true,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                hintText: 'Enter your email address',
+    // Single source of truth for "the user is now signed in", regardless of
+    // whether email/password (loginProvider, above) or Google (authProvider,
+    // via _signInWithGoogle) completed the sign-in — both ultimately update
+    // the same underlying Firebase auth-state stream that authProvider wraps.
+    ref.listen<AsyncValue<domain.User?>>(authProvider, (previous, next) {
+      next.whenOrNull(
+        data: (user) {
+          if (user != null && mounted) {
+            Navigator.of(context).pop(true);
+          }
+        },
+        error: (error, _) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(error.toString()),
+                backgroundColor: theme.colorScheme.error,
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final email = emailDialogController.text.trim();
-                  if (email.isNotEmpty) {
-                    await notifier.resetPassword(email);
-                    if (context.mounted) {
-                      Navigator.of(dialogContext).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'If an account exists, a password reset link has been sent.',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: const Text('Send Link'),
-              ),
-            ],
-          );
+            );
+          }
         },
       );
-    }
+    });
 
     return Scaffold(
       appBar: AppBar(title: Text(state.isLogin ? 'Login' : 'Sign Up')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Form(
-          key: formKey,
+          key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
-                controller: emailController,
+                controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) =>
@@ -200,7 +258,7 @@ class LoginPage extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: passwordController,
+                controller: _passwordController,
                 obscureText: state.obscurePass,
                 decoration: InputDecoration(
                   labelText: 'Password',
@@ -228,7 +286,7 @@ class LoginPage extends ConsumerWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: showForgotPasswordDialog,
+                    onPressed: _showForgotPasswordDialog,
                     child: const Text('Forgot Password?'),
                   ),
                 ),
@@ -237,9 +295,9 @@ class LoginPage extends ConsumerWidget {
                 onPressed: state.loading
                     ? null
                     : () => notifier.submit(
-                        formKey,
-                        emailController.text.trim(),
-                        passwordController.text.trim(),
+                        _formKey,
+                        _emailController.text.trim(),
+                        _passwordController.text.trim(),
                       ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -250,6 +308,51 @@ class LoginPage extends ConsumerWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(state.isLogin ? 'Login' : 'Sign Up'),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'OR',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: _isGoogleLoading ? null : _signInWithGoogle,
+                icon: _isGoogleLoading
+                    ? SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: isDark ? GlassColors.glowBorderHover : null,
+                        ),
+                      )
+                    : Image.asset('assets/images/google_logo.png', height: 20),
+                label: Text(_isGoogleLoading ? 'Signing in…' : 'Continue with Google'),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: isDark ? GlassColors.background : null,
+                  foregroundColor: isDark
+                      ? Colors.white
+                      : theme.colorScheme.onSurface,
+                  side: BorderSide(
+                    color: isDark
+                        ? GlassColors.glowBorder
+                        : theme.colorScheme.outlineVariant,
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               TextButton(

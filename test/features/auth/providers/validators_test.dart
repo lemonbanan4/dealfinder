@@ -1,5 +1,5 @@
-import 'package:dealfinder_app/utils/validators.dart';
-import 'package:test/test.dart';
+import 'package:dealfinder_pro/features/auth/providers/validators.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Validators.validateEmail', () {

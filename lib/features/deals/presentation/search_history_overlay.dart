@@ -29,7 +29,7 @@ class SearchHistoryOverlay extends ConsumerWidget {
         ),
       ],
     );
-    if (confirm == true) {
+    if (confirm == true && context.mounted) {
       ref.read(searchHistoryProvider.notifier).clear();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

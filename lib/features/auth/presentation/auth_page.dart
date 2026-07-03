@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,6 +22,7 @@ class _AuthPageState extends State<AuthPage> {
   final _passCtrl = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -79,14 +81,59 @@ class _AuthPageState extends State<AuthPage> {
       }
       if (mounted) Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message ?? 'Authentication failed'),
-          backgroundColor: const Color(0xFFFF4757),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Authentication failed'),
+            backgroundColor: const Color(0xFFFF4757),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      // Firebase Auth persists sessions to local storage by default on web,
+      // but we set it explicitly so a signed-in user survives tab/browser
+      // restarts even if the SDK's default ever changes.
+      if (kIsWeb) {
+        await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+      }
+
+      final provider = GoogleAuthProvider();
+      try {
+        await FirebaseAuth.instance.signInWithPopup(provider);
+      } on FirebaseAuthException catch (e) {
+        // Only fall back to a redirect when the popup itself couldn't open
+        // (e.g. blocked by the browser) — not when the user cancelled it.
+        if (e.code == 'popup-blocked') {
+          await FirebaseAuth.instance.signInWithRedirect(provider);
+        } else {
+          rethrow;
+        }
+      }
+
+      if (mounted) Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'popup-closed-by-user' || e.code == 'cancelled-popup-request') {
+        return;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Google sign-in failed'),
+            backgroundColor: const Color(0xFFFF4757),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -129,6 +176,7 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const AppLogo()),
       body: Center(
@@ -140,7 +188,7 @@ class _AuthPageState extends State<AuthPage> {
             children: [
               Text(
                 _isLogin ? 'Welcome back' : 'Create an account',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
@@ -183,6 +231,41 @@ class _AuthPageState extends State<AuthPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(_isLogin ? 'Sign In' : 'Sign Up'),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'OR',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: _isGoogleLoading ? null : _signInWithGoogle,
+                icon: _isGoogleLoading
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Image.asset('assets/images/google_logo.png', height: 20),
+                label: Text(_isGoogleLoading ? 'Signing in…' : 'Continue with Google'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: theme.colorScheme.onSurface,
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               TextButton(

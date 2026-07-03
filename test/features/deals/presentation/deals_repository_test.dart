@@ -10,6 +10,10 @@ import 'package:mocktail/mocktail.dart';
 class MockHttpClient extends Mock implements http.Client {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValues();
+  });
+
   late DealsRepository dealsRepository;
   late MockHttpClient mockHttpClient;
 
@@ -21,25 +25,23 @@ void main() {
 
   group('DealsRepository', () {
     const page = 1;
-    final uri = Uri.parse(
-      'https://jsonplaceholder.typicode.com/photos?_page=$page&_limit=20',
-    );
 
-    // A sample successful JSON response from the API
+    // A sample successful JSON response matching the scraper schema
     final mockApiResponse = jsonEncode([
       {
-        'albumId': 1,
-        'id': 1,
+        'product_id': 'deal_1',
         'title': 'accusamus beatae ad facilis cum similique qui sunt',
-        'url': 'https://via.placeholder.com/600/92c952',
-        'thumbnailUrl': 'https://via.placeholder.com/150/92c952',
+        'brand': 'Test Brand',
+        'tracking_url': 'https://via.placeholder.com/600/92c952',
+        'image_url': 'https://via.placeholder.com/150/92c952',
+        'price': 99.99,
       },
     ]);
 
     test('fetchDeals returns a list of deals on success (200)', () async {
       // 3. Arrange: Setup the mock to return a successful response
       when(
-        () => mockHttpClient.get(uri),
+        () => mockHttpClient.get(any(), headers: any(named: 'headers')),
       ).thenAnswer((_) async => http.Response(mockApiResponse, 200));
 
       // 4. Act: Call the method we are testing
@@ -52,12 +54,14 @@ void main() {
         result.first.title,
         'accusamus beatae ad facilis cum similique qui sunt',
       );
+      expect(result.first.currentPrice, 99.99);
+      expect(result.first.source, 'Test Brand');
     });
 
     test('fetchDeals throws an exception on failure (non-200)', () async {
       // Arrange: Setup the mock to return an error response
       when(
-        () => mockHttpClient.get(uri),
+        () => mockHttpClient.get(any(), headers: any(named: 'headers')),
       ).thenAnswer((_) async => http.Response('Not Found', 404));
 
       // Act & Assert: Check that the method throws the expected exception

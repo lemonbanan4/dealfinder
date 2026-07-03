@@ -1,25 +1,48 @@
 import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart' as fb;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dealfinder_pro/features/deals/data/favorites_repository.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../deals/data/favorites_repository.dart';
 import '../../deals/presentation/auth_repository.dart';
 import '../../deals/presentation/user.dart';
+import '../../deals/providers/favorites_provider.dart';
 
-class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
-  AuthNotifier(this._authRepository, this._ref) : super(const AsyncLoading()) {
-    _authStateChangesSubscription = _authRepository.authStateChanges().listen(
+part 'auth_provider.g.dart';
+
+@riverpod
+class Auth extends _$Auth {
+  late final StreamSubscription<User?> _authStateChangesSubscription;
+
+  @override
+  FutureOr<User?> build() {
+    final authRepository = ref.watch(authRepositoryProvider);
+    
+    _authStateChangesSubscription = authRepository.authStateChanges().listen(
       (user) {
         state = AsyncData(user);
       },
+      onError: (err, stack) {
+        state = AsyncError(err, stack);
+      }
     );
-  }
 
-  final AuthRepository _authRepository;
-  // Fix: store ref so signOut can invalidate providers
-  final Ref _ref;
-  late final StreamSubscription<User?> _authStateChangesSubscription;
+    ref.onDispose(() {
+      _authStateChangesSubscription.cancel();
+    });
+
+    final firebaseUser = fb.FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      return User(
+        id: firebaseUser.uid,
+        email: firebaseUser.email,
+        emailVerified: firebaseUser.emailVerified,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        providerData: firebaseUser.providerData,
+      );
+    }
+    return null;
+  }
 
   Future<void> _runAuthMethod(Future<void> Function() method) async {
     state = const AsyncLoading();
@@ -45,22 +68,22 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
 
   Future<void> signInWithEmailAndPassword(String email, String password) async {
     await _runAuthMethod(
-      () => _authRepository.signInWithEmailAndPassword(email, password),
+      () => ref.read(authRepositoryProvider).signInWithEmailAndPassword(email, password),
     );
   }
 
   Future<void> signUpWithEmailAndPassword(String email, String password) async {
     await _runAuthMethod(
-      () => _authRepository.signUpWithEmailAndPassword(email, password),
+      () => ref.read(authRepositoryProvider).signUpWithEmailAndPassword(email, password),
     );
   }
 
   Future<void> signInWithGoogle() async =>
-      _runAuthMethod(_authRepository.signInWithGoogle);
+      _runAuthMethod(ref.read(authRepositoryProvider).signInWithGoogle);
 
   Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await _authRepository.sendPasswordResetEmail(email);
+      await ref.read(authRepositoryProvider).sendPasswordResetEmail(email);
     } on fb.FirebaseAuthException catch (e) {
       throw 'Could not send reset email: ${e.message}';
     }
@@ -68,9 +91,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
 
   Future<void> signOut() async {
     // Clear local favorites before signing out so they don't leak to next user
-    await _ref.read(favoritesRepositoryProvider).clearLocalFavorites();
-    await _authRepository.signOut();
-    _ref.invalidate(favoritesNotifierProvider);
+    await ref.read(favoritesRepositoryProvider).clearLocalFavorites();
+    await ref.read(authRepositoryProvider).signOut();
+    ref.invalidate(favoritesProvider);
   }
 
   Future<void> deleteAccount() async {
@@ -79,16 +102,18 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     });
   }
 
-  @override
-  void dispose() {
-    _authStateChangesSubscription.cancel();
-    super.dispose();
+  Future<void> updateUserName(String newName) async {
+    final user = fb.FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.updateDisplayName(newName);
+      ref.invalidateSelf();
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    final user = fb.FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.updatePassword(newPassword);
+    }
   }
 }
-
-final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((
-  ref,
-) {
-  // Pass ref into notifier so it can read/invalidate other providers
-  return AuthNotifier(ref.watch(authRepositoryProvider), ref);
-});

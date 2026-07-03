@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.11.5
+  sdk: '>=3.11.5 <4.0.0'
 
 dependencies:
   flutter:
@@ -44,6 +44,7 @@ dependencies:
   flutter_local_notifications: ^19.0.0
   firebase_core: ^4.9.0
   firebase_auth: ^6.5.1
+  google_sign_in: ^7.2.0
   cloud_firestore: ^6.4.1
   url_launcher: ^6.3.2
   cloud_functions: ^6.3.2
@@ -61,15 +62,17 @@ dependencies:
   fl_chart: ^1.2.0
   intl: ^0.20.3
   firebase_analytics: ^12.4.3
-  riverpod_generator: ^4.0.4
-  mocktail: ^1.0.5
   dio: ^5.10.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.1.1
+  mocktail: ^1.0.5
+  riverpod_generator: ^4.0.4
 
   # Code generation
   build_runner: ^2.15.0
@@ -82,3 +85,4 @@ flutter:
     - assets/images/
   shaders:
     - assets/shaders/liquid_glass.frag
+

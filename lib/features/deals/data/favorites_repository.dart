@@ -1,11 +1,10 @@
-1import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dealfinder_pro/features/deals/presentation/user.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
+import 'package:dealfinder_pro/providers/repositories.dart';
 
 part 'favorites_repository.g.dart';
 
@@ -14,8 +13,8 @@ const _localFavoritesKey = 'local_favorite_deals';
 /// A repository to manage user's favorite deals, syncing between
 /// local preferences and Firestore for authenticated users.
 @riverpod
-FavoritesRepository favoritesRepository(FavoritesRepositoryRef ref) {
-  return FavoritesRepository(FirebaseFirestore.instance, ref);
+FavoritesRepository favoritesRepository(Ref ref) {
+  return FavoritesRepository(ref.watch(firestoreProvider), ref);
 }
 
 class FavoritesRepository {
@@ -32,7 +31,7 @@ class FavoritesRepository {
   /// Fetches favorites. If a user is logged in, it syncs from Firestore
   /// to local storage first, then returns the local data.
   Future<Set<String>> getFavorites(User? user) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _ref.read(sharedPreferencesProvider.future);
     final localFavorites =
         prefs.getStringList(_localFavoritesKey)?.toSet() ?? {};
 
@@ -72,7 +71,11 @@ class FavoritesRepository {
   /// Toggles a favorite and persists the change to local storage and
   /// Firestore (if the user is authenticated).
   Future<void> toggleFavorite(String dealId, User? user) async {
-    final prefs = await SharedPreferences.getInstance();
+    if (user != null && !user.emailVerified) {
+      throw Exception('Email not verified');
+    }
+
+    final prefs = await _ref.read(sharedPreferencesProvider.future);
     final currentFavorites =
         prefs.getStringList(_localFavoritesKey)?.toSet() ?? {};
 
@@ -94,11 +97,18 @@ class FavoritesRepository {
     }
   }
 
-  /// Clears local favorites. Called on user sign-out to prevent
-  /// one user's local favorites from leaking to the next.
   Future<void> clearLocalFavorites() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _ref.read(sharedPreferencesProvider.future);
     await prefs.remove(_localFavoritesKey);
+  }
+
+  Future<void> clearFavorites(User? user) async {
+    await clearLocalFavorites();
+    if (user != null) {
+      await _userFavoritesDoc(user)!.set({
+        'favorites': <String>[],
+      }, SetOptions(merge: true));
+    }
   }
 }
 
