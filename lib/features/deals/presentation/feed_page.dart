@@ -15,8 +15,7 @@ import '../providers/favorites_provider.dart';
 import '../providers/deals_provider.dart';
 import '../providers/search_history_provider.dart';
 import 'brand_logos_section.dart';
-import 'feed_app_bar.dart';
-import 'feed_header.dart';
+import 'glass_sticky_header.dart';
 import 'feed_states.dart';
 import 'search_history_overlay.dart';
 import 'top_deals_sliver.dart';
@@ -256,17 +255,15 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     final dealFeedAsync = ref.watch(dealFeedProvider);
 
     return Scaffold(
-      appBar: FeedAppBar(
+      appBar: GlassStickyHeader(
+        searchController: _searchController,
+        searchFocusNode: _searchFocusNode,
+        onSearchChanged: _onSearchChanged,
         isRefreshing: _isRefreshing,
         onRefresh: _handleRefresh,
       ),
       body: Column(
         children: [
-          FeedHeader(
-            searchController: _searchController,
-            searchFocusNode: _searchFocusNode,
-            onSearchChanged: _onSearchChanged,
-          ),
           // ─── Main Content ────────────────────────────────────────────────
           Expanded(
             child: Stack(
