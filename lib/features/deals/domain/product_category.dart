@@ -1,6 +1,11 @@
 import 'deal.dart';
 
-/// Real electronics categories for the feed's "Categories" filter.
+/// General-marketplace categories for the feed's "Categories" filter — not
+/// just electronics. Many of these have zero matches in the current catalog
+/// (which is electronics-heavy today), same as the brand section before it
+/// had curated data: the taxonomy is deliberately broader than what's in
+/// stock right now, per PrisPuls's own positioning ("electronics, home
+/// goods, fashion, and more" — see about_us_page.dart).
 ///
 /// There is no `category` column anywhere in the pipeline (the `products`
 /// table only has `product_id`/`feed_region`/`title`/`brand`/pricing/image
@@ -13,6 +18,7 @@ import 'deal.dart';
 /// adds a real `category` column, prefer that over this.
 const List<String> dealCategories = [
   'All',
+  // Electronics — the bulk of today's actual inventory.
   'Smartphones',
   'Tablets',
   'Wearables',
@@ -23,6 +29,17 @@ const List<String> dealCategories = [
   'Gaming Accessories',
   'Accessories',
   'Home Electronics',
+  // General marketplace categories.
+  'Fashion & Clothing',
+  'Beauty & Health',
+  'Home & Garden',
+  'Sports & Outdoors',
+  'Toys & Kids',
+  'Groceries & Food',
+  'Automotive',
+  'Books & Media',
+  'Pets',
+  'Travel & Luggage',
 ];
 
 /// Ordered (category, keywords) rules — first match wins, so more specific
@@ -84,6 +101,58 @@ const List<(String, List<String>)> _rules = [
       'projektor', 'dammsugare', 'vaskemaskin', 'kylskåp', 'clean station',
       'avtrekkshette', 'vision ai',
     ],
+  ),
+  (
+    'Fashion & Clothing',
+    [
+      'jacka', 'klänning', 'kappa', 'jeans', 't-shirt', 'skjorta', 'tröja',
+      'byxor', 'skor', 'sko ', 'sneakers', 'kofte', 'bukse',
+    ],
+  ),
+  (
+    'Beauty & Health',
+    [
+      'parfym', 'hudvård', 'smink', 'schampo', 'hälsa', 'hudkrem', 'makeup',
+      'vitamin', 'kosttilskudd',
+    ],
+  ),
+  (
+    'Home & Garden',
+    [
+      'möbel', 'møbel', 'soffa', 'sofa', 'lampa', 'lampe', 'trädgård',
+      'hage', 'gräsklippare', 'gressklipper', 'köksmaskin',
+    ],
+  ),
+  (
+    'Sports & Outdoors',
+    [
+      'cykel', 'sykkel', 'gymutstyr', 'fitness', 'skidor', 'ski ',
+      'friluftsliv', 'tält', 'telt', 'treningsutstyr',
+    ],
+  ),
+  (
+    'Toys & Kids',
+    ['leksak', 'leke', 'barnvagn', 'barnevogn', 'lego', 'docka', 'dukke'],
+  ),
+  (
+    'Groceries & Food',
+    ['kaffe', 'choklad', 'sjokolade', 'dryck', 'drikke', 'matvarer'],
+  ),
+  (
+    'Automotive',
+    ['motorolja', 'motorolje', 'däck', 'dekk', 'bilstol', 'billader'],
+  ),
+  (
+    'Books & Media',
+    ['roman', 'bokbok', ' bok ', ' bok,', 'blu-ray', 'dvd '],
+  ),
+  (
+    'Pets',
+    ['hundmat', 'hundefôr', 'kattmat', 'kattemat', 'husdjur', 'kjæledyr'],
+  ),
+  (
+    'Travel & Luggage',
+    ['resväska', 'koffert', 'reisekoffert', 'handbagage'],
   ),
 ];
 

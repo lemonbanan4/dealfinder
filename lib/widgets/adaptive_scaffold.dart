@@ -9,6 +9,7 @@ import '../features/alerts/presentation/alerts_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/deals/presentation/feed_page.dart';
+import '../features/deals/presentation/glass_categories_menu.dart';
 import '../features/deals/presentation/glass_search_field.dart';
 import '../features/settings/presentation/settings_page.dart';
 import 'app_logo.dart';
@@ -19,14 +20,15 @@ import '../theme/glass_colors.dart';
 
 part 'adaptive_scaffold.g.dart';
 
-// Top-level nav destinations — shared by the top glass nav bar and the mobile bar.
+// Top-level nav destinations — shared by the top glass nav bar and the
+// mobile bar. Settings lives behind the profile/auth icon instead of being
+// a primary destination here (see _TopNavAuthIcon / mobile's _AuthIcon).
 const _navDestinations = <(String, IconData, IconData)>[
   ('Feed', Icons.storefront_outlined, Icons.storefront),
   ('Alerts', Icons.notifications_outlined, Icons.notifications),
-  ('Settings', Icons.settings_outlined, Icons.settings),
 ];
 
-const _pages = <Widget>[FeedPage(), AlertsPage(), SettingsPage()];
+const _pages = <Widget>[FeedPage(), AlertsPage()];
 
 @riverpod
 class AppShellIndex extends _$AppShellIndex {
@@ -148,9 +150,10 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
 // ─── Top glass nav bar (desktop/tablet) ────────────────────────────────────────
 //
 // Replaces the old sidebar with a sticky, centered, floating "Liquid Glass"
-// pill bar per the design system: logo, the Feed/Alerts/Settings switcher,
-// the search field (Feed tab only), and the auth icon, living above every
-// page rather than beside it.
+// pill bar per the design system: logo, the Feed/Alerts switcher, the
+// Categories dropdown (where the Settings tab used to sit — Settings now
+// lives behind the profile/auth icon instead), the search field (Feed tab
+// only), and the auth icon, living above every page rather than beside it.
 
 class _GlassTopNavBar extends ConsumerWidget {
   const _GlassTopNavBar({
@@ -205,6 +208,14 @@ class _GlassTopNavBar extends ConsumerWidget {
                         badgeCount: _navDestinations[i].$1 == 'Alerts' ? unreadAlerts : 0,
                         onTap: () => onDestinationSelected(i),
                       ),
+                    const SizedBox(width: 4),
+                    GlassCategoriesMenu(
+                      onCategorySelected: (_) {
+                        // Picking a category only means something on the
+                        // Feed tab, so jump there if we're elsewhere.
+                        if (!isFeedTab) onDestinationSelected(0);
+                      },
+                    ),
                     const SizedBox(width: 24),
                     Expanded(
                       child: isFeedTab

@@ -8,21 +8,21 @@ import '../../../widgets/app_logo.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../settings/presentation/settings_page.dart';
-import '../domain/product_category.dart';
 import '../providers/deals_provider.dart';
 import '../providers/favorites_provider.dart';
 import 'feed_page.dart';
+import 'glass_categories_menu.dart';
 import 'glass_search_field.dart';
 
-/// The feed's own "Liquid Glass" toolbar: a hover/click "Categories"
-/// dropdown plus the feed-specific controls (sort, region, favorites, view
-/// toggle, refresh).
+/// The feed's own "Liquid Glass" toolbar: the feed-specific controls (sort,
+/// region, favorites, view toggle, refresh).
 ///
 /// On wide screens this sits directly below the app-level `_GlassTopNavBar`
-/// (logo, Feed/Alerts/Settings switcher, search field, auth icon — see
-/// adaptive_scaffold.dart), so it doesn't repeat those. On narrow/mobile
-/// screens there is no top nav bar (mobile uses a bottom NavigationBar
-/// instead), so this keeps its own logo, search field, and auth icon.
+/// (logo, Feed/Alerts switcher, Categories dropdown, search field, auth icon
+/// — see adaptive_scaffold.dart), so it doesn't repeat those. On
+/// narrow/mobile screens there is no top nav bar (mobile uses a bottom
+/// NavigationBar instead), so this keeps its own logo, Categories dropdown,
+/// search field, and auth icon.
 class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
   const GlassStickyHeader({
     super.key,
@@ -65,7 +65,6 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
                   Row(
                     children: [
                       if (!isWide) ...[const AppLogo(), const SizedBox(width: 12)],
-                      if (isWide) const _CategoriesMenu(),
                       const Spacer(),
                       if (isWide) ..._wideActions(context, ref) else _CompactOverflowMenu(),
                       if (!isWide) ...[const SizedBox(width: 4), const _AuthIcon()],
@@ -75,7 +74,7 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        const _CategoriesMenu(),
+                        const GlassCategoriesMenu(),
                         const SizedBox(width: 8),
                         Expanded(
                           child: GlassSearchField(
@@ -107,76 +106,6 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
   }
 }
 
-// ─── Categories dropdown (hover or click to open) ──────────────────────────────
-
-class _CategoriesMenu extends ConsumerStatefulWidget {
-  const _CategoriesMenu();
-
-  @override
-  ConsumerState<_CategoriesMenu> createState() => _CategoriesMenuState();
-}
-
-class _CategoriesMenuState extends ConsumerState<_CategoriesMenu> {
-  final _menuController = MenuController();
-
-  @override
-  Widget build(BuildContext context) {
-    final filters = ref.watch(feedFiltersProvider);
-    final activeLabel = filters.category == 'All' ? 'Categories' : filters.category;
-
-    return MenuAnchor(
-      controller: _menuController,
-      style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(
-          GlassColors.surface.withValues(alpha: 0.98),
-        ),
-        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        side: const WidgetStatePropertyAll(BorderSide(color: GlassColors.glowBorder)),
-        shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        elevation: const WidgetStatePropertyAll(12),
-      ),
-      menuChildren: [
-        for (final cat in dealCategories)
-          MenuItemButton(
-            onPressed: () =>
-                ref.read(feedFiltersProvider.notifier).updateCategory(cat),
-            leadingIcon: SizedBox(
-              width: 18,
-              child: filters.category == cat
-                  ? const Icon(Icons.check, size: 18, color: Color(0xFF00B4FF))
-                  : null,
-            ),
-            child: Text(cat),
-          ),
-      ],
-      builder: (context, controller, child) {
-        return MouseRegion(
-          onEnter: (_) {
-            if (!controller.isOpen) controller.open();
-          },
-          child: OutlinedButton.icon(
-            onPressed: () => controller.isOpen ? controller.close() : controller.open(),
-            icon: const Icon(Icons.category_outlined, size: 18),
-            label: Text(activeLabel, overflow: TextOverflow.ellipsis),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: filters.category != 'All'
-                  ? const Color(0xFF00B4FF)
-                  : Colors.white70,
-              side: BorderSide(
-                color: filters.category != 'All'
-                    ? GlassColors.glowBorderHover
-                    : GlassColors.glowBorder,
-              ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 // ─── Auth / profile icon ───────────────────────────────────────────────────────
 
