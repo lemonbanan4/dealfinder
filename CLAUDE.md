@@ -1,15 +1,28 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Project: PrisPuls (DealFinder)
+A high-performance affiliate deal aggregator built with Flutter/Dart.
 
-## Project
+## Design System: "Liquid Glass"
+- **Theme**: Dark-mode only. Background: #0B0E14 (Deep Charcoal).
+- **Aesthetic**: Glassmorphism/Liquid Glass. Use `BackdropFilter` with blur for all cards and bars.
+- **Borders**: 1px subtle glowing borders (#2A3A5A) on all containers.
+- **Accents**: LED-style blue/cyan glows for active states and primary buttons.
+- **Typography**: Clean, sans-serif, high data-density focus.
 
-DealFinder app — details to be filled in as the project takes shape.
+## UI Components Requirements
+- **Sticky Header**: A persistent top bar that follows scroll. 
+  - Must include: Integrated search bar, user profile/auth icon, and a "Categories" dropdown button (triggered on hover/click).
+- **Deal Cards**: 
+  - Must include: Visual price tracking sparkline (use `fl_chart`) inside the card.
+  - Cards must use the Glassmorphic container style with glowing borders.
+- **Navigation**: Move category logic from country toggles to a centralized "Categories" dropdown in the sticky header.
 
-## Commands
-
-_Add build, lint, test, and dev-server commands here once the stack is decided._
-
-## Architecture
-
-_Add a high-level description of the data flow, key modules, and important design decisions here as the codebase grows._
+## Development Constraints
+- **Security**: All CSP requirements must be met; no inline scripts/styles.
+- **Performance**: Use 'mounted' checks for all async navigation. Keep builds web-compliant (avoid 'dart:html' / 'package:js' if possible).
+- **Commands**:
+  - Build: `flutter build web --release`
+  - Deploy: `firebase deploy --only hosting`
+  - Lint: `flutter analyze`
+  - Run: `flutter run`

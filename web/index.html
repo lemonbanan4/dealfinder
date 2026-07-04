@@ -40,11 +40,14 @@
       positioning. There is no nonce/hash mechanism for this dynamic engine-generated CSS, so
       removing 'unsafe-inline' here breaks rendering (app hangs on the loading spinner forever).
     - connect-src: all required external endpoints for Supabase, Firebase, fonts, and APIs.
+      cdn.simpleicons.org is here because flutter_svg's network loader fetches SVG brand
+      logos via a real HTTP client call (unlike raster network images, which the engine
+      loads through an <img>-element path covered by img-src instead).
   -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self' https://*.firebaseapp.com https://*.web.app;
     script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com https://*.firebaseio.com;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://www.gstatic.com https://fonts.gstatic.com https://dealfinder-swr5.onrender.com https://www.ecb.europa.eu https://v6.exchangerate-api.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://www.gstatic.com https://fonts.gstatic.com https://dealfinder-swr5.onrender.com https://www.ecb.europa.eu https://v6.exchangerate-api.com https://cdn.simpleicons.org;
     frame-src 'self' https://appleid.apple.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: https:;

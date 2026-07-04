@@ -50,7 +50,7 @@ final class DealsNotifierProvider
   }
 }
 
-String _$dealsNotifierHash() => r'ada8385d6ae8b7c07b24794198fcc42f48fad252';
+String _$dealsNotifierHash() => r'1a4f7a4d8cdb2f9afe175cf4f27e3229014f5af6';
 
 final class DealsNotifierFamily extends $Family
     with

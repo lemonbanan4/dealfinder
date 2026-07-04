@@ -7,11 +7,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../widgets/affiliate_disclaimer.dart';
+import '../../../widgets/app_footer.dart';
+import '../../newsletter/presentation/newsletter_signup_section.dart';
 import '../../settings/presentation/shimmer_grid.dart';
 import '../providers/filtered_deals_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/deals_provider.dart';
 import '../providers/search_history_provider.dart';
+import 'brand_logos_section.dart';
 import 'feed_app_bar.dart';
 import 'feed_header.dart';
 import 'feed_states.dart';
@@ -184,6 +187,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
   final _searchController = TextEditingController();
   final _isRefreshing = ValueNotifier<bool>(false);
   final _searchFocusNode = FocusNode();
+  final _scrollController = ScrollController();
   Timer? _debounce;
 
   @override
@@ -199,7 +203,24 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     _debounce?.cancel();
     _searchController.dispose();
     _isRefreshing.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onBrandTap(String brandName) {
+    _debounce?.cancel();
+    _searchController.text = brandName;
+    _searchController.selection = TextSelection.fromPosition(
+      TextPosition(offset: brandName.length),
+    );
+    ref.read(feedFiltersProvider.notifier).updateSearchQuery(brandName);
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   void _onSearchFocusChange() {
@@ -277,6 +298,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                           duration: const Duration(milliseconds: 300),
                           child: CustomScrollView(
                             key: ValueKey(isGrid),
+                            controller: _scrollController,
                             slivers: [
                               if (filters.searchQuery.isEmpty &&
                                   !filters.showFavoritesOnly)
@@ -299,6 +321,19 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                               const SliverToBoxAdapter(
                                 child: AffiliateDisclaimer(),
                               ),
+
+                              // ---- Featured brands + newsletter, then the
+                              // app footer — always shown regardless of the
+                              // active search/filter state. ----
+                              SliverToBoxAdapter(
+                                child: BrandLogosSection(
+                                  onBrandTap: _onBrandTap,
+                                ),
+                              ),
+                              const SliverToBoxAdapter(
+                                child: NewsletterSignupSection(),
+                              ),
+                              const SliverToBoxAdapter(child: AppFooter()),
                             ],
                           ),
                         ),
