@@ -24,7 +24,13 @@ class PriceSparkline extends ConsumerWidget {
       height: height,
       child: historyAsync.when(
         data: (spots) {
-          if (spots.length < 2) return const SizedBox.shrink();
+          // DEBUG: was `SizedBox.shrink()` — surfacing this instead of hiding
+          // it distinguishes "Supabase returned <2 rows" (you'll see the
+          // label) from "rendering/layout is swallowing the chart" (you
+          // wouldn't). Revert to SizedBox.shrink() once diagnosed.
+          if (spots.length < 2) {
+            return const _SparklineDebugLabel('No data');
+          }
 
           var minY = spots.first.y;
           var maxY = spots.first.y;
@@ -68,7 +74,36 @@ class PriceSparkline extends ConsumerWidget {
           );
         },
         loading: () => const SizedBox.shrink(),
-        error: (_, _) => const SizedBox.shrink(),
+        // DEBUG: was `SizedBox.shrink()` — also surfacing errors (distinct
+        // from the "No data" empty-state label above) so a failed fetch
+        // isn't indistinguishable from a product with no history yet.
+        error: (err, _) => _SparklineDebugLabel('Error: $err'),
+      ),
+    );
+  }
+}
+
+/// DEBUG-ONLY: makes the sparkline's empty/error states visible instead of
+/// silently collapsing, to tell apart "no data from Supabase" from
+/// "chart isn't rendering". Remove once the underlying issue is diagnosed.
+class _SparklineDebugLabel extends StatelessWidget {
+  const _SparklineDebugLabel(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        message,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.orangeAccent,
+          fontSize: 10,
+          fontStyle: FontStyle.italic,
+        ),
       ),
     );
   }

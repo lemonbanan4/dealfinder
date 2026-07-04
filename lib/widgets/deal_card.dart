@@ -187,7 +187,7 @@ class _GridCard extends ConsumerWidget {
             Stack(
               children: [
                 SizedBox(
-                  height: 100,
+                  height: 170,
                   width: double.infinity,
                   child: deal.imageUrl != null && deal.imageUrl!.isNotEmpty
                       ? CachedNetworkImage(

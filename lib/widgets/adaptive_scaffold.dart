@@ -9,6 +9,7 @@ import '../features/alerts/presentation/alerts_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/deals/presentation/feed_page.dart';
+import '../features/deals/presentation/glass_search_field.dart';
 import '../features/settings/presentation/settings_page.dart';
 import 'app_logo.dart';
 import '../features/settings/providers/cookie_consent_provider.dart';
@@ -146,9 +147,10 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
 
 // ─── Top glass nav bar (desktop/tablet) ────────────────────────────────────────
 //
-// Replaces the old sidebar with a sticky, centered horizontal "Liquid Glass"
-// bar per the design system: a persistent Feed/Alerts/Settings switcher plus
-// the logo and auth icon, living above every page rather than beside it.
+// Replaces the old sidebar with a sticky, centered, floating "Liquid Glass"
+// pill bar per the design system: logo, the Feed/Alerts/Settings switcher,
+// the search field (Feed tab only), and the auth icon, living above every
+// page rather than beside it.
 
 class _GlassTopNavBar extends ConsumerWidget {
   const _GlassTopNavBar({
@@ -163,23 +165,37 @@ class _GlassTopNavBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Color.fromRGBO(11, 14, 20, 0.82),
-            border: Border(bottom: BorderSide(color: GlassColors.glowBorder)),
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    final searchController = ref.watch(searchControllerProvider);
+    final searchFocusNode = ref.watch(searchFocusNodeProvider);
+    final isFeedTab = selectedIndex == 0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(11, 14, 20, 0.85),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: GlassColors.glowBorder),
+                  boxShadow: [
+                    BoxShadow(
+                      color: GlassColors.glowBorder.withValues(alpha: 0.25),
+                      blurRadius: 32,
+                      spreadRadius: -8,
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: Row(
                   children: [
-                    const AppLogo(iconSize: 26, fontSize: 20),
-                    const SizedBox(width: 36),
+                    const AppLogo(iconSize: 28, fontSize: 21),
+                    const SizedBox(width: 32),
                     for (int i = 0; i < _navDestinations.length; i++)
                       _TopNavItem(
                         label: _navDestinations[i].$1,
@@ -189,7 +205,18 @@ class _GlassTopNavBar extends ConsumerWidget {
                         badgeCount: _navDestinations[i].$1 == 'Alerts' ? unreadAlerts : 0,
                         onTap: () => onDestinationSelected(i),
                       ),
-                    const Spacer(),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: isFeedTab
+                          ? GlassSearchField(
+                              controller: searchController,
+                              focusNode: searchFocusNode,
+                              onChanged: (value) => handleSearchChanged(ref, value),
+                              height: 44,
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const SizedBox(width: 20),
                     const _TopNavAuthIcon(),
                   ],
                 ),

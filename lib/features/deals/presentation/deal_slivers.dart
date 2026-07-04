@@ -323,11 +323,14 @@ Widget responsiveDealGrid({
   return SliverLayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.crossAxisExtent;
-      final columns = width >= 900 ? 3 : (width >= 620 ? 2 : 1);
+      // Capped at 2 (not 3): at 3-up, card images were cramped. Wider cards
+      // also get a taller image area (see _GridCard in deal_card.dart) so
+      // they don't just stretch a short image across more width.
+      final columns = width >= 420 ? 2 : 1;
       return SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
-          mainAxisExtent: 280,
+          mainAxisExtent: 360,
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
         ),

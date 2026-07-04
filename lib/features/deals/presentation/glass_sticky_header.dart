@@ -12,29 +12,24 @@ import '../domain/product_category.dart';
 import '../providers/deals_provider.dart';
 import '../providers/favorites_provider.dart';
 import 'feed_page.dart';
+import 'glass_search_field.dart';
 
-/// The feed's own "Liquid Glass" toolbar: a blurred, glowing glass panel with
-/// an integrated search field, a hover/click "Categories" dropdown, and the
-/// feed-specific controls (sort, region, favorites, view toggle, refresh).
+/// The feed's own "Liquid Glass" toolbar: a hover/click "Categories"
+/// dropdown plus the feed-specific controls (sort, region, favorites, view
+/// toggle, refresh).
 ///
 /// On wide screens this sits directly below the app-level `_GlassTopNavBar`
-/// (logo, Feed/Alerts/Settings switcher, auth icon — see adaptive_scaffold.dart),
-/// so it doesn't repeat those. On narrow/mobile screens there is no top nav
-/// bar (mobile uses a bottom NavigationBar instead), so this is the only top
-/// bar and keeps its own logo + auth icon.
+/// (logo, Feed/Alerts/Settings switcher, search field, auth icon — see
+/// adaptive_scaffold.dart), so it doesn't repeat those. On narrow/mobile
+/// screens there is no top nav bar (mobile uses a bottom NavigationBar
+/// instead), so this keeps its own logo, search field, and auth icon.
 class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
   const GlassStickyHeader({
     super.key,
-    required this.searchController,
-    required this.searchFocusNode,
-    required this.onSearchChanged,
     required this.isRefreshing,
     required this.onRefresh,
   });
 
-  final TextEditingController searchController;
-  final FocusNode searchFocusNode;
-  final ValueChanged<String> onSearchChanged;
   final ValueNotifier<bool> isRefreshing;
   final VoidCallback onRefresh;
 
@@ -44,6 +39,8 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isWide = MediaQuery.sizeOf(context).width >= 720;
+    final searchController = ref.watch(searchControllerProvider);
+    final searchFocusNode = ref.watch(searchFocusNodeProvider);
 
     return ClipRect(
       child: BackdropFilter(
@@ -74,17 +71,22 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
                       if (!isWide) ...[const SizedBox(width: 4), const _AuthIcon()],
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      if (!isWide) ...[const _CategoriesMenu(), const SizedBox(width: 8)],
-                      Expanded(child: _SearchField(
-                        controller: searchController,
-                        focusNode: searchFocusNode,
-                        onChanged: onSearchChanged,
-                      )),
-                    ],
-                  ),
+                  if (!isWide) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const _CategoriesMenu(),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: GlassSearchField(
+                            controller: searchController,
+                            focusNode: searchFocusNode,
+                            onChanged: (value) => handleSearchChanged(ref, value),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -102,69 +104,6 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
       _ViewToggle(),
       _RefreshButton(isRefreshing: isRefreshing, onRefresh: onRefresh),
     ];
-  }
-}
-
-// ─── Search field ─────────────────────────────────────────────────────────────
-
-class _SearchField extends StatelessWidget {
-  const _SearchField({
-    required this.controller,
-    required this.focusNode,
-    required this.onChanged,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: GlassColors.glowBorder),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.search, color: Color(0xFF5A5A78)),
-              ),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  style: const TextStyle(color: Colors.white, fontSize: 15),
-                  cursorColor: const Color(0xFF00B4FF),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintText: 'Search products or brands...',
-                    hintStyle: TextStyle(color: Color(0xFF5A5A78)),
-                    contentPadding: EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onChanged: onChanged,
-                ),
-              ),
-              if (controller.text.isNotEmpty)
-                IconButton(
-                  icon: const Icon(Icons.clear, color: Color(0xFF5A5A78)),
-                  onPressed: () {
-                    controller.clear();
-                    onChanged('');
-                  },
-                ),
-            ],
-          ),
-        );
-      },
-    );
   }
 }
 

@@ -25,6 +25,60 @@ import 'deal_slivers.dart';
 
 part 'feed_page.g.dart';
 
+/// The search field's [TextEditingController]/[FocusNode] are shared between
+/// the app-level top nav bar (adaptive_scaffold.dart, which owns the search
+/// box on wide screens) and this page's own toolbar (which owns it on
+/// mobile, where there is no top nav bar) — both need the *same* instances,
+/// so they're held here as plain (app-lifetime) providers rather than local
+/// State fields that only one widget could own.
+final searchControllerProvider = Provider<TextEditingController>((ref) {
+  final controller = TextEditingController();
+  ref.onDispose(controller.dispose);
+  return controller;
+});
+
+final searchFocusNodeProvider = Provider<FocusNode>((ref) {
+  final node = FocusNode();
+  ref.onDispose(node.dispose);
+  return node;
+});
+
+class _SearchDebouncer {
+  Timer? _timer;
+  void run(VoidCallback action) {
+    cancel();
+    _timer = Timer(const Duration(milliseconds: 300), action);
+  }
+
+  void cancel() => _timer?.cancel();
+  void dispose() => _timer?.cancel();
+}
+
+final _searchDebouncerProvider = Provider<_SearchDebouncer>((ref) {
+  final debouncer = _SearchDebouncer();
+  ref.onDispose(debouncer.dispose);
+  return debouncer;
+});
+
+/// Debounced search-query update, shared by every widget that renders the
+/// search field (see [searchControllerProvider] above).
+void handleSearchChanged(WidgetRef ref, String value) {
+  ref.read(_searchDebouncerProvider).run(() {
+    ref.read(feedFiltersProvider.notifier).updateSearchQuery(value);
+    if (value.trim().isNotEmpty) {
+      ref.read(searchHistoryProvider.notifier).add(value);
+    }
+  });
+}
+
+/// Cancels any pending debounced keystroke update — call before an
+/// immediate, discrete search-query change (e.g. tapping a brand/category
+/// link) so a stale in-flight keystroke update can't overwrite it a moment
+/// later.
+void cancelPendingSearchUpdate(WidgetRef ref) {
+  ref.read(_searchDebouncerProvider).cancel();
+}
+
 @immutable
 class FeedFilters {
   const FeedFilters({
@@ -194,36 +248,50 @@ class FeedPage extends ConsumerStatefulWidget {
 }
 
 class _FeedPageState extends ConsumerState<FeedPage> {
-  final _searchController = TextEditingController();
+  // Shared with the app-level top nav bar (see searchControllerProvider doc)
+  // — sourced once here, not created locally, and NOT disposed by this page
+  // since Riverpod owns their lifetime.
+  late final TextEditingController _searchController;
+  late final FocusNode _searchFocusNode;
   final _isRefreshing = ValueNotifier<bool>(false);
-  final _searchFocusNode = FocusNode();
   final _scrollController = ScrollController();
-  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
+    _searchController = ref.read(searchControllerProvider);
+    _searchFocusNode = ref.read(searchFocusNodeProvider);
     _searchFocusNode.addListener(_onSearchFocusChange);
   }
 
   @override
   void dispose() {
     _searchFocusNode.removeListener(_onSearchFocusChange);
-    _searchFocusNode.dispose();
-    _debounce?.cancel();
-    _searchController.dispose();
     _isRefreshing.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onBrandTap(String brandName) {
-    _debounce?.cancel();
+    cancelPendingSearchUpdate(ref);
     _searchController.text = brandName;
     _searchController.selection = TextSelection.fromPosition(
       TextPosition(offset: brandName.length),
     );
     ref.read(feedFiltersProvider.notifier).updateSearchQuery(brandName);
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _onFooterShopTap(String category) {
+    cancelPendingSearchUpdate(ref);
+    _searchController.clear();
+    ref.read(feedFiltersProvider.notifier).updateCategory(category);
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
@@ -245,17 +313,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     _isRefreshing.value = false;
   }
 
-  void _onSearchChanged(String value) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      ref.read(feedFiltersProvider.notifier).updateSearchQuery(value);
-      // Only add to history if the query is not empty
-      if (value.trim().isNotEmpty) {
-        ref.read(searchHistoryProvider.notifier).add(value);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final filters = ref.watch(feedFiltersProvider);
@@ -267,9 +324,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 
     return Scaffold(
       appBar: GlassStickyHeader(
-        searchController: _searchController,
-        searchFocusNode: _searchFocusNode,
-        onSearchChanged: _onSearchChanged,
         isRefreshing: _isRefreshing,
         onRefresh: _handleRefresh,
       ),
@@ -296,7 +350,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                       ? SearchEmptyState(
                           query: filters.searchQuery,
                           onClear: () {
-                            _debounce?.cancel();
+                            cancelPendingSearchUpdate(ref);
                             _searchController.clear();
                             ref.read(feedFiltersProvider.notifier).clear();
                             FocusManager.instance.primaryFocus?.unfocus();
@@ -357,7 +411,9 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                               const SliverToBoxAdapter(
                                 child: NewsletterSignupSection(),
                               ),
-                              const SliverToBoxAdapter(child: AppFooter()),
+                              SliverToBoxAdapter(
+                                child: AppFooter(onShopCategoryTap: _onFooterShopTap),
+                              ),
                             ],
                           ),
                         ),
