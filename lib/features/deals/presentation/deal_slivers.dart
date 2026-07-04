@@ -131,8 +131,7 @@ class DealsSliver extends ConsumerWidget {
     }
 
     if (view == FeedView.grid) {
-      return SliverGrid.builder(
-        gridDelegate: dealGridDelegate,
+      return responsiveDealGrid(
         itemCount: deals.length + (isLoadingMore || _showError ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == deals.length) {
@@ -200,8 +199,7 @@ class DealsSliver extends ConsumerWidget {
     const itemCount = 8;
 
     if (isGridView) {
-      return SliverGrid.builder(
-        gridDelegate: dealGridDelegate,
+      return responsiveDealGrid(
         itemCount: itemCount,
         itemBuilder: (context, index) =>
             const _ShimmerDealCard(view: DealCardView.grid),
@@ -297,7 +295,7 @@ class _GridShimmer extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       // No fixed height: the SliverGrid's mainAxisExtent (see
-      // [dealGridDelegate]) already gives this tile a tight size.
+      // [responsiveDealGrid]) already gives this tile a tight size.
       child: _shimmerContainer(),
     );
   }
@@ -314,14 +312,28 @@ Widget _shimmerContainer({double? width, double? height}) {
   );
 }
 
-/// Shared delegate for every deal grid (real + shimmer). Uses a fixed max
-/// tile width instead of a manually clamped column count: on wide screens
-/// this adds more columns of a consistent premium card size, rather than
-/// stretching a capped number of columns into oversized cells (which also
-/// blew up the cards' BackdropFilter blur area into a flat grey smear).
-const dealGridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
-  maxCrossAxisExtent: 220,
-  mainAxisExtent: 268,
-  crossAxisSpacing: 12,
-  mainAxisSpacing: 12,
-);
+/// Shared grid for every deal grid (real + shimmer): a centered, max-3-column
+/// layout per the design system. `SliverLayoutBuilder` reads the sliver's
+/// actual available width (not the full viewport) so this responds correctly
+/// even when nested inside a narrower centered/padded region.
+Widget responsiveDealGrid({
+  required int itemCount,
+  required NullableIndexedWidgetBuilder itemBuilder,
+}) {
+  return SliverLayoutBuilder(
+    builder: (context, constraints) {
+      final width = constraints.crossAxisExtent;
+      final columns = width >= 900 ? 3 : (width >= 620 ? 2 : 1);
+      return SliverGrid.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          mainAxisExtent: 280,
+          crossAxisSpacing: 20,
+          mainAxisSpacing: 20,
+        ),
+        itemCount: itemCount,
+        itemBuilder: itemBuilder,
+      );
+    },
+  );
+}

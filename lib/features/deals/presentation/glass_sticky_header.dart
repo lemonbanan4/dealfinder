@@ -13,10 +13,15 @@ import '../providers/deals_provider.dart';
 import '../providers/favorites_provider.dart';
 import 'feed_page.dart';
 
-/// The app's single persistent "Liquid Glass" header: a blurred, glowing
-/// glass panel pinned above the feed with an integrated search field, a
-/// hover/click "Categories" dropdown, and the auth icon — replacing the
-/// previous separate `FeedAppBar` + `FeedHeader` widgets.
+/// The feed's own "Liquid Glass" toolbar: a blurred, glowing glass panel with
+/// an integrated search field, a hover/click "Categories" dropdown, and the
+/// feed-specific controls (sort, region, favorites, view toggle, refresh).
+///
+/// On wide screens this sits directly below the app-level `_GlassTopNavBar`
+/// (logo, Feed/Alerts/Settings switcher, auth icon — see adaptive_scaffold.dart),
+/// so it doesn't repeat those. On narrow/mobile screens there is no top nav
+/// bar (mobile uses a bottom NavigationBar instead), so this is the only top
+/// bar and keeps its own logo + auth icon.
 class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
   const GlassStickyHeader({
     super.key,
@@ -48,33 +53,41 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
             color: Color.fromRGBO(11, 14, 20, 0.82),
             border: Border(bottom: BorderSide(color: GlassColors.glowBorder)),
           ),
-          padding: EdgeInsets.fromLTRB(16, MediaQuery.paddingOf(context).top + 8, 16, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            isWide ? 12 : MediaQuery.paddingOf(context).top + 8,
+            16,
+            12,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const AppLogo(),
-                  const SizedBox(width: 12),
-                  if (isWide) const _CategoriesMenu(),
-                  const Spacer(),
-                  if (isWide) ..._wideActions(context, ref) else _CompactOverflowMenu(),
-                  const SizedBox(width: 4),
-                  const _AuthIcon(),
+                  Row(
+                    children: [
+                      if (!isWide) ...[const AppLogo(), const SizedBox(width: 12)],
+                      if (isWide) const _CategoriesMenu(),
+                      const Spacer(),
+                      if (isWide) ..._wideActions(context, ref) else _CompactOverflowMenu(),
+                      if (!isWide) ...[const SizedBox(width: 4), const _AuthIcon()],
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      if (!isWide) ...[const _CategoriesMenu(), const SizedBox(width: 8)],
+                      Expanded(child: _SearchField(
+                        controller: searchController,
+                        focusNode: searchFocusNode,
+                        onChanged: onSearchChanged,
+                      )),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  if (!isWide) ...[const _CategoriesMenu(), const SizedBox(width: 8)],
-                  Expanded(child: _SearchField(
-                    controller: searchController,
-                    focusNode: searchFocusNode,
-                    onChanged: onSearchChanged,
-                  )),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

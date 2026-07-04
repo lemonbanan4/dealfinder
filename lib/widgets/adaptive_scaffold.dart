@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -7,10 +9,7 @@ import '../features/alerts/presentation/alerts_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/deals/presentation/feed_page.dart';
-import '../features/legal/presentation/about_us_page.dart';
 import '../features/settings/presentation/settings_page.dart';
-import '../features/legal/presentation/privacy_policy_page.dart';
-import '../features/legal/presentation/terms_of_service_page.dart';
 import 'app_logo.dart';
 import '../features/settings/providers/cookie_consent_provider.dart';
 import 'cookie_consent_banner.dart';
@@ -19,7 +18,7 @@ import '../theme/glass_colors.dart';
 
 part 'adaptive_scaffold.g.dart';
 
-// Top-level nav destinations — shared by the custom sidebar and the mobile bar.
+// Top-level nav destinations — shared by the top glass nav bar and the mobile bar.
 const _navDestinations = <(String, IconData, IconData)>[
   ('Feed', Icons.storefront_outlined, Icons.storefront),
   ('Alerts', Icons.notifications_outlined, Icons.notifications),
@@ -91,29 +90,20 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final unreadAlerts = ref.watch(unreadAlertsProvider);
     final selectedIndex = ref.watch(appShellIndexProvider);
 
     if (width >= 720) {
-      final isExtended = width >= 1200;
       return Scaffold(
-        body: Row(
+        backgroundColor: GlassColors.background,
+        body: Column(
           children: [
-            _CustomSidebar(
+            _GlassTopNavBar(
               selectedIndex: selectedIndex,
+              unreadAlerts: unreadAlerts,
               onDestinationSelected: (i) => ref
                   .read(appShellIndexProvider.notifier)
                   .onDestinationSelected(context, ref, i),
-              extended: isExtended,
-              isDark: isDark,
-              unreadAlerts: unreadAlerts,
-            ),
-            Container(
-              width: 1,
-              color: isDark
-                  ? GlassColors.glowBorder
-                  : Theme.of(context).dividerColor,
             ),
             Expanded(child: _pages[selectedIndex]),
           ],
@@ -121,6 +111,7 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: _pages[selectedIndex],
       bottomNavigationBar: NavigationBar(
@@ -153,131 +144,71 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
   }
 }
 
-// ─── Custom sidebar ───────────────────────────────────────────────────────────
+// ─── Top glass nav bar (desktop/tablet) ────────────────────────────────────────
 //
-// Replaces NavigationRail so we have full layout control. Legal links sit
-// directly below the Settings item in the same Column — no Spacer, no
-// Expanded, no trailing tricks. They are always visible regardless of height.
+// Replaces the old sidebar with a sticky, centered horizontal "Liquid Glass"
+// bar per the design system: a persistent Feed/Alerts/Settings switcher plus
+// the logo and auth icon, living above every page rather than beside it.
 
-class _CustomSidebar extends StatelessWidget {
-  const _CustomSidebar({
+class _GlassTopNavBar extends ConsumerWidget {
+  const _GlassTopNavBar({
     required this.selectedIndex,
-    required this.onDestinationSelected,
-    required this.extended,
-    required this.isDark,
     required this.unreadAlerts,
+    required this.onDestinationSelected,
   });
 
   final int selectedIndex;
-  final void Function(int) onDestinationSelected;
-  final bool extended;
-  final bool isDark;
   final int unreadAlerts;
-
-  static const _kBg = GlassColors.background;
-  static const _kBorder = GlassColors.glowBorder;
-  static const _kDimmer = Color(0xFF3A3A52);
+  final void Function(int) onDestinationSelected;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: extended ? 256 : 80,
-      color: isDark ? _kBg : Theme.of(context).colorScheme.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Brand header ─────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: extended
-                ? const Padding(
-                    padding: EdgeInsets.only(left: 20),
-                    child: AppLogo(iconSize: 30, fontSize: 25),
-                  )
-                : const Center(
-                    child: Icon(
-                      Icons.radar,
-                      color: Color(0xFF00B4FF),
-                      size: 24,
-                    ),
-                  ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Color.fromRGBO(11, 14, 20, 0.82),
+            border: Border(bottom: BorderSide(color: GlassColors.glowBorder)),
           ),
-          const SizedBox(height: 4),
-          // ── Nav items ────────────────────────────────────────────────────────
-          for (int i = 0; i < _navDestinations.length; i++)
-            _SidebarNavItem(
-              label: _navDestinations[i].$1,
-              icon: _navDestinations[i].$2,
-              selectedIcon: _navDestinations[i].$3,
-              selected: selectedIndex == i,
-              onTap: () => onDestinationSelected(i),
-              extended: extended,
-              isDark: isDark,
-              badgeCount: _navDestinations[i].$1 == 'Alerts' ? unreadAlerts : 0,
-            ),
-          // ── Legal links — right below Settings, no spacer ────────────────────
-          if (extended) ...[
-            const SizedBox(height: 12),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Divider(color: _kBorder, height: 1, thickness: 1),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _LegalLink(
-                    label: 'About Us',
-                    onTap: () => _push(context, const AboutUsPage()),
-                  ),
-                  const SizedBox(height: 6),
-                  _LegalLink(
-                    label: 'Privacy Policy',
-                    onTap: () => _push(context, const PrivacyPolicyPage()),
-                  ),
-                  const SizedBox(height: 6),
-                  _LegalLink(
-                    label: 'Terms of Service',
-                    onTap: () => _push(context, const TermsOfServicePage()),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '© ${DateTime.now().year} PrisPuls',
-                    style: const TextStyle(
-                      color: _kDimmer,
-                      fontSize: 10,
-                      letterSpacing: 0.1,
-                    ),
-                  ),
-                ],
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  children: [
+                    const AppLogo(iconSize: 26, fontSize: 20),
+                    const SizedBox(width: 36),
+                    for (int i = 0; i < _navDestinations.length; i++)
+                      _TopNavItem(
+                        label: _navDestinations[i].$1,
+                        icon: _navDestinations[i].$2,
+                        selectedIcon: _navDestinations[i].$3,
+                        selected: selectedIndex == i,
+                        badgeCount: _navDestinations[i].$1 == 'Alerts' ? unreadAlerts : 0,
+                        onTap: () => onDestinationSelected(i),
+                      ),
+                    const Spacer(),
+                    const _TopNavAuthIcon(),
+                  ],
+                ),
               ),
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }
-
-  void _push(BuildContext context, Widget page) {
-    Navigator.of(
-      context,
-    ).push<void>(MaterialPageRoute<void>(builder: (_) => page));
-  }
 }
 
-// ─── Sidebar nav item ─────────────────────────────────────────────────────────
-
-class _SidebarNavItem extends StatelessWidget {
-  const _SidebarNavItem({
+class _TopNavItem extends StatelessWidget {
+  const _TopNavItem({
     required this.label,
     required this.icon,
     required this.selectedIcon,
     required this.selected,
     required this.onTap,
-    required this.extended,
-    required this.isDark,
     required this.badgeCount,
   });
 
@@ -286,97 +217,47 @@ class _SidebarNavItem extends StatelessWidget {
   final IconData selectedIcon;
   final bool selected;
   final VoidCallback onTap;
-  final bool extended;
-  final bool isDark;
   final int badgeCount;
 
-  static const _kSelected = Color(0xFF00B4FF);
-  static const _kUnselected = Color(0xFF5A5A78);
-  static const _kIndicator = Color(0xFF1E2035);
+  static const _selectedColor = Color(0xFF00B4FF);
+  static const _unselectedColor = Color(0xFF8A8AA0);
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = isDark ? (selected ? _kSelected : _kUnselected) : null;
-    final textColor = iconColor;
-
-    Widget iconWidget = Icon(
-      selected ? selectedIcon : icon,
-      color: iconColor,
-      size: 22,
-    );
-
+    final color = selected ? _selectedColor : _unselectedColor;
+    Widget iconWidget = Icon(selected ? selectedIcon : icon, color: color, size: 20);
     if (badgeCount > 0) {
       iconWidget = Badge(label: Text(badgeCount.toString()), child: iconWidget);
     }
 
-    if (extended) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: selected && isDark
-                  ? BoxDecoration(
-                      color: _kIndicator,
-                      borderRadius: BorderRadius.circular(8),
-                    )
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFF1E2035) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: selected
+                  ? Border.all(color: GlassColors.glowBorderHover)
                   : null,
-              child: Row(
-                children: [
-                  iconWidget,
-                  const SizedBox(width: 12),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        ),
-      );
-    }
-
-    // Compact: icon pill + label stacked
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          width: 80,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 5,
-                  ),
-                  decoration: selected && isDark
-                      ? BoxDecoration(
-                          color: _kIndicator,
-                          borderRadius: BorderRadius.circular(16),
-                        )
-                      : null,
-                  child: iconWidget,
-                ),
-                const SizedBox(height: 3),
+                iconWidget,
+                const SizedBox(width: 8),
                 Text(
                   label,
                   style: TextStyle(
-                    color: textColor,
-                    fontSize: 11,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    color: color,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 13,
                   ),
                 ),
               ],
@@ -388,30 +269,31 @@ class _SidebarNavItem extends StatelessWidget {
   }
 }
 
-// ─── Legal link text button ───────────────────────────────────────────────────
-
-class _LegalLink extends StatelessWidget {
-  const _LegalLink({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
+class _TopNavAuthIcon extends ConsumerWidget {
+  const _TopNavAuthIcon();
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF5A5A78),
-            fontSize: 11,
-            fontWeight: FontWeight.w400,
-            height: 1.4,
-          ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    return authState.when(
+      data: (user) => IconButton(
+        tooltip: user != null ? 'Profile' : 'Sign In',
+        icon: Icon(
+          user != null ? Icons.account_circle : Icons.person_outline,
+          color: Colors.white,
         ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  user != null ? const SettingsPage() : const LoginPage(),
+            ),
+          );
+        },
       ),
+      loading: () => const SizedBox(width: 48),
+      error: (e, s) => const Icon(Icons.error, color: Colors.white),
     );
   }
 }

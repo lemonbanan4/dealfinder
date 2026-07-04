@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
 import '../../newsletter/presentation/newsletter_signup_section.dart';
@@ -152,6 +153,39 @@ class FeedViewMode extends _$FeedViewMode {
   void toggle() => state = !state;
 }
 
+/// Horizontal gutter for the hero surface: centers it at a 1200px max width
+/// on wide screens (per the "Layout Structure" design directive) while
+/// keeping a sensible fixed gutter on narrower ones.
+double _heroHorizontalPadding(BuildContext context) {
+  final width = MediaQuery.sizeOf(context).width;
+  const maxContentWidth = 1200;
+  const minGutter = 16.0;
+  return width > maxContentWidth + minGutter * 2
+      ? (width - maxContentWidth) / 2
+      : minGutter;
+}
+
+/// The large gradient-glass "hero" surface housing the deal feed.
+final _heroDecoration = BoxDecoration(
+  gradient: LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      GlassColors.surface.withValues(alpha: 0.7),
+      GlassColors.background.withValues(alpha: 0.55),
+    ],
+  ),
+  borderRadius: BorderRadius.circular(28),
+  border: Border.all(color: GlassColors.glowBorder),
+  boxShadow: [
+    BoxShadow(
+      color: GlassColors.glowBorder.withValues(alpha: 0.2),
+      blurRadius: 40,
+      spreadRadius: -8,
+    ),
+  ],
+);
+
 class FeedPage extends ConsumerStatefulWidget {
   const FeedPage({super.key});
 
@@ -274,31 +308,47 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                             key: ValueKey(isGrid),
                             controller: _scrollController,
                             slivers: [
-                              if (filters.searchQuery.isEmpty &&
-                                  !filters.showFavoritesOnly)
-                                const TopDealsSliver(),
-                              if (filters.searchQuery.isEmpty &&
-                                  !filters.showFavoritesOnly)
-                                const RecentlyViewedSliver(),
+                              // ---- Hero surface: a large, centered
+                              // (max-width 1200) gradient-glass panel housing
+                              // the whole deal feed — Insane Deals, Recently
+                              // Viewed, and the main grid/list. ----
                               SliverPadding(
-                                padding: EdgeInsets.all(isGrid ? 20 : 14),
-                                sliver: DealsSliver(
-                                  deals: displayDeals,
-                                  view: isGrid ? FeedView.grid : FeedView.list,
-                                  onFavoriteTap: (deal) => ref
-                                      .read(favoritesProvider.notifier)
-                                      .handleFavoriteTap(context, deal),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: _heroHorizontalPadding(context),
+                                  vertical: 16,
                                 ),
-                              ),
-
-                              // ---- AFFILIATE DISCLAIMER ----
-                              const SliverToBoxAdapter(
-                                child: AffiliateDisclaimer(),
+                                sliver: DecoratedSliver(
+                                  decoration: _heroDecoration,
+                                  sliver: SliverMainAxisGroup(
+                                    slivers: [
+                                      if (filters.searchQuery.isEmpty &&
+                                          !filters.showFavoritesOnly)
+                                        const TopDealsSliver(),
+                                      if (filters.searchQuery.isEmpty &&
+                                          !filters.showFavoritesOnly)
+                                        const RecentlyViewedSliver(),
+                                      SliverPadding(
+                                        padding: EdgeInsets.all(isGrid ? 20 : 14),
+                                        sliver: DealsSliver(
+                                          deals: displayDeals,
+                                          view: isGrid ? FeedView.grid : FeedView.list,
+                                          onFavoriteTap: (deal) => ref
+                                              .read(favoritesProvider.notifier)
+                                              .handleFavoriteTap(context, deal),
+                                        ),
+                                      ),
+                                      const SliverToBoxAdapter(
+                                        child: AffiliateDisclaimer(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
 
                               // ---- Featured brands + newsletter, then the
                               // app footer — always shown regardless of the
-                              // active search/filter state. ----
+                              // active search/filter state, full-width
+                              // outside the hero surface. ----
                               SliverToBoxAdapter(
                                 child: BrandLogosSection(
                                   onBrandTap: _onBrandTap,
