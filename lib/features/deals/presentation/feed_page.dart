@@ -152,29 +152,6 @@ class FeedViewMode extends _$FeedViewMode {
   void toggle() => state = !state;
 }
 
-// HELPER FUNCTION FOR format all_no and all_se
-String formatSourceName(String rawSource) {
-  if (rawSource.toLowerCase().contains('all_no') ||
-      rawSource.toLowerCase().contains('all no')) {
-    return 'Norway Deals 🇳🇴';
-  } else if (rawSource.toLowerCase().contains('all_se') ||
-      rawSource.toLowerCase().contains('all se')) {
-    return 'Sweden Deals 🇸🇪';
-  }
-  return rawSource; // Fallback
-}
-
-final categoriesProvider = Provider<List<String>>((ref) {
-  final dealFeedAsync = ref.watch(dealFeedProvider);
-  final categories = <String>{'All'};
-  for (final d in dealFeedAsync.asData?.value ?? []) {
-    if (d.source.isNotEmpty) categories.add(d.source);
-  }
-  final categoryList = categories.toList()
-    ..sort((a, b) => a == 'All' ? -1 : a.compareTo(b));
-  return categoryList;
-});
-
 class FeedPage extends ConsumerStatefulWidget {
   const FeedPage({super.key});
 

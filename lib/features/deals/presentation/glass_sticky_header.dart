@@ -8,6 +8,7 @@ import '../../../widgets/app_logo.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../settings/presentation/settings_page.dart';
+import '../domain/product_category.dart';
 import '../providers/deals_provider.dart';
 import '../providers/favorites_provider.dart';
 import 'feed_page.dart';
@@ -168,11 +169,8 @@ class _CategoriesMenuState extends ConsumerState<_CategoriesMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final categoryList = ref.watch(categoriesProvider);
     final filters = ref.watch(feedFiltersProvider);
-    final activeLabel = filters.category == 'All'
-        ? 'Categories'
-        : formatSourceName(filters.category);
+    final activeLabel = filters.category == 'All' ? 'Categories' : filters.category;
 
     return MenuAnchor(
       controller: _menuController,
@@ -188,7 +186,7 @@ class _CategoriesMenuState extends ConsumerState<_CategoriesMenu> {
         elevation: const WidgetStatePropertyAll(12),
       ),
       menuChildren: [
-        for (final cat in categoryList)
+        for (final cat in dealCategories)
           MenuItemButton(
             onPressed: () =>
                 ref.read(feedFiltersProvider.notifier).updateCategory(cat),
@@ -198,7 +196,7 @@ class _CategoriesMenuState extends ConsumerState<_CategoriesMenu> {
                   ? const Icon(Icons.check, size: 18, color: Color(0xFF00B4FF))
                   : null,
             ),
-            child: Text(formatSourceName(cat)),
+            child: Text(cat),
           ),
       ],
       builder: (context, controller, child) {

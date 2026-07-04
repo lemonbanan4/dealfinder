@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../domain/deal.dart';
+import '../domain/product_category.dart';
 import '../presentation/feed_page.dart';
 import 'favorites_provider.dart';
 import 'deals_provider.dart';
@@ -20,7 +21,7 @@ List<Deal> filteredDeals(Ref ref) {
     final q = filters.searchQuery.toLowerCase();
     return (d.title.toLowerCase().contains(q) ||
             d.source.toLowerCase().contains(q)) &&
-        (filters.category == 'All' || d.source == filters.category);
+        (filters.category == 'All' || categoryForDeal(d) == filters.category);
   }).toList();
 
   // Apply the active sorting method
