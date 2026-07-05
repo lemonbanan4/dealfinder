@@ -33,7 +33,7 @@ class PriceSparkline extends ConsumerWidget {
             if (spot.y > maxY) maxY = spot.y;
           }
           final padding = (maxY - minY) * 0.15 + (maxY == minY ? 1 : 0);
-          const color = GlassColors.glowBorderHover;
+          const color = GlassColors.priceAccent;
 
           return LineChart(
             LineChartData(

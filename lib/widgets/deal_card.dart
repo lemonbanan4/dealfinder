@@ -1,8 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/deals/domain/deal.dart';
+import '../features/deals/presentation/price_alert_bottom_sheet.dart';
 import '../features/deals/providers/favorites_provider.dart';
 import '../features/settings/presentation/currency_provider.dart';
 import '../theme/glass_colors.dart';
@@ -117,7 +119,7 @@ class DealCard extends ConsumerWidget {
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: GlassColors.priceAccent,
                               ),
                         ),
                         if (deal.originalPrice != null &&
@@ -242,32 +244,60 @@ class _GridCard extends ConsumerWidget {
                       ),
                     ),
                   ),
-                // --- Favorite Button ---
+                // --- Floating action cluster: favorite, copy link, alert ---
                 Positioned(
-                  top: 0,
-                  right: 0,
-                  child: IconButton(
-                    icon: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.white.withValues(alpha: 0.8),
-                    ),
-                    onPressed: () async {
-                      try {
-                        await ref
-                            .read(favoritesProvider.notifier)
-                            .toggleFavorite(deal.id);
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Could not update favorite.'),
-                            ),
+                  top: 6,
+                  right: 6,
+                  child: Row(
+                    children: [
+                      _CardActionButton(
+                        icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+                        iconColor: isFavorite
+                            ? GlassColors.priceAccent
+                            : Colors.white,
+                        tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
+                        onPressed: () async {
+                          try {
+                            await ref
+                                .read(favoritesProvider.notifier)
+                                .toggleFavorite(deal.id);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Could not update favorite.'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      _CardActionButton(
+                        icon: Icons.copy_outlined,
+                        tooltip: 'Copy link',
+                        onPressed: () async {
+                          await Clipboard.setData(ClipboardData(text: deal.url));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Link copied!')),
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      _CardActionButton(
+                        icon: Icons.notification_add_outlined,
+                        tooltip: 'Set price alert',
+                        onPressed: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (_) => PriceAlertBottomSheet(deal: deal),
                           );
-                        }
-                      }
-                    },
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -303,6 +333,39 @@ class _GridCard extends ConsumerWidget {
             ),
           ],
         ),
+    );
+  }
+}
+
+/// A small circular glass icon button used in the deal card's floating
+/// action cluster (favorite, copy link, price alert) — a translucent dark
+/// backdrop keeps the icon legible over any product photo.
+class _CardActionButton extends StatelessWidget {
+  const _CardActionButton({
+    required this.icon,
+    required this.onPressed,
+    required this.tooltip,
+    this.iconColor = Colors.white,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String tooltip;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.35),
+      shape: const CircleBorder(),
+      child: IconButton(
+        tooltip: tooltip,
+        iconSize: 18,
+        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        padding: EdgeInsets.zero,
+        icon: Icon(icon, color: iconColor),
+        onPressed: onPressed,
+      ),
     );
   }
 }

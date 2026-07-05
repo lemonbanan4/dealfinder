@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../features/settings/presentation/currency_provider.dart';
+import '../theme/glass_colors.dart';
 import '../utils/formatters.dart';
 
 /// A widget that displays a price, handling currency conversion,
@@ -32,7 +33,7 @@ class PriceDisplay extends StatelessWidget {
           Text(
             '${formatAmount(displayPrice)} $targetCurrency',
             style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.primary,
+              color: GlassColors.priceAccent,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.3,
             ),

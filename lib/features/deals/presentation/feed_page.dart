@@ -9,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
-import '../../../widgets/glass_container.dart';
 import '../../newsletter/presentation/newsletter_signup_section.dart';
 import '../../settings/presentation/shimmer_grid.dart';
 import '../providers/filtered_deals_provider.dart';
@@ -436,59 +435,10 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                           )
                         : const SizedBox.shrink(),
                   ),
-                  // --- Floating refresh action, top-right of the feed ---
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: _FloatingRefreshButton(
-                      isRefreshing: _isRefreshing,
-                      onRefresh: _handleRefresh,
-                    ),
-                  ),
                 ],
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The feed's single remaining toolbar action: a floating glass button that
-/// refreshes the deal feed, docked to the top-right of the feed section
-/// (region, sort, favorites-only, and grid/list toggles were removed).
-class _FloatingRefreshButton extends StatelessWidget {
-  const _FloatingRefreshButton({
-    required this.isRefreshing,
-    required this.onRefresh,
-  });
-
-  final ValueNotifier<bool> isRefreshing;
-  final VoidCallback onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: isRefreshing,
-      builder: (context, refreshing, _) => GlassContainer(
-        borderRadius: 24,
-        padding: const EdgeInsets.all(4),
-        onTap: refreshing ? null : onRefresh,
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Center(
-            child: refreshing
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.refresh, color: Colors.white, size: 20),
-          ),
         ),
       ),
     );

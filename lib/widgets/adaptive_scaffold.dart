@@ -97,18 +97,30 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
 
     if (width >= 720) {
       return Scaffold(
-        backgroundColor: GlassColors.background,
-        body: Column(
-          children: [
-            _GlassTopNavBar(
-              selectedIndex: selectedIndex,
-              unreadAlerts: unreadAlerts,
-              onDestinationSelected: (i) => ref
-                  .read(appShellIndexProvider.notifier)
-                  .onDestinationSelected(context, ref, i),
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF080C1C),
+                Color(0xFF112240),
+              ],
             ),
-            Expanded(child: _pages[selectedIndex]),
-          ],
+          ),
+          child: Column(
+            children: [
+              _GlassTopNavBar(
+                selectedIndex: selectedIndex,
+                unreadAlerts: unreadAlerts,
+                onDestinationSelected: (i) => ref
+                    .read(appShellIndexProvider.notifier)
+                    .onDestinationSelected(context, ref, i),
+              ),
+              Expanded(child: _pages[selectedIndex]),
+            ],
+          ),
         ),
       );
     }

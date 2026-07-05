@@ -25,4 +25,10 @@ class GlassColors {
   static const glowBorderHover = Color(0x80FFFFFF);
   static const glassFill = Color(0x1AFFFFFF);
   static const glassFillHover = Color(0x26FFFFFF);
+
+  /// Dedicated mint/teal accent for money-related data (price text, the
+  /// price-history sparkline) — kept separate from [glowBorder]/
+  /// [glowBorderHover] (soft white, used for container borders) so changing
+  /// the border treatment doesn't wash out the price sparkline's color too.
+  static const priceAccent = Color(0xFF00E6A8);
 }
