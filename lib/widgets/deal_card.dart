@@ -9,15 +9,9 @@ import '../features/deals/providers/favorites_provider.dart';
 import '../features/settings/presentation/currency_provider.dart';
 import '../theme/glass_colors.dart';
 import '../utils/formatters.dart';
-import 'glass_container.dart';
+import 'glass_card.dart';
 import 'price_display.dart';
 import 'price_sparkline.dart';
-
-/// Deep-blue translucent glass fill for deal cards — a proper glassmorphic
-/// pane (lower opacity, blurred backdrop) that sits on the gradient
-/// background rather than reading as a solid, opaque panel.
-const _cardFill = Color.fromRGBO(17, 34, 64, 0.55);
-const _cardFillHover = Color.fromRGBO(17, 34, 64, 0.7);
 
 enum DealCardView { grid, list }
 
@@ -55,14 +49,10 @@ class DealCard extends ConsumerWidget {
     }
 
     // LIST VIEW
-    return GlassContainer(
+    return GlassCard(
       borderRadius: 16,
       onTap: onTap,
       padding: const EdgeInsets.all(12),
-      fillColor: _cardFill,
-      hoverFillColor: _cardFillHover,
-      borderColor: GlassColors.glowBorder,
-      hoverBorderColor: GlassColors.glowBorderHover,
       child: Row(
         // This is for the main list view
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,13 +165,9 @@ class _GridCard extends ConsumerWidget {
       ),
     );
 
-    return GlassContainer(
+    return GlassCard(
       borderRadius: 12,
       onTap: onTap,
-      fillColor: _cardFill,
-      hoverFillColor: _cardFillHover,
-      borderColor: GlassColors.glowBorder,
-      hoverBorderColor: GlassColors.glowBorderHover,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

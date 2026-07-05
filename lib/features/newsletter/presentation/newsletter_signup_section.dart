@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../theme/glass_colors.dart';
+import '../../../widgets/glass_card.dart';
 import '../../auth/providers/validators.dart';
 import '../data/newsletter_repository.dart';
 
@@ -80,69 +80,78 @@ class _NewsletterSignupSectionState
     final isDark = theme.brightness == Brightness.dark;
     final isWide = MediaQuery.sizeOf(context).width >= 560;
 
+    final formContent = Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Get the deals first',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : theme.colorScheme.onPrimaryContainer,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sign up for our newsletter and get the best deals straight to your inbox.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark
+                  ? Colors.white70
+                  : theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _EmailField(controller: _emailController)),
+                      const SizedBox(width: 12),
+                      _SubmitButton(
+                        isSubmitting: _isSubmitting,
+                        onPressed: _submit,
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      _EmailField(controller: _emailController),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: _SubmitButton(
+                          isSubmitting: _isSubmitting,
+                          onPressed: _submit,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       decoration: BoxDecoration(
-        color: isDark ? GlassColors.background : theme.colorScheme.primaryContainer,
-        border: isDark
-            ? const Border(top: BorderSide(color: GlassColors.glowBorder))
-            : null,
+        color: isDark ? null : theme.colorScheme.primaryContainer,
       ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              'Get the deals first',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : theme.colorScheme.onPrimaryContainer,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Sign up for our newsletter and get the best deals straight to your inbox.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark
-                    ? Colors.white70
-                    : theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: isWide
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _EmailField(controller: _emailController)),
-                        const SizedBox(width: 12),
-                        _SubmitButton(
-                          isSubmitting: _isSubmitting,
-                          onPressed: _submit,
-                        ),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        _EmailField(controller: _emailController),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: _SubmitButton(
-                            isSubmitting: _isSubmitting,
-                            onPressed: _submit,
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ],
-        ),
+      child: Center(
+        child: isDark
+            ? ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: GlassCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: formContent,
+                ),
+              )
+            : formContent,
       ),
     );
   }

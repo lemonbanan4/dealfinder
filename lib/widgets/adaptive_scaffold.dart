@@ -14,6 +14,7 @@ import 'app_logo.dart';
 import '../features/settings/providers/cookie_consent_provider.dart';
 import 'cookie_consent_banner.dart';
 import '../features/alerts/providers/unread_alerts_provider.dart';
+import '../theme/app_styles.dart';
 import '../theme/glass_colors.dart';
 import 'glass_container.dart';
 
@@ -99,16 +100,7 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
       return Scaffold(
         backgroundColor: Colors.transparent,
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF080C1C),
-                Color(0xFF112240),
-              ],
-            ),
-          ),
+          decoration: const BoxDecoration(gradient: AppStyles.backgroundGradient),
           child: Column(
             children: [
               _GlassTopNavBar(
@@ -127,13 +119,19 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      body: _pages[selectedIndex],
+      backgroundColor: Colors.transparent,
+      body: isDark
+          ? Container(
+              decoration: const BoxDecoration(gradient: AppStyles.backgroundGradient),
+              child: _pages[selectedIndex],
+            )
+          : _pages[selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (i) => ref
             .read(appShellIndexProvider.notifier)
             .onDestinationSelected(context, ref, i),
-        backgroundColor: isDark ? GlassColors.background : null,
+        backgroundColor: isDark ? AppStyles.backgroundGradientEnd : null,
         indicatorColor: isDark ? const Color(0xFF1E2035) : null,
         destinations: [
           for (final (label, icon, selected) in _navDestinations)

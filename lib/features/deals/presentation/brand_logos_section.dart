@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../theme/glass_colors.dart';
+import '../../../widgets/glass_card.dart';
 import '../providers/brands_provider.dart';
 
 /// Icon CDNs like simpleicons.org (used by the seeded `brand_logos` rows)
@@ -116,6 +117,10 @@ class _BrandLogoTile extends StatefulWidget {
 }
 
 class _BrandLogoTileState extends State<_BrandLogoTile> {
+  // Tracked separately from GlassCard's own internal hover state — GlassCard
+  // owns the border/shadow/lift treatment, this just drives the logo's
+  // dim-to-bright opacity, which is specific to this "trusted by" tile and
+  // not part of the shared glass-card hover spec.
   bool _hovering = false;
 
   @override
@@ -123,48 +128,24 @@ class _BrandLogoTileState extends State<_BrandLogoTile> {
     final logoUrl = widget.brand.logoUrl;
 
     return MouseRegion(
-      cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
-      child: GestureDetector(
+      child: GlassCard(
         onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: _hovering ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOut,
-            height: 64,
-            width: 136,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: _hovering ? GlassColors.glassFillHover : GlassColors.glassFill,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: _hovering ? GlassColors.glowBorderHover : GlassColors.glowBorder,
-                width: 1,
-              ),
-              boxShadow: _hovering
-                  ? [
-                      BoxShadow(
-                        color: GlassColors.glowBorderHover.withValues(alpha: 0.35),
-                        blurRadius: 16,
-                        spreadRadius: -2,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Tooltip(
-              message: widget.brand.name,
-              child: AnimatedOpacity(
-                opacity: _hovering ? 1.0 : 0.62,
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                child: logoUrl == null || logoUrl.isEmpty
-                    ? _BrandTextBadge(name: widget.brand.name, dimmed: false)
-                    : _BrandLogoImage(url: logoUrl, brand: widget.brand.name),
-              ),
+        borderRadius: 14,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: SizedBox(
+          height: 44,
+          width: 104,
+          child: Tooltip(
+            message: widget.brand.name,
+            child: AnimatedOpacity(
+              opacity: _hovering ? 1.0 : 0.62,
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              child: logoUrl == null || logoUrl.isEmpty
+                  ? _BrandTextBadge(name: widget.brand.name, dimmed: false)
+                  : _BrandLogoImage(url: logoUrl, brand: widget.brand.name),
             ),
           ),
         ),

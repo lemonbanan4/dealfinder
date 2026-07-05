@@ -2,26 +2,115 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-class GlassCard extends StatelessWidget {
-  const GlassCard({super.key, required this.child});
+import '../theme/app_styles.dart';
+
+/// Flutter port of the CSS `.glass-card` / `.glass-card-interactive`
+/// classes (see `AppStyles` for the exact rgba/box-shadow values ported
+/// from `iGaming-Affiliate-Review/src/index.css`).
+///
+/// Static by default (matching `.glass-card`): a frosted, translucent panel
+/// with a soft white border and drop shadow. Pass [onTap] to opt into the
+/// `.glass-card-interactive` hover treatment — a 3px lift, a subtle scale,
+/// and a neon-blue border glow — detected via [MouseRegion] on desktop/web
+/// and driven through the same tap via [InkWell] so touch devices still get
+/// the ripple + [onTap] without needing a hover state.
+class GlassCard extends StatefulWidget {
+  const GlassCard({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.borderRadius = 16,
+    this.padding,
+    this.margin,
+  });
+
   final Widget child;
+  final VoidCallback? onTap;
+  final double borderRadius;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+
+  @override
+  State<GlassCard> createState() => _GlassCardState();
+}
+
+class _GlassCardState extends State<GlassCard> {
+  bool _hovering = false;
+
+  void _setHovering(bool value) {
+    if (_hovering != value) setState(() => _hovering = value);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
+    final interactive = widget.onTap != null;
+    final hovering = interactive && _hovering;
+    final radius = BorderRadius.circular(widget.borderRadius);
+
+    final transform = hovering
+        ? (Matrix4.identity()
+            ..translateByDouble(
+              AppStyles.glassCardHoverLift.dx,
+              AppStyles.glassCardHoverLift.dy,
+              0,
+              1,
+            )
+            ..scaleByDouble(
+              AppStyles.glassCardHoverScale,
+              AppStyles.glassCardHoverScale,
+              1,
+              1,
+            ))
+        : Matrix4.identity();
+
+    Widget content = ClipRRect(
+      borderRadius: radius,
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          padding: const EdgeInsets.all(32),
+        filter: ImageFilter.blur(
+          sigmaX: AppStyles.glassCardBlurSigma,
+          sigmaY: AppStyles.glassCardBlurSigma,
+        ),
+        child: AnimatedContainer(
+          duration: AppStyles.glassCardHoverDuration,
+          curve: AppStyles.glassCardHoverCurve,
+          transform: transform,
+          transformAlignment: Alignment.center,
+          margin: widget.margin,
+          padding: widget.padding,
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(12),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withAlpha(28)),
+            color: AppStyles.glassCardFill,
+            borderRadius: radius,
+            border: Border.all(
+              color: hovering
+                  ? AppStyles.glassCardHoverBorder
+                  : AppStyles.glassCardBorder,
+            ),
+            boxShadow: hovering
+                ? AppStyles.glassCardHoverShadow
+                : AppStyles.glassCardShadow,
           ),
-          child: child,
+          child: widget.child,
         ),
       ),
+    );
+
+    if (interactive) {
+      content = Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        child: InkWell(
+          borderRadius: radius,
+          onTap: widget.onTap,
+          child: content,
+        ),
+      );
+    }
+
+    return MouseRegion(
+      onEnter: (_) => _setHovering(true),
+      onExit: (_) => _setHovering(false),
+      cursor: interactive ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      child: content,
     );
   }
 }
