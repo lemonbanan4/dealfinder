@@ -11,11 +11,11 @@ import 'glass_container.dart';
 import 'price_display.dart';
 import 'price_sparkline.dart';
 
-/// Deep-charcoal glass fill for deal cards specifically, per the premium
-/// grid design: a solid-feeling dark panel rather than the translucent
-/// white glass used elsewhere in the app.
-const _cardFill = Color.fromRGBO(11, 14, 20, 0.82);
-const _cardFillHover = Color.fromRGBO(11, 14, 20, 0.92);
+/// Deep-blue translucent glass fill for deal cards — a proper glassmorphic
+/// pane (lower opacity, blurred backdrop) that sits on the gradient
+/// background rather than reading as a solid, opaque panel.
+const _cardFill = Color.fromRGBO(17, 34, 64, 0.55);
+const _cardFillHover = Color.fromRGBO(17, 34, 64, 0.7);
 
 enum DealCardView { grid, list }
 

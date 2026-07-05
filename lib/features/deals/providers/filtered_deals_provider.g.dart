@@ -48,4 +48,4 @@ final class FilteredDealsProvider
   }
 }
 
-String _$filteredDealsHash() => r'f69f2a43b664b08114c4df62cd0c96dc2008d239';
+String _$filteredDealsHash() => r'099ebde9eb588e8699fbdef0c086552e136b9c6a';

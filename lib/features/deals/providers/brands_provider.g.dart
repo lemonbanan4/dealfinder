@@ -40,6 +40,18 @@ part of 'brands_provider.dart';
 ///   ('JBL',     'https://cdn.simpleicons.org/jbl/ffffff',     8),
 ///   ('Bosch',   'https://cdn.simpleicons.org/bosch/ffffff',   9);
 /// ```
+/// All white/monochrome (`/ffffff`) is deliberate, not a placeholder: it's
+/// the classic muted-logo "trusted by" treatment (Stripe/Vercel/Linear-style)
+/// that `BrandLogosSection` brightens on hover, and — empirically, tested
+/// against this exact CDN — the only variant that reliably renders for every
+/// brand here. Custom per-brand hex colors were tried first; Samsung's and
+/// Lenovo's colored SVG variants specifically failed to render via
+/// `flutter_svg` (silent decode failure, falling back to the text badge)
+/// despite being valid, fetchable SVG — likely a `flutter_svg` path-parser
+/// edge case with those two specific icons. Clearbit's logo API
+/// (`logo.clearbit.com`) was also tried as a colored-raster alternative; it
+/// no longer resolves at all (`ERR_NAME_NOT_RESOLVED`), i.e. the service has
+/// been shut down. Re-test before reintroducing custom colors.
 /// (Row 2 has a null `logo_url` — adjust the column/insert to allow it, or
 /// just omit brands with no icon and rely on the text-badge fallback.)
 ///
@@ -81,6 +93,18 @@ final brandsProvider = BrandsProvider._();
 ///   ('JBL',     'https://cdn.simpleicons.org/jbl/ffffff',     8),
 ///   ('Bosch',   'https://cdn.simpleicons.org/bosch/ffffff',   9);
 /// ```
+/// All white/monochrome (`/ffffff`) is deliberate, not a placeholder: it's
+/// the classic muted-logo "trusted by" treatment (Stripe/Vercel/Linear-style)
+/// that `BrandLogosSection` brightens on hover, and — empirically, tested
+/// against this exact CDN — the only variant that reliably renders for every
+/// brand here. Custom per-brand hex colors were tried first; Samsung's and
+/// Lenovo's colored SVG variants specifically failed to render via
+/// `flutter_svg` (silent decode failure, falling back to the text badge)
+/// despite being valid, fetchable SVG — likely a `flutter_svg` path-parser
+/// edge case with those two specific icons. Clearbit's logo API
+/// (`logo.clearbit.com`) was also tried as a colored-raster alternative; it
+/// no longer resolves at all (`ERR_NAME_NOT_RESOLVED`), i.e. the service has
+/// been shut down. Re-test before reintroducing custom colors.
 /// (Row 2 has a null `logo_url` — adjust the column/insert to allow it, or
 /// just omit brands with no icon and rely on the text-badge fallback.)
 ///
@@ -127,6 +151,18 @@ final class BrandsProvider
   ///   ('JBL',     'https://cdn.simpleicons.org/jbl/ffffff',     8),
   ///   ('Bosch',   'https://cdn.simpleicons.org/bosch/ffffff',   9);
   /// ```
+  /// All white/monochrome (`/ffffff`) is deliberate, not a placeholder: it's
+  /// the classic muted-logo "trusted by" treatment (Stripe/Vercel/Linear-style)
+  /// that `BrandLogosSection` brightens on hover, and — empirically, tested
+  /// against this exact CDN — the only variant that reliably renders for every
+  /// brand here. Custom per-brand hex colors were tried first; Samsung's and
+  /// Lenovo's colored SVG variants specifically failed to render via
+  /// `flutter_svg` (silent decode failure, falling back to the text badge)
+  /// despite being valid, fetchable SVG — likely a `flutter_svg` path-parser
+  /// edge case with those two specific icons. Clearbit's logo API
+  /// (`logo.clearbit.com`) was also tried as a colored-raster alternative; it
+  /// no longer resolves at all (`ERR_NAME_NOT_RESOLVED`), i.e. the service has
+  /// been shut down. Re-test before reintroducing custom colors.
   /// (Row 2 has a null `logo_url` — adjust the column/insert to allow it, or
   /// just omit brands with no icon and rely on the text-badge fallback.)
   ///

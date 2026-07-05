@@ -180,11 +180,11 @@ class _GlassTopNavBar extends ConsumerWidget {
             borderRadius: 32,
             blurSigma: 24,
             enableHoverAnimation: false,
-            fillColor: const Color.fromRGBO(11, 14, 20, 0.85),
+            fillColor: const Color.fromRGBO(10, 25, 47, 0.6),
             borderColor: GlassColors.glowBorder,
             boxShadow: [
               BoxShadow(
-                color: GlassColors.glowBorder.withValues(alpha: 0.25),
+                color: Colors.white.withValues(alpha: 0.08),
                 blurRadius: 32,
                 spreadRadius: -8,
               ),

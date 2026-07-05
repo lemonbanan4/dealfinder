@@ -33,7 +33,7 @@ final class FavoritesNotifierProvider
   FavoritesNotifier create() => FavoritesNotifier();
 }
 
-String _$favoritesNotifierHash() => r'e29598290233a4b3d0384ace3d6921b8e74ab535';
+String _$favoritesNotifierHash() => r'291da81fb4e5e0cf42b6ff5483cb00c2a91c9841';
 
 abstract class _$FavoritesNotifier extends $AsyncNotifier<Set<String>> {
   FutureOr<Set<String>> build();

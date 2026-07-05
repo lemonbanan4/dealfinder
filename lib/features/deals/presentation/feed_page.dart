@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
+import '../../../widgets/glass_container.dart';
 import '../../newsletter/presentation/newsletter_signup_section.dart';
 import '../../settings/presentation/shimmer_grid.dart';
 import '../providers/filtered_deals_provider.dart';
@@ -110,8 +111,6 @@ class FeedFilters {
 
 enum ProductSort { none, priceAsc, priceDesc, discountDesc }
 
-enum FeedView { grid, list }
-
 // ─── Feed page ─────────────────────────────────────────────────────────────────
 
 @riverpod
@@ -197,14 +196,6 @@ class FeedFiltersNotifier extends _$FeedFiltersNotifier {
       showFavoritesOnly: false,
     );
   }
-}
-
-@riverpod
-class FeedViewMode extends _$FeedViewMode {
-  @override
-  bool build() => false;
-
-  void toggle() => state = !state;
 }
 
 /// Horizontal gutter for the hero surface: centers it at a 1200px max width
@@ -319,53 +310,57 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     final displayDeals = ref.watch(
       filteredDealsProvider,
     ); // This is now optimized
-    final isGrid = ref.watch(feedViewModeProvider);
     final dealFeedAsync = ref.watch(dealFeedProvider);
+    final isWide = MediaQuery.sizeOf(context).width >= 720;
 
     return Scaffold(
-      appBar: GlassStickyHeader(
-        isRefreshing: _isRefreshing,
-        onRefresh: _handleRefresh,
-      ),
-      body: Column(
-        children: [
-          // ─── Main Content ────────────────────────────────────────────────
-          Expanded(
-            child: Stack(
-              children: [
-                RefreshIndicator(
-                  onRefresh: _handleRefresh,
-                  child: dealFeedAsync.isLoading && !dealFeedAsync.hasValue
-                      ? ShimmerGrid(isGrid: isGrid)
-                      : dealFeedAsync.hasError && !dealFeedAsync.hasValue
-                      ? ErrorState(
-                          message: 'ERROR: ${dealFeedAsync.error.toString()}',
-                          onRetry: () => _handleRefresh(),
-                        ) // Removed redundant handleRefresh call
-                      : (dealFeedAsync.asData?.value ?? []).isEmpty
-                      ? EmptyState(onRefresh: () => _handleRefresh())
-                      : (filters.searchQuery.isNotEmpty ||
-                                filters.showFavoritesOnly) &&
-                            displayDeals.isEmpty
-                      ? SearchEmptyState(
-                          query: filters.searchQuery,
-                          onClear: () {
-                            cancelPendingSearchUpdate(ref);
-                            _searchController.clear();
-                            ref.read(feedFiltersProvider.notifier).clear();
-                            FocusManager.instance.primaryFocus?.unfocus();
-                          },
-                        )
-                      : AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: CustomScrollView(
-                            key: ValueKey(isGrid),
+      backgroundColor: Colors.transparent,
+      // The app-level top nav bar (adaptive_scaffold.dart) already covers
+      // logo/tabs/categories/search/auth on wide screens, so the feed's own
+      // header is only needed on narrow/mobile screens (no top nav bar
+      // there). Refresh lives in the floating button below instead of a
+      // toolbar row on either layout.
+      appBar: isWide
+          ? null
+          : const GlassStickyHeader(),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: GlassColors.backgroundGradient),
+        child: Column(
+          children: [
+            // ─── Main Content ────────────────────────────────────────────────
+            Expanded(
+              child: Stack(
+                children: [
+                  RefreshIndicator(
+                    onRefresh: _handleRefresh,
+                    child: dealFeedAsync.isLoading && !dealFeedAsync.hasValue
+                        ? const ShimmerGrid(isGrid: true)
+                        : dealFeedAsync.hasError && !dealFeedAsync.hasValue
+                        ? ErrorState(
+                            message: 'ERROR: ${dealFeedAsync.error.toString()}',
+                            onRetry: () => _handleRefresh(),
+                          ) // Removed redundant handleRefresh call
+                        : (dealFeedAsync.asData?.value ?? []).isEmpty
+                        ? EmptyState(onRefresh: () => _handleRefresh())
+                        : (filters.searchQuery.isNotEmpty ||
+                                  filters.showFavoritesOnly) &&
+                              displayDeals.isEmpty
+                        ? SearchEmptyState(
+                            query: filters.searchQuery,
+                            onClear: () {
+                              cancelPendingSearchUpdate(ref);
+                              _searchController.clear();
+                              ref.read(feedFiltersProvider.notifier).clear();
+                              FocusManager.instance.primaryFocus?.unfocus();
+                            },
+                          )
+                        : CustomScrollView(
                             controller: _scrollController,
                             slivers: [
                               // ---- Hero surface: a large, centered
                               // (max-width 1200) gradient-glass panel housing
                               // the whole deal feed — Insane Deals, Recently
-                              // Viewed, and the main grid/list. ----
+                              // Viewed, and the main grid. ----
                               SliverPadding(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: _heroHorizontalPadding(context),
@@ -382,10 +377,9 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                           !filters.showFavoritesOnly)
                                         const RecentlyViewedSliver(),
                                       SliverPadding(
-                                        padding: EdgeInsets.all(isGrid ? 20 : 14),
+                                        padding: const EdgeInsets.all(20),
                                         sliver: DealsSliver(
                                           deals: displayDeals,
-                                          view: isGrid ? FeedView.grid : FeedView.list,
                                           onFavoriteTap: (deal) => ref
                                               .read(favoritesProvider.notifier)
                                               .handleFavoriteTap(context, deal),
@@ -416,37 +410,86 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                               ),
                             ],
                           ),
-                        ),
-                ),
-                // --- Search History Overlay ---
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child:
-                      (_searchFocusNode.hasFocus &&
-                          _searchController.text.isEmpty)
-                      ? SearchHistoryOverlay(
-                          onTap: (query) {
-                            // Add to the top of the history list
-                            ref.read(searchHistoryProvider.notifier).add(query);
+                  ),
+                  // --- Search History Overlay ---
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child:
+                        (_searchFocusNode.hasFocus &&
+                            _searchController.text.isEmpty)
+                        ? SearchHistoryOverlay(
+                            onTap: (query) {
+                              // Add to the top of the history list
+                              ref.read(searchHistoryProvider.notifier).add(query);
 
-                            // Set the text and perform the search
-                            _searchController.text = query;
-                            _searchController.selection =
-                                TextSelection.fromPosition(
-                                  TextPosition(offset: query.length),
-                                );
-                            ref
-                                .read(feedFiltersProvider.notifier)
-                                .updateSearchQuery(query);
-                            _searchFocusNode.unfocus();
-                          },
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ],
+                              // Set the text and perform the search
+                              _searchController.text = query;
+                              _searchController.selection =
+                                  TextSelection.fromPosition(
+                                    TextPosition(offset: query.length),
+                                  );
+                              ref
+                                  .read(feedFiltersProvider.notifier)
+                                  .updateSearchQuery(query);
+                              _searchFocusNode.unfocus();
+                            },
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                  // --- Floating refresh action, top-right of the feed ---
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: _FloatingRefreshButton(
+                      isRefreshing: _isRefreshing,
+                      onRefresh: _handleRefresh,
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The feed's single remaining toolbar action: a floating glass button that
+/// refreshes the deal feed, docked to the top-right of the feed section
+/// (region, sort, favorites-only, and grid/list toggles were removed).
+class _FloatingRefreshButton extends StatelessWidget {
+  const _FloatingRefreshButton({
+    required this.isRefreshing,
+    required this.onRefresh,
+  });
+
+  final ValueNotifier<bool> isRefreshing;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isRefreshing,
+      builder: (context, refreshing, _) => GlassContainer(
+        borderRadius: 24,
+        padding: const EdgeInsets.all(4),
+        onTap: refreshing ? null : onRefresh,
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Center(
+            child: refreshing
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.refresh, color: Colors.white, size: 20),
           ),
-        ],
+        ),
       ),
     );
   }
