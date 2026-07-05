@@ -168,15 +168,18 @@ class _GridCard extends ConsumerWidget {
     return GlassCard(
       borderRadius: 12,
       onTap: onTap,
-      child: Column(
+      padding: const EdgeInsets.all(12),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            // ── Image + discount badge ──────────────────────────────────
-            Stack(
-              children: [
-                SizedBox(
-                  height: 170,
-                  width: double.infinity,
+          // ── Thumbnail + discount badge ────────────────────────────────
+          Stack(
+            children: [
+              SizedBox(
+                height: 100,
+                width: 100,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
                   child: deal.imageUrl != null && deal.imageUrl!.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: deal.imageUrl!,
@@ -207,118 +210,124 @@ class _GridCard extends ConsumerWidget {
                           ),
                         ),
                 ),
-                if (pct > 0)
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '-$pct%',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onErrorContainer,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
+              ),
+              if (pct > 0)
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '-$pct%',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                // --- Floating action cluster: favorite, copy link, alert ---
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: Row(
-                    children: [
-                      _CardActionButton(
-                        icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-                        iconColor: isFavorite
-                            ? GlassColors.priceAccent
-                            : Colors.white,
-                        tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
-                        onPressed: () async {
-                          try {
-                            await ref
-                                .read(favoritesProvider.notifier)
-                                .toggleFavorite(deal.id);
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Could not update favorite.'),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 6),
-                      _CardActionButton(
-                        icon: Icons.copy_outlined,
-                        tooltip: 'Copy link',
-                        onPressed: () async {
-                          await Clipboard.setData(ClipboardData(text: deal.url));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Link copied!')),
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 6),
-                      _CardActionButton(
-                        icon: Icons.notification_add_outlined,
-                        tooltip: 'Set price alert',
-                        onPressed: () {
-                          showModalBottomSheet<void>(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (_) => PriceAlertBottomSheet(deal: deal),
-                          );
-                        },
-                      ),
-                    ],
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          // ── Details: title, source, full-width sparkline, price ───────
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  deal.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
                   ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  deal.source,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white54,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                PriceSparkline(productId: deal.id, height: 28),
+                const SizedBox(height: 6),
+                PriceDisplay(
+                  currencyState: currencyState,
+                  displayPrice: displayPrice ?? deal.currentPrice,
+                  targetCurrency: currency ?? deal.currency,
+                  displayOriginalPrice: deal.originalPrice,
                 ),
               ],
             ),
-            // ── Details ─────────────────────────────────────────────────
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      deal.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    PriceSparkline(productId: deal.id, height: 30),
-                    const Spacer(),
-                    PriceDisplay(
-                      currencyState: currencyState,
-                      displayPrice: displayPrice ?? deal.currentPrice,
-                      targetCurrency: currency ?? deal.currency,
-                      displayOriginalPrice: deal.originalPrice,
-                    ),
-                  ],
-                ),
+          ),
+          const SizedBox(width: 4),
+          // ── Action cluster: favorite, copy link, alert ────────────────
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _CardActionButton(
+                icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+                iconColor: isFavorite
+                    ? GlassColors.priceAccent
+                    : Colors.white,
+                tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
+                onPressed: () async {
+                  try {
+                    await ref
+                        .read(favoritesProvider.notifier)
+                        .toggleFavorite(deal.id);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not update favorite.'),
+                        ),
+                      );
+                    }
+                  }
+                },
               ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 6),
+              _CardActionButton(
+                icon: Icons.copy_outlined,
+                tooltip: 'Copy link',
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: deal.url));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Link copied!')),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 6),
+              _CardActionButton(
+                icon: Icons.notification_add_outlined,
+                tooltip: 'Set price alert',
+                onPressed: () {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => PriceAlertBottomSheet(deal: deal),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

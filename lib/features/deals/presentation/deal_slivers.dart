@@ -211,7 +211,10 @@ Widget responsiveDealGrid({
       return SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
-          mainAxisExtent: 360,
+          // Cards are now a horizontal row (thumbnail + details), matching
+          // the reference design — much shorter than the old image-on-top
+          // layout, hence the smaller fixed extent.
+          mainAxisExtent: 160,
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
         ),
