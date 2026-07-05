@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../auth/providers/auth_provider.dart';
+import '../../../deals/presentation/feed_page.dart' show feedFiltersProvider;
 import '../../../deals/providers/recently_viewed_provider.dart';
 import '../../../../widgets/glass_dialog.dart';
 import 'section_label.dart';
@@ -90,8 +90,11 @@ class DangerZoneSection extends ConsumerWidget {
   }
 
   Future<void> _handlePostSignOutCleanup(WidgetRef ref) async {
-    await FirebaseAuth.instance.signOut();
-    ref.invalidate(authProvider);
+    // Goes through Auth.signOut() (not FirebaseAuth directly) so local
+    // favorites are cleared before signing out — otherwise they'd leak into
+    // whichever account signs in next on this device.
+    await ref.read(authProvider.notifier).signOut();
+    ref.invalidate(feedFiltersProvider);
     ref.read(recentlyViewedProvider.notifier).clear();
   }
 

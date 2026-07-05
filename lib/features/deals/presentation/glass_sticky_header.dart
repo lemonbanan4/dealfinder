@@ -1,10 +1,9 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/app_logo.dart';
+import '../../../widgets/glass_container.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../settings/presentation/settings_page.dart';
@@ -42,53 +41,49 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
     final searchController = ref.watch(searchControllerProvider);
     final searchFocusNode = ref.watch(searchFocusNodeProvider);
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Color.fromRGBO(11, 14, 20, 0.82),
-            border: Border(bottom: BorderSide(color: GlassColors.glowBorder)),
-          ),
-          padding: EdgeInsets.fromLTRB(
-            16,
-            isWide ? 12 : MediaQuery.paddingOf(context).top + 8,
-            16,
-            12,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+    return GlassContainer(
+      borderRadius: 0,
+      blurSigma: 20,
+      enableHoverAnimation: false,
+      fillColor: const Color.fromRGBO(11, 14, 20, 0.82),
+      border: const Border(bottom: BorderSide(color: GlassColors.glowBorder)),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        isWide ? 12 : MediaQuery.paddingOf(context).top + 8,
+        16,
+        12,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      if (!isWide) ...[const AppLogo(), const SizedBox(width: 12)],
-                      const Spacer(),
-                      if (isWide) ..._wideActions(context, ref) else _CompactOverflowMenu(),
-                      if (!isWide) ...[const SizedBox(width: 4), const _AuthIcon()],
-                    ],
-                  ),
-                  if (!isWide) ...[
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const GlassCategoriesMenu(),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: GlassSearchField(
-                            controller: searchController,
-                            focusNode: searchFocusNode,
-                            onChanged: (value) => handleSearchChanged(ref, value),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  if (!isWide) ...[const AppLogo(), const SizedBox(width: 12)],
+                  const Spacer(),
+                  if (isWide) ..._wideActions(context, ref) else _CompactOverflowMenu(),
+                  if (!isWide) ...[const SizedBox(width: 4), const _AuthIcon()],
                 ],
               ),
-            ),
+              if (!isWide) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const GlassCategoriesMenu(),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GlassSearchField(
+                        controller: searchController,
+                        focusNode: searchFocusNode,
+                        onChanged: (value) => handleSearchChanged(ref, value),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ),
       ),

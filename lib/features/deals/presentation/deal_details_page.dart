@@ -81,7 +81,7 @@ class DealDetailsPage extends ConsumerWidget {
                 ),
                 onPressed: () => ref
                     .read(favoritesProvider.notifier)
-                    .toggleFavorite(deal.id),
+                    .handleFavoriteTap(context, deal),
               ),
             ],
           ),

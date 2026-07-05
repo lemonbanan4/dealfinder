@@ -21,6 +21,9 @@ class GlassContainer extends StatefulWidget {
     this.hoverFillColor,
     this.borderColor,
     this.hoverBorderColor,
+    this.border,
+    this.boxShadow,
+    this.enableHoverAnimation = true,
   });
 
   final Widget child;
@@ -40,6 +43,20 @@ class GlassContainer extends StatefulWidget {
   final Color? borderColor;
   final Color? hoverBorderColor;
 
+  /// Overrides the default `Border.all(...)` — e.g. a bottom-only border for
+  /// a full-bleed sticky header instead of a border on all four sides.
+  final BoxBorder? border;
+
+  /// Overrides the default hover-reactive glow shadow with a fixed one —
+  /// e.g. a static bar that always wants the same glow regardless of hover.
+  final List<BoxShadow>? boxShadow;
+
+  /// Set to false for static chrome (e.g. a bar hosting many of its own
+  /// interactive children) where the whole surface intensifying its blur
+  /// and border on hover would read as a spurious "the whole bar is
+  /// hovered" glow rather than signaling one tappable surface.
+  final bool enableHoverAnimation;
+
   @override
   State<GlassContainer> createState() => _GlassContainerState();
 }
@@ -53,12 +70,13 @@ class _GlassContainerState extends State<GlassContainer> {
 
   @override
   Widget build(BuildContext context) {
+    final hovering = widget.enableHoverAnimation && _hovering;
     final radius = BorderRadius.circular(widget.borderRadius);
-    final targetSigma = _hovering ? widget.hoverBlurSigma : widget.blurSigma;
-    final targetGlow = _hovering
+    final targetSigma = hovering ? widget.hoverBlurSigma : widget.blurSigma;
+    final targetGlow = hovering
         ? widget.hoverBorderColor ?? GlassColors.glowBorderHover
         : widget.borderColor ?? GlassColors.glowBorder;
-    final targetFill = _hovering
+    final targetFill = hovering
         ? widget.hoverFillColor ?? GlassColors.glassFillHover
         : widget.fillColor ?? GlassColors.glassFill;
 
@@ -83,14 +101,15 @@ class _GlassContainerState extends State<GlassContainer> {
         decoration: BoxDecoration(
           color: targetFill,
           borderRadius: radius,
-          border: Border.all(color: targetGlow, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: targetGlow.withValues(alpha: _hovering ? 0.45 : 0.25),
-              blurRadius: _hovering ? 24 : 12,
-              spreadRadius: _hovering ? 1 : 0,
-            ),
-          ],
+          border: widget.border ?? Border.all(color: targetGlow, width: 1),
+          boxShadow: widget.boxShadow ??
+              [
+                BoxShadow(
+                  color: targetGlow.withValues(alpha: hovering ? 0.45 : 0.25),
+                  blurRadius: hovering ? 24 : 12,
+                  spreadRadius: hovering ? 1 : 0,
+                ),
+              ],
         ),
         child: widget.child,
       ),
@@ -107,6 +126,8 @@ class _GlassContainerState extends State<GlassContainer> {
         ),
       );
     }
+
+    if (!widget.enableHoverAnimation) return content;
 
     return MouseRegion(
       onEnter: (_) => _setHovering(true),

@@ -56,11 +56,16 @@ class DealFeedNotifier extends _$DealFeedNotifier {
       try {
         final cached = ref.read(dealRepositoryProvider).getAll();
         if (cached.isNotEmpty) {
-          // Filter cached deals by region matching 'all_se', 'all_no', or region code
+          // Filter cached deals by region: either the legacy aggregate source
+          // ('se'/'all_se') from older cached data, or a per-store source
+          // like 'acer_se'/'samsung_no' (see scraper/scraper.py's per-store
+          // StoreConfig ids, which all end in '_se'/'_no').
           final regionCode = region.toLowerCase();
           final filtered = cached.where((d) {
             final src = d.source.toLowerCase();
-            return src == regionCode || src == 'all_$regionCode';
+            return src == regionCode ||
+                src == 'all_$regionCode' ||
+                src.endsWith('_$regionCode');
           }).toList();
           if (filtered.isNotEmpty) {
             return filtered;

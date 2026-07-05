@@ -31,8 +31,7 @@ class FavoritesNotifier extends _$FavoritesNotifier {
 
   Future<void> handleFavoriteTap(BuildContext context, Deal deal) async {
     final user = ref.read(authProvider).value;
-    if (user != null && user.email?.isNotEmpty != true) {
-      // A simple check for a non-empty email
+    if (user != null && !user.emailVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please verify your email to manage favorites.'),
@@ -45,7 +44,15 @@ class FavoritesNotifier extends _$FavoritesNotifier {
       name: 'toggle_favorite',
       parameters: {'deal_id': deal.id},
     );
-    await toggleFavorite(deal.id);
+    try {
+      await toggleFavorite(deal.id);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update favorite.')),
+        );
+      }
+    }
   }
 
   /// Clears all favorites from storage and state.

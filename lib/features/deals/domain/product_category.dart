@@ -55,13 +55,6 @@ const List<(String, List<String>)> _rules = [
     ['galaxy watch', 'watch strap', 'smarttag', 'galaxy fit', 'galaxy ring', 'smartwatch'],
   ),
   (
-    'Smartphones',
-    [
-      'galaxy s', 'galaxy z fold', 'galaxy z flip', 'galaxy a', 'galaxy note',
-      ' s24', ' s25', ' s26', 'smartphone', 'mobiltelefon', 'iphone',
-    ],
-  ),
-  (
     'TVs',
     ['smart tv', 'qled', 'oled', 'crystal uhd', 'mini led', 'the frame', ' tv,', ' tv '],
   ),
@@ -93,6 +86,18 @@ const List<(String, List<String>)> _rules = [
       'ryggsäck', 'bæreveske', 'väska', 'case', 'cover', 'skyddshylsa',
       'adapter', 'strömsladd', 'laddare', 'charger', 'mus,', 'tangentbord',
       'skydd', 'strap',
+    ],
+  ),
+  // Smartphones runs after Gaming Accessories/Accessories: those categories'
+  // keywords are more specific, while Smartphones' bare 'smartphone'/'gaming'
+  // mobiltelefon' terms are broad enough to false-positive on accessory
+  // titles that merely describe compatibility (e.g. a controller "for
+  // smartphones", a charger "för smartphones och surfplattor").
+  (
+    'Smartphones',
+    [
+      'galaxy s', 'galaxy z fold', 'galaxy z flip', 'galaxy a', 'galaxy note',
+      ' s24', ' s25', ' s26', 'smartphone', 'mobiltelefon', 'iphone',
     ],
   ),
   (

@@ -12,7 +12,7 @@ A high-performance affiliate deal aggregator built with Flutter/Dart.
 
 ## UI/UX Directives
 - **Layout Structure**: Shift from sidebar-navigation to a centered, max-width (1200px) layout.
-- **Grid System**: Use 3 columns per row for deal cards, with a paginated or "Load More" implementation for scalability.
+- **Grid System**: Deal card grid is capped at 2 columns per row (not 3) — at 3-up, card images were too cramped at this card size; use a paginated or "Load More" implementation for scalability.
 - **Glassmorphism**: 
     - Cards: Deep charcoal (#0B0E14) + glass blur + 1px glowing border (#2A3A5A).
     - Hero Surface: A large, centered gradient-glass container spanning the main content area, housing all deal cards.
@@ -28,7 +28,7 @@ A high-performance affiliate deal aggregator built with Flutter/Dart.
 - **Navigation**: Move category logic from country toggles to a centralized "Categories" dropdown in the sticky header.
 
 ## Development Constraints
-- **Security**: All CSP requirements must be met; no inline scripts/styles.
+- **Security**: All CSP requirements must be met. `'unsafe-inline'` is a deliberate, necessary exception for both `script-src` and `style-src` — the Firebase JS SDK injects inline `<script>` tags at runtime (auth/App Check helpers) and Flutter's CanvasKit web engine injects inline `<style>`/style attributes for text measurement and canvas positioning; without it the app hangs on the loading spinner forever. See the comment above the CSP meta tag in `web/index.html` for the full per-directive rationale. Beyond that exception, no other inline scripts/styles and no unnecessary host allowlisting.
 - **Performance**: Use 'mounted' checks for all async navigation. Keep builds web-compliant (avoid 'dart:html' / 'package:js' if possible).
 - **Commands**:
   - Build: `flutter build web --release`

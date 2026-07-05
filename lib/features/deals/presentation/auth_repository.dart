@@ -52,6 +52,12 @@ class AuthRepository {
 
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
+    if (!kIsWeb) {
+      // Also sign out of the native Google session so the account picker
+      // reappears next time, instead of silently re-authenticating with
+      // whichever Google account was used last.
+      await google.GoogleSignIn.instance.signOut();
+    }
   }
 
   /// Signs in with Google: popup (falling back to redirect) on web, or the
@@ -61,9 +67,18 @@ class AuthRepository {
       final provider = fb.GoogleAuthProvider();
       try {
         await _firebaseAuth.signInWithPopup(provider);
-      } catch (_) {
-        // Popup was blocked or user cancelled — try redirect as fallback
-        await _firebaseAuth.signInWithRedirect(provider);
+      } on fb.FirebaseAuthException catch (e) {
+        // Only a genuinely blocked popup should fall back to a full-page
+        // redirect. Treating every failure (including the user simply
+        // closing the popup) as "blocked" forces an unwanted redirect.
+        if (e.code == 'popup-blocked') {
+          await _firebaseAuth.signInWithRedirect(provider);
+        } else if (e.code == 'popup-closed-by-user' ||
+            e.code == 'cancelled-popup-request') {
+          return;
+        } else {
+          rethrow;
+        }
       }
       return;
     }

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -17,6 +15,7 @@ import '../features/settings/providers/cookie_consent_provider.dart';
 import 'cookie_consent_banner.dart';
 import '../features/alerts/providers/unread_alerts_provider.dart';
 import '../theme/glass_colors.dart';
+import 'glass_container.dart';
 
 part 'adaptive_scaffold.g.dart';
 
@@ -177,61 +176,55 @@ class _GlassTopNavBar extends ConsumerWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color.fromRGBO(11, 14, 20, 0.85),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: GlassColors.glowBorder),
-                  boxShadow: [
-                    BoxShadow(
-                      color: GlassColors.glowBorder.withValues(alpha: 0.25),
-                      blurRadius: 32,
-                      spreadRadius: -8,
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Row(
-                  children: [
-                    const AppLogo(iconSize: 28, fontSize: 21),
-                    const SizedBox(width: 32),
-                    for (int i = 0; i < _navDestinations.length; i++)
-                      _TopNavItem(
-                        label: _navDestinations[i].$1,
-                        icon: _navDestinations[i].$2,
-                        selectedIcon: _navDestinations[i].$3,
-                        selected: selectedIndex == i,
-                        badgeCount: _navDestinations[i].$1 == 'Alerts' ? unreadAlerts : 0,
-                        onTap: () => onDestinationSelected(i),
-                      ),
-                    const SizedBox(width: 4),
-                    GlassCategoriesMenu(
-                      onCategorySelected: (_) {
-                        // Picking a category only means something on the
-                        // Feed tab, so jump there if we're elsewhere.
-                        if (!isFeedTab) onDestinationSelected(0);
-                      },
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      child: isFeedTab
-                          ? GlassSearchField(
-                              controller: searchController,
-                              focusNode: searchFocusNode,
-                              onChanged: (value) => handleSearchChanged(ref, value),
-                              height: 44,
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    const SizedBox(width: 20),
-                    const _TopNavAuthIcon(),
-                  ],
-                ),
+          child: GlassContainer(
+            borderRadius: 32,
+            blurSigma: 24,
+            enableHoverAnimation: false,
+            fillColor: const Color.fromRGBO(11, 14, 20, 0.85),
+            borderColor: GlassColors.glowBorder,
+            boxShadow: [
+              BoxShadow(
+                color: GlassColors.glowBorder.withValues(alpha: 0.25),
+                blurRadius: 32,
+                spreadRadius: -8,
               ),
+            ],
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Row(
+              children: [
+                const AppLogo(iconSize: 28, fontSize: 21),
+                const SizedBox(width: 32),
+                for (int i = 0; i < _navDestinations.length; i++)
+                  _TopNavItem(
+                    label: _navDestinations[i].$1,
+                    icon: _navDestinations[i].$2,
+                    selectedIcon: _navDestinations[i].$3,
+                    selected: selectedIndex == i,
+                    badgeCount: _navDestinations[i].$1 == 'Alerts' ? unreadAlerts : 0,
+                    onTap: () => onDestinationSelected(i),
+                  ),
+                const SizedBox(width: 4),
+                GlassCategoriesMenu(
+                  onCategorySelected: (_) {
+                    // Picking a category only means something on the
+                    // Feed tab, so jump there if we're elsewhere.
+                    if (!isFeedTab) onDestinationSelected(0);
+                  },
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: isFeedTab
+                      ? GlassSearchField(
+                          controller: searchController,
+                          focusNode: searchFocusNode,
+                          onChanged: (value) => handleSearchChanged(ref, value),
+                          height: 44,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                const SizedBox(width: 20),
+                const _TopNavAuthIcon(),
+              ],
             ),
           ),
         ),
