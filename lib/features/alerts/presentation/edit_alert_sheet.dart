@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/alert_config.dart';
 import '../providers/alert_configs_provider.dart';
@@ -59,19 +61,47 @@ class _EditAlertSheetState extends ConsumerState<EditAlertSheet> {
 
       // saveAlertConfig natively behaves as an "upsert", so it will safely override the old values!
       await ref.read(alertRepositoryProvider).saveAlertConfig(updatedConfig);
-    } catch (e) {
-      // Silently fail or track analytics on failure
-    }
 
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Target updated for ${widget.config.productTitle}!'),
-          backgroundColor: const Color(0xFF00E676),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      // Best-effort: keep the backend scraper's Supabase row in sync too,
+      // otherwise its server-side email check keeps firing at the old
+      // target price even though the app shows the new one.
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        try {
+          await Supabase.instance.client
+              .from('price_alerts')
+              .update({'target_price': targetPrice})
+              .eq('product_id', updatedConfig.productId)
+              .eq('user_id', user.uid);
+        } catch (e) {
+          debugPrint('Failed to sync updated target to Supabase: $e');
+        }
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Target updated for ${widget.config.productTitle}!'),
+            backgroundColor: const Color(0xFF00E676),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not update alert: $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 

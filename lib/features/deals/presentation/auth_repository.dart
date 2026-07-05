@@ -64,7 +64,11 @@ class AuthRepository {
   /// native `google_sign_in` + credential exchange flow on iOS/Android.
   Future<void> signInWithGoogle() async {
     if (kIsWeb) {
-      final provider = fb.GoogleAuthProvider();
+      final provider = fb.GoogleAuthProvider()
+        // Without this, Google silently skips the account chooser and
+        // signs in with whichever single Google account is already active
+        // in the browser profile instead of letting the user pick.
+        ..setCustomParameters({'prompt': 'select_account'});
       try {
         await _firebaseAuth.signInWithPopup(provider);
       } on fb.FirebaseAuthException catch (e) {

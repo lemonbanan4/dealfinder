@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,7 +16,9 @@ class PriceAlertNotifier extends _$PriceAlertNotifier {
     // No-op, just to have a notifier.
   }
 
-  Future<bool> createAlert({
+  /// Creates a price alert. Throws on failure — callers must not assume
+  /// success just because this returned without checking for an exception.
+  Future<void> createAlert({
     required String productId,
     required String productTitle,
     required String productUrl,
@@ -23,43 +26,50 @@ class PriceAlertNotifier extends _$PriceAlertNotifier {
   }) async {
     final user = ref.read(authProvider).value;
     if (user == null) {
-      // Return false or throw a specific exception if the user is not logged in.
-      return false;
+      throw Exception('You must be signed in to set a price alert.');
+    }
+    if (!user.emailVerified) {
+      throw Exception('Please verify your email to set price alerts.');
     }
 
-    final supabase = Supabase.instance.client;
+    // Firestore's security rules re-check email verification against the ID
+    // token's own `email_verified` claim, which can lag behind the client's
+    // cached `emailVerified` flag until the token is refreshed — e.g. right
+    // after the user verifies their email in the same session. Force a
+    // refresh so a freshly-verified user isn't rejected by the rule.
+    await fb.FirebaseAuth.instance.currentUser?.getIdToken(true);
 
-    final alertData = {
-      'product_id': productId,
-      'user_id': user.uid,
-      'user_email': user.email,
-      'target_price': targetPrice,
-      'product_title': productTitle,
-      'product_url': productUrl,
-      'is_active': true,
-      'created_at': DateTime.now().toIso8601String(),
-    };
-
+    // Best-effort: also save to Supabase for the backend scraper's
+    // server-side email-alert check. This is a secondary notification
+    // channel — its failure is logged but doesn't block the alert from
+    // being created, since the Firestore config below is what the app
+    // itself displays (Active Targets) and evaluates in the background.
     try {
-      // 1. Save to Supabase (used by scraper backend)
-      await supabase.from('price_alerts').insert(alertData);
-
-      // 2. Save to Firestore (used by AlertsPage front-end)
-      final config = AlertConfig(
-        id: productId, // Use product ID as document ID for simple 1-to-1 alert configs
-        productId: productId,
-        productTitle: productTitle,
-        targetPrice: targetPrice,
-        currency: 'SEK',
-        createdAt: DateTime.now(),
-      );
-      await ref.read(alertRepositoryProvider).saveAlertConfig(config);
-
-      return true;
+      await Supabase.instance.client.from('price_alerts').insert({
+        'product_id': productId,
+        'user_id': user.uid,
+        'user_email': user.email,
+        'target_price': targetPrice,
+        'product_title': productTitle,
+        'product_url': productUrl,
+        'is_active': true,
+        'created_at': DateTime.now().toIso8601String(),
+      });
     } catch (e) {
-      // Log the error for debugging.
-      debugPrint('Failed to save price alert: $e');
-      return false;
+      debugPrint('Failed to save price alert to Supabase (non-fatal): $e');
     }
+
+    // Required: this is the source of truth for the "Active Targets" tab
+    // and for the background price-check (see AlertEvaluationService). If
+    // this fails, the alert genuinely was not set, so let it throw.
+    final config = AlertConfig(
+      id: productId, // Use product ID as document ID for simple 1-to-1 alert configs
+      productId: productId,
+      productTitle: productTitle,
+      targetPrice: targetPrice,
+      currency: 'SEK',
+      createdAt: DateTime.now(),
+    );
+    await ref.read(alertRepositoryProvider).saveAlertConfig(config);
   }
 }
