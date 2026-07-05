@@ -14,10 +14,12 @@ import '../../settings/presentation/shimmer_grid.dart';
 import '../providers/filtered_deals_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/deals_provider.dart';
+import '../providers/paged_deals_provider.dart';
 import '../providers/search_history_provider.dart';
 import 'brand_logos_section.dart';
 import 'glass_sticky_header.dart';
 import 'feed_states.dart';
+import 'page_controls.dart';
 import 'search_history_overlay.dart';
 import 'top_deals_sliver.dart';
 import 'recently_viewed_sliver.dart';
@@ -295,6 +297,68 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     setState(() {}); // Rebuild to show/hide history overlay
   }
 
+  /// True when no search/category/favorites filter is active — the default
+  /// "browse everything" state, where the grid is paginated server-side
+  /// ([pagedDealsProvider]). Any filter switches to client-side pagination
+  /// over the full, already-fetched catalog (`filteredDealsPageProvider`),
+  /// since category/favorites matching is client-only logic the API can't
+  /// apply.
+  bool _isPagedBrowseMode(FeedFilters filters) {
+    return filters.searchQuery.isEmpty &&
+        filters.category == 'All' &&
+        !filters.showFavoritesOnly;
+  }
+
+  void _onPageChanged(WidgetRef ref, int page) {
+    ref.read(feedPageIndexProvider.notifier).setPage(page);
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  Widget _buildDealsGridSliver(WidgetRef ref, bool isPagedBrowseMode) {
+    if (isPagedBrowseMode) {
+      final pagedAsync = ref.watch(pagedDealsProvider);
+      return DealsSliver(
+        deals: pagedAsync.value?.items ?? const [],
+        isLoading: pagedAsync.isLoading && !pagedAsync.hasValue,
+        error: pagedAsync.hasError && !pagedAsync.hasValue
+            ? pagedAsync.error
+            : null,
+        isEmpty:
+            !pagedAsync.isLoading && (pagedAsync.value?.items.isEmpty ?? false),
+        onFavoriteTap: (deal) =>
+            ref.read(favoritesProvider.notifier).handleFavoriteTap(context, deal),
+      );
+    }
+
+    final page = ref.watch(filteredDealsPageProvider);
+    return DealsSliver(
+      deals: page.items,
+      isEmpty: page.items.isEmpty,
+      onFavoriteTap: (deal) =>
+          ref.read(favoritesProvider.notifier).handleFavoriteTap(context, deal),
+    );
+  }
+
+  Widget _buildPageControlsSliver(WidgetRef ref, bool isPagedBrowseMode) {
+    final totalPages = isPagedBrowseMode
+        ? (ref.watch(pagedDealsProvider).value?.totalPages ?? 1)
+        : ref.watch(filteredDealsPageProvider).totalPages;
+
+    return SliverToBoxAdapter(
+      child: PageControls(
+        currentPage: ref.watch(feedPageIndexProvider),
+        totalPages: totalPages,
+        onPageChanged: (page) => _onPageChanged(ref, page),
+      ),
+    );
+  }
+
   Future<void> _handleRefresh() async {
     if (_isRefreshing.value) return;
 
@@ -311,6 +375,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     ); // This is now optimized
     final dealFeedAsync = ref.watch(dealFeedProvider);
     final isWide = MediaQuery.sizeOf(context).width >= 720;
+    final isPagedBrowseMode = _isPagedBrowseMode(filters);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -377,12 +442,14 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                         const RecentlyViewedSliver(),
                                       SliverPadding(
                                         padding: const EdgeInsets.all(20),
-                                        sliver: DealsSliver(
-                                          deals: displayDeals,
-                                          onFavoriteTap: (deal) => ref
-                                              .read(favoritesProvider.notifier)
-                                              .handleFavoriteTap(context, deal),
+                                        sliver: _buildDealsGridSliver(
+                                          ref,
+                                          isPagedBrowseMode,
                                         ),
+                                      ),
+                                      _buildPageControlsSliver(
+                                        ref,
+                                        isPagedBrowseMode,
                                       ),
                                       const SliverToBoxAdapter(
                                         child: AffiliateDisclaimer(),
