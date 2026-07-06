@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Deal {
 
-@JsonKey(name: 'product_id', defaultValue: 'unknown') String get id;@JsonKey(defaultValue: 'No Title') String get title;@JsonKey(name: 'tracking_url', defaultValue: '') String get url;@JsonKey(name: 'feed_region', defaultValue: 'Unknown') String get source;@JsonKey(name: 'price', defaultValue: 0.0) double get currentPrice;@JsonKey(defaultValue: 'SEK') String get currency;@JsonKey(name: 'image_url') String? get imageUrl;@JsonKey(name: 'retail_price') double? get originalPrice;
+@JsonKey(name: 'product_id', defaultValue: 'unknown') String get id;@JsonKey(defaultValue: 'No Title') String get title;@JsonKey(name: 'tracking_url', defaultValue: '') String get url;@JsonKey(name: 'feed_region', defaultValue: 'Unknown') String get source;@JsonKey(name: 'price', defaultValue: 0.0) double get currentPrice;@JsonKey(defaultValue: 'SEK') String get currency;@JsonKey(name: 'image_url') String? get imageUrl;@JsonKey(name: 'retail_price') double? get originalPrice;@JsonKey(name: 'last_updated') DateTime? get lastUpdated;
 /// Create a copy of Deal
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $DealCopyWith<Deal> get copyWith => _$DealCopyWithImpl<Deal>(this as Deal, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Deal&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.url, url) || other.url == url)&&(identical(other.source, source) || other.source == source)&&(identical(other.currentPrice, currentPrice) || other.currentPrice == currentPrice)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.originalPrice, originalPrice) || other.originalPrice == originalPrice));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Deal&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.url, url) || other.url == url)&&(identical(other.source, source) || other.source == source)&&(identical(other.currentPrice, currentPrice) || other.currentPrice == currentPrice)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.originalPrice, originalPrice) || other.originalPrice == originalPrice)&&(identical(other.lastUpdated, lastUpdated) || other.lastUpdated == lastUpdated));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,url,source,currentPrice,currency,imageUrl,originalPrice);
+int get hashCode => Object.hash(runtimeType,id,title,url,source,currentPrice,currency,imageUrl,originalPrice,lastUpdated);
 
 @override
 String toString() {
-  return 'Deal(id: $id, title: $title, url: $url, source: $source, currentPrice: $currentPrice, currency: $currency, imageUrl: $imageUrl, originalPrice: $originalPrice)';
+  return 'Deal(id: $id, title: $title, url: $url, source: $source, currentPrice: $currentPrice, currency: $currency, imageUrl: $imageUrl, originalPrice: $originalPrice, lastUpdated: $lastUpdated)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $DealCopyWith<$Res>  {
   factory $DealCopyWith(Deal value, $Res Function(Deal) _then) = _$DealCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'product_id', defaultValue: 'unknown') String id,@JsonKey(defaultValue: 'No Title') String title,@JsonKey(name: 'tracking_url', defaultValue: '') String url,@JsonKey(name: 'feed_region', defaultValue: 'Unknown') String source,@JsonKey(name: 'price', defaultValue: 0.0) double currentPrice,@JsonKey(defaultValue: 'SEK') String currency,@JsonKey(name: 'image_url') String? imageUrl,@JsonKey(name: 'retail_price') double? originalPrice
+@JsonKey(name: 'product_id', defaultValue: 'unknown') String id,@JsonKey(defaultValue: 'No Title') String title,@JsonKey(name: 'tracking_url', defaultValue: '') String url,@JsonKey(name: 'feed_region', defaultValue: 'Unknown') String source,@JsonKey(name: 'price', defaultValue: 0.0) double currentPrice,@JsonKey(defaultValue: 'SEK') String currency,@JsonKey(name: 'image_url') String? imageUrl,@JsonKey(name: 'retail_price') double? originalPrice,@JsonKey(name: 'last_updated') DateTime? lastUpdated
 });
 
 
@@ -65,7 +65,7 @@ class _$DealCopyWithImpl<$Res>
 
 /// Create a copy of Deal
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? url = null,Object? source = null,Object? currentPrice = null,Object? currency = null,Object? imageUrl = freezed,Object? originalPrice = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? url = null,Object? source = null,Object? currentPrice = null,Object? currency = null,Object? imageUrl = freezed,Object? originalPrice = freezed,Object? lastUpdated = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -75,7 +75,8 @@ as String,currentPrice: null == currentPrice ? _self.currentPrice : currentPrice
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
 as String,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,originalPrice: freezed == originalPrice ? _self.originalPrice : originalPrice // ignore: cast_nullable_to_non_nullable
-as double?,
+as double?,lastUpdated: freezed == lastUpdated ? _self.lastUpdated : lastUpdated // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -160,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'product_id', defaultValue: 'unknown')  String id, @JsonKey(defaultValue: 'No Title')  String title, @JsonKey(name: 'tracking_url', defaultValue: '')  String url, @JsonKey(name: 'feed_region', defaultValue: 'Unknown')  String source, @JsonKey(name: 'price', defaultValue: 0.0)  double currentPrice, @JsonKey(defaultValue: 'SEK')  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'product_id', defaultValue: 'unknown')  String id, @JsonKey(defaultValue: 'No Title')  String title, @JsonKey(name: 'tracking_url', defaultValue: '')  String url, @JsonKey(name: 'feed_region', defaultValue: 'Unknown')  String source, @JsonKey(name: 'price', defaultValue: 0.0)  double currentPrice, @JsonKey(defaultValue: 'SEK')  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice, @JsonKey(name: 'last_updated')  DateTime? lastUpdated)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Deal() when $default != null:
-return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice);case _:
+return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice,_that.lastUpdated);case _:
   return orElse();
 
 }
@@ -181,10 +182,10 @@ return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'product_id', defaultValue: 'unknown')  String id, @JsonKey(defaultValue: 'No Title')  String title, @JsonKey(name: 'tracking_url', defaultValue: '')  String url, @JsonKey(name: 'feed_region', defaultValue: 'Unknown')  String source, @JsonKey(name: 'price', defaultValue: 0.0)  double currentPrice, @JsonKey(defaultValue: 'SEK')  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'product_id', defaultValue: 'unknown')  String id, @JsonKey(defaultValue: 'No Title')  String title, @JsonKey(name: 'tracking_url', defaultValue: '')  String url, @JsonKey(name: 'feed_region', defaultValue: 'Unknown')  String source, @JsonKey(name: 'price', defaultValue: 0.0)  double currentPrice, @JsonKey(defaultValue: 'SEK')  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice, @JsonKey(name: 'last_updated')  DateTime? lastUpdated)  $default,) {final _that = this;
 switch (_that) {
 case _Deal():
-return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice);case _:
+return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice,_that.lastUpdated);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +202,10 @@ return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'product_id', defaultValue: 'unknown')  String id, @JsonKey(defaultValue: 'No Title')  String title, @JsonKey(name: 'tracking_url', defaultValue: '')  String url, @JsonKey(name: 'feed_region', defaultValue: 'Unknown')  String source, @JsonKey(name: 'price', defaultValue: 0.0)  double currentPrice, @JsonKey(defaultValue: 'SEK')  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'product_id', defaultValue: 'unknown')  String id, @JsonKey(defaultValue: 'No Title')  String title, @JsonKey(name: 'tracking_url', defaultValue: '')  String url, @JsonKey(name: 'feed_region', defaultValue: 'Unknown')  String source, @JsonKey(name: 'price', defaultValue: 0.0)  double currentPrice, @JsonKey(defaultValue: 'SEK')  String currency, @JsonKey(name: 'image_url')  String? imageUrl, @JsonKey(name: 'retail_price')  double? originalPrice, @JsonKey(name: 'last_updated')  DateTime? lastUpdated)?  $default,) {final _that = this;
 switch (_that) {
 case _Deal() when $default != null:
-return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice);case _:
+return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_that.currency,_that.imageUrl,_that.originalPrice,_that.lastUpdated);case _:
   return null;
 
 }
@@ -216,7 +217,7 @@ return $default(_that.id,_that.title,_that.url,_that.source,_that.currentPrice,_
 @JsonSerializable()
 
 class _Deal implements Deal {
-  const _Deal({@JsonKey(name: 'product_id', defaultValue: 'unknown') required this.id, @JsonKey(defaultValue: 'No Title') required this.title, @JsonKey(name: 'tracking_url', defaultValue: '') required this.url, @JsonKey(name: 'feed_region', defaultValue: 'Unknown') required this.source, @JsonKey(name: 'price', defaultValue: 0.0) required this.currentPrice, @JsonKey(defaultValue: 'SEK') required this.currency, @JsonKey(name: 'image_url') this.imageUrl, @JsonKey(name: 'retail_price') this.originalPrice});
+  const _Deal({@JsonKey(name: 'product_id', defaultValue: 'unknown') required this.id, @JsonKey(defaultValue: 'No Title') required this.title, @JsonKey(name: 'tracking_url', defaultValue: '') required this.url, @JsonKey(name: 'feed_region', defaultValue: 'Unknown') required this.source, @JsonKey(name: 'price', defaultValue: 0.0) required this.currentPrice, @JsonKey(defaultValue: 'SEK') required this.currency, @JsonKey(name: 'image_url') this.imageUrl, @JsonKey(name: 'retail_price') this.originalPrice, @JsonKey(name: 'last_updated') this.lastUpdated});
   factory _Deal.fromJson(Map<String, dynamic> json) => _$DealFromJson(json);
 
 @override@JsonKey(name: 'product_id', defaultValue: 'unknown') final  String id;
@@ -227,6 +228,7 @@ class _Deal implements Deal {
 @override@JsonKey(defaultValue: 'SEK') final  String currency;
 @override@JsonKey(name: 'image_url') final  String? imageUrl;
 @override@JsonKey(name: 'retail_price') final  double? originalPrice;
+@override@JsonKey(name: 'last_updated') final  DateTime? lastUpdated;
 
 /// Create a copy of Deal
 /// with the given fields replaced by the non-null parameter values.
@@ -241,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Deal&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.url, url) || other.url == url)&&(identical(other.source, source) || other.source == source)&&(identical(other.currentPrice, currentPrice) || other.currentPrice == currentPrice)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.originalPrice, originalPrice) || other.originalPrice == originalPrice));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Deal&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.url, url) || other.url == url)&&(identical(other.source, source) || other.source == source)&&(identical(other.currentPrice, currentPrice) || other.currentPrice == currentPrice)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.originalPrice, originalPrice) || other.originalPrice == originalPrice)&&(identical(other.lastUpdated, lastUpdated) || other.lastUpdated == lastUpdated));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,url,source,currentPrice,currency,imageUrl,originalPrice);
+int get hashCode => Object.hash(runtimeType,id,title,url,source,currentPrice,currency,imageUrl,originalPrice,lastUpdated);
 
 @override
 String toString() {
-  return 'Deal(id: $id, title: $title, url: $url, source: $source, currentPrice: $currentPrice, currency: $currency, imageUrl: $imageUrl, originalPrice: $originalPrice)';
+  return 'Deal(id: $id, title: $title, url: $url, source: $source, currentPrice: $currentPrice, currency: $currency, imageUrl: $imageUrl, originalPrice: $originalPrice, lastUpdated: $lastUpdated)';
 }
 
 
@@ -261,7 +263,7 @@ abstract mixin class _$DealCopyWith<$Res> implements $DealCopyWith<$Res> {
   factory _$DealCopyWith(_Deal value, $Res Function(_Deal) _then) = __$DealCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'product_id', defaultValue: 'unknown') String id,@JsonKey(defaultValue: 'No Title') String title,@JsonKey(name: 'tracking_url', defaultValue: '') String url,@JsonKey(name: 'feed_region', defaultValue: 'Unknown') String source,@JsonKey(name: 'price', defaultValue: 0.0) double currentPrice,@JsonKey(defaultValue: 'SEK') String currency,@JsonKey(name: 'image_url') String? imageUrl,@JsonKey(name: 'retail_price') double? originalPrice
+@JsonKey(name: 'product_id', defaultValue: 'unknown') String id,@JsonKey(defaultValue: 'No Title') String title,@JsonKey(name: 'tracking_url', defaultValue: '') String url,@JsonKey(name: 'feed_region', defaultValue: 'Unknown') String source,@JsonKey(name: 'price', defaultValue: 0.0) double currentPrice,@JsonKey(defaultValue: 'SEK') String currency,@JsonKey(name: 'image_url') String? imageUrl,@JsonKey(name: 'retail_price') double? originalPrice,@JsonKey(name: 'last_updated') DateTime? lastUpdated
 });
 
 
@@ -278,7 +280,7 @@ class __$DealCopyWithImpl<$Res>
 
 /// Create a copy of Deal
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? url = null,Object? source = null,Object? currentPrice = null,Object? currency = null,Object? imageUrl = freezed,Object? originalPrice = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? url = null,Object? source = null,Object? currentPrice = null,Object? currency = null,Object? imageUrl = freezed,Object? originalPrice = freezed,Object? lastUpdated = freezed,}) {
   return _then(_Deal(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -288,7 +290,8 @@ as String,currentPrice: null == currentPrice ? _self.currentPrice : currentPrice
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
 as String,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,originalPrice: freezed == originalPrice ? _self.originalPrice : originalPrice // ignore: cast_nullable_to_non_nullable
-as double?,
+as double?,lastUpdated: freezed == lastUpdated ? _self.lastUpdated : lastUpdated // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../domain/deal.dart';
-import '../presentation/feed_page.dart' show feedFiltersProvider, regionProvider;
+import '../presentation/feed_page.dart'
+    show ProductSort, feedFiltersProvider, regionProvider;
 
 part 'paged_deals_provider.g.dart';
 
@@ -52,15 +54,28 @@ class PagedDealsResult {
 /// client-side over the full, already-fetched catalog (`dealFeedProvider`),
 /// since category/favorites matching is client-only logic the API doesn't
 /// know how to apply.
+/// Maps the UI-facing [ProductSort] to the `sort` query param /api/products
+/// understands; `null` (for [ProductSort.none]) omits the param entirely so
+/// the backend falls back to its own default best-deals ordering.
+String? _sortParam(ProductSort sort) => switch (sort) {
+  ProductSort.priceAsc => 'price_asc',
+  ProductSort.priceDesc => 'price_desc',
+  ProductSort.newest => 'newest',
+  ProductSort.none => null,
+};
+
 @riverpod
 Future<PagedDealsResult> pagedDeals(Ref ref) async {
   final region = ref.watch(regionProvider);
   final page = ref.watch(feedPageIndexProvider);
+  final sort = ref.watch(feedFiltersProvider.select((f) => f.sort));
   final timestamp = DateTime.now().millisecondsSinceEpoch;
 
+  final sortParam = _sortParam(sort);
   final uri = Uri.parse(
     'https://dealfinder-swr5.onrender.com/api/products'
-    '?region=$region&page=$page&limit=$dealsPageSize&t=$timestamp',
+    '?region=$region&page=$page&limit=$dealsPageSize&t=$timestamp'
+    '${sortParam != null ? '&sort=$sortParam' : ''}',
   );
   final response = await http.get(uri).timeout(const Duration(seconds: 10));
 

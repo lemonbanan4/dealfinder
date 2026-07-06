@@ -34,7 +34,7 @@ final class PriceAlertNotifierProvider
 }
 
 String _$priceAlertNotifierHash() =>
-    r'3e19ba082e43d486599c8c9897ca15b686d9e040';
+    r'79f5592996169bef5b0051b421c4f89206e02d32';
 
 abstract class _$PriceAlertNotifier extends $AsyncNotifier<void> {
   FutureOr<void> build();

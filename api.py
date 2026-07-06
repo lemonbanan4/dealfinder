@@ -206,11 +206,23 @@ def get_fired_alerts(authorization: str = Header(None)):
 def read_root():
     return {"message": "API is alive!"}
 
+# Whitelisted sort options for /api/products — the query param is only ever
+# used as a dict key here, never interpolated directly into SQL, so an
+# unrecognized/malicious value just falls through to the default order below
+# rather than reaching the query string.
+_SORT_ORDER_CLAUSES = {
+    "price_asc": "price ASC",
+    "price_desc": "price DESC",
+    "newest": "last_updated DESC",
+}
+
+
 @app.get("/api/products")
 def get_products(
     region: str = Query(None, description="Region to filter"),
     page: int = Query(None, ge=1, description="1-indexed page number; omit for the legacy unpaginated response"),
     limit: int = Query(24, ge=1, le=200, description="Items per page"),
+    sort: str = Query(None, description="price_asc | price_desc | newest; omit for the default best-deals order"),
 ):
     conn = None
     cursor = None
@@ -228,17 +240,18 @@ def get_products(
             where_clause = " WHERE feed_region LIKE %s"
             params.append(f"%{region.lower()}%")
 
-        # Sort logic:
-        # 1. Biggest percentage discounts first
-        # 2. Then newest items
-        order_clause = """
-            ORDER BY
-            CASE
-                WHEN retail_price > price THEN (retail_price - price) / retail_price
-                ELSE 0
-            END DESC,
-            last_updated DESC
-        """
+        if sort in _SORT_ORDER_CLAUSES:
+            order_clause = f" ORDER BY {_SORT_ORDER_CLAUSES[sort]}"
+        else:
+            # Default: biggest percentage discounts first, then newest items
+            order_clause = """
+                ORDER BY
+                CASE
+                    WHEN retail_price > price THEN (retail_price - price) / retail_price
+                    ELSE 0
+                END DESC,
+                last_updated DESC
+            """
 
         if page is None:
             # Legacy shape (bare array): still used by features that need
@@ -260,6 +273,127 @@ def get_products(
             "page": page,
             "limit": limit,
             "total_pages": max(1, math.ceil(total_count / limit)),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+def _region_filter(region: str | None, params: list) -> str:
+    if not region:
+        return ""
+    params.append(f"%{region.lower()}%")
+    return " AND p.feed_region LIKE %s"
+
+
+@app.get("/api/deals/biggest-drops")
+def get_biggest_drops(
+    region: str = Query(None, description="Region to filter"),
+    limit: int = Query(3, ge=1, le=20),
+):
+    """Products whose price has dropped versus a price_history snapshot from
+    >=24h ago, biggest drop first. The historical price is returned under
+    the `retail_price` key — the same key /api/products uses for a product's
+    list price — purely so the existing Deal.fromJson parsing and DealCard's
+    discount-badge/strikethrough rendering can be reused as-is on the client;
+    this never touches the real products.retail_price column.
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        params: list = []
+        where_region = _region_filter(region, params)
+
+        query = f"""
+            SELECT
+                p.product_id,
+                p.feed_region,
+                p.title,
+                p.price,
+                ph.price AS retail_price,
+                p.tracking_url,
+                p.image_url,
+                p.currency,
+                p.last_updated
+            FROM products p
+            JOIN LATERAL (
+                SELECT price
+                FROM price_history
+                WHERE product_id = p.product_id
+                  AND recorded_at <= now() - interval '24 hours'
+                ORDER BY recorded_at DESC
+                LIMIT 1
+            ) ph ON true
+            WHERE ph.price > p.price
+            {where_region}
+            ORDER BY ((ph.price - p.price) / ph.price) DESC
+            LIMIT %s
+        """
+        params.append(limit)
+        cursor.execute(query, params)
+        return {"items": cursor.fetchall()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.get("/api/stats")
+def get_stats(region: str = Query(None, description="Region to filter")):
+    """Aggregate counts driving the feed's live-status banner."""
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        drop_params: list = []
+        where_region = _region_filter(region, drop_params)
+        cursor.execute(
+            f"""
+            SELECT COUNT(*) AS count
+            FROM products p
+            JOIN LATERAL (
+                SELECT price
+                FROM price_history
+                WHERE product_id = p.product_id
+                  AND recorded_at <= now() - interval '24 hours'
+                ORDER BY recorded_at DESC
+                LIMIT 1
+            ) ph ON true
+            WHERE ph.price > p.price
+            {where_region}
+            """,
+            drop_params,
+        )
+        price_drops_today = cursor.fetchone()["count"]
+
+        sync_params: list = []
+        where_region = _region_filter(region, sync_params)
+        cursor.execute(
+            f"""
+            SELECT COUNT(*) AS count
+            FROM products p
+            WHERE p.last_updated >= now() - interval '6 hours'
+            {where_region}
+            """,
+            sync_params,
+        )
+        updated_last_sync = cursor.fetchone()["count"]
+
+        return {
+            "price_drops_today": price_drops_today,
+            "updated_last_sync": updated_last_sync,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

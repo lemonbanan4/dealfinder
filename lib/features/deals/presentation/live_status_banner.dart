@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/glass_card.dart';
+import '../providers/feed_stats_provider.dart';
 import '../providers/paged_deals_provider.dart';
 
 /// A slim glass "pulse" banner shown above the feed, cycling between a couple
@@ -38,10 +39,13 @@ class _LiveStatusBannerState extends ConsumerState<LiveStatusBanner> {
   @override
   Widget build(BuildContext context) {
     final totalCount = ref.watch(pagedDealsProvider).value?.totalCount;
+    final priceDropsToday = ref.watch(feedStatsProvider).value?.priceDropsToday;
     final messages = [
       totalCount != null && totalCount > 0
           ? '🔥 $totalCount+ deals tracked right now'
           : '🔥 New deals synced continuously',
+      if (priceDropsToday != null && priceDropsToday > 0)
+        '📉 Found $priceDropsToday price drops today',
       '⚡ Live price monitoring active',
     ];
     final message = messages[_messageIndex % messages.length];

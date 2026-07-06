@@ -41,7 +41,7 @@ final class AppShellIndexProvider
   }
 }
 
-String _$appShellIndexHash() => r'f96bba3efbbf767b61f9aab7c7035f7e799bc69e';
+String _$appShellIndexHash() => r'a7174948cca77e4ed00731c15e6d7ab197b65383';
 
 abstract class _$AppShellIndex extends $Notifier<int> {
   int build();

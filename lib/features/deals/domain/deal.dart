@@ -15,6 +15,7 @@ abstract class Deal with _$Deal {
     @JsonKey(defaultValue: 'SEK') required String currency,
     @JsonKey(name: 'image_url') String? imageUrl,
     @JsonKey(name: 'retail_price') double? originalPrice,
+    @JsonKey(name: 'last_updated') DateTime? lastUpdated,
   }) = _Deal;
 
   // THIS is the magic line that tells the generator to build deal.g.dart and toJson()

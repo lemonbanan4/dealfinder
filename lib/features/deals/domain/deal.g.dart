@@ -15,6 +15,9 @@ _Deal _$DealFromJson(Map<String, dynamic> json) => _Deal(
   currency: json['currency'] as String? ?? 'SEK',
   imageUrl: json['image_url'] as String?,
   originalPrice: (json['retail_price'] as num?)?.toDouble(),
+  lastUpdated: json['last_updated'] == null
+      ? null
+      : DateTime.parse(json['last_updated'] as String),
 );
 
 Map<String, dynamic> _$DealToJson(_Deal instance) => <String, dynamic>{
@@ -26,4 +29,5 @@ Map<String, dynamic> _$DealToJson(_Deal instance) => <String, dynamic>{
   'currency': instance.currency,
   'image_url': instance.imageUrl,
   'retail_price': instance.originalPrice,
+  'last_updated': instance.lastUpdated?.toIso8601String(),
 };

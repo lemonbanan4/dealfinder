@@ -78,22 +78,8 @@ abstract class _$FeedPageIndex extends $Notifier<int> {
   }
 }
 
-/// Server-side paginated fetch of a single grid page, used for the default
-/// browse state (no active search/category/favorites filter — see
-/// `_isPagedBrowseMode` in feed_page.dart). Filtered views instead paginate
-/// client-side over the full, already-fetched catalog (`dealFeedProvider`),
-/// since category/favorites matching is client-only logic the API doesn't
-/// know how to apply.
-
 @ProviderFor(pagedDeals)
 final pagedDealsProvider = PagedDealsProvider._();
-
-/// Server-side paginated fetch of a single grid page, used for the default
-/// browse state (no active search/category/favorites filter — see
-/// `_isPagedBrowseMode` in feed_page.dart). Filtered views instead paginate
-/// client-side over the full, already-fetched catalog (`dealFeedProvider`),
-/// since category/favorites matching is client-only logic the API doesn't
-/// know how to apply.
 
 final class PagedDealsProvider
     extends
@@ -103,12 +89,6 @@ final class PagedDealsProvider
           FutureOr<PagedDealsResult>
         >
     with $FutureModifier<PagedDealsResult>, $FutureProvider<PagedDealsResult> {
-  /// Server-side paginated fetch of a single grid page, used for the default
-  /// browse state (no active search/category/favorites filter — see
-  /// `_isPagedBrowseMode` in feed_page.dart). Filtered views instead paginate
-  /// client-side over the full, already-fetched catalog (`dealFeedProvider`),
-  /// since category/favorites matching is client-only logic the API doesn't
-  /// know how to apply.
   PagedDealsProvider._()
     : super(
         from: null,
@@ -135,4 +115,4 @@ final class PagedDealsProvider
   }
 }
 
-String _$pagedDealsHash() => r'c2c7d02eb229328f6048fce3f5c17cf7249fac63';
+String _$pagedDealsHash() => r'77b17c9a9859ebc750f4719c360a4430e903665c';

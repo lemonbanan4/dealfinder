@@ -22,7 +22,9 @@ import 'feed_states.dart';
 import 'live_status_banner.dart';
 import 'page_controls.dart';
 import 'search_history_overlay.dart';
+import 'sort_dropdown.dart';
 import 'top_deals_sliver.dart';
+import 'trending_drops_sliver.dart';
 import 'recently_viewed_sliver.dart';
 import 'deal_slivers.dart';
 
@@ -111,7 +113,7 @@ class FeedFilters {
   }
 }
 
-enum ProductSort { none, priceAsc, priceDesc, discountDesc }
+enum ProductSort { none, priceAsc, priceDesc, newest }
 
 // ─── Feed page ─────────────────────────────────────────────────────────────────
 
@@ -493,8 +495,8 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 
                               // ---- Hero surface: a large, centered
                               // (max-width 1200) gradient-glass panel housing
-                              // the core deal feed — Insane Deals and the
-                              // main grid. ----
+                              // the core deal feed — Insane Deals, Biggest
+                              // Price Drops, and the main grid. ----
                               SliverPadding(
                                 padding: EdgeInsets.fromLTRB(
                                   _heroHorizontalPadding(context),
@@ -509,6 +511,23 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                       if (filters.searchQuery.isEmpty &&
                                           !filters.showFavoritesOnly)
                                         const TopDealsSliver(),
+                                      if (filters.searchQuery.isEmpty &&
+                                          !filters.showFavoritesOnly)
+                                        const TrendingDropsSliver(),
+                                      SliverToBoxAdapter(
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            20,
+                                            16,
+                                            20,
+                                            0,
+                                          ),
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: SortDropdown(),
+                                          ),
+                                        ),
+                                      ),
                                       SliverPadding(
                                         padding: const EdgeInsets.all(20),
                                         sliver: _buildDealsGridSliver(

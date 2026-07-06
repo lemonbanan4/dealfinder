@@ -23,16 +23,20 @@ A high-performance affiliate deal aggregator built with Flutter/Dart.
     - Cards: translucent blue-tinted glass fill + blur + 1px soft white border (see above).
     - Hero Surface: A large, centered gradient-glass container spanning the main content area, housing all deal cards.
 - **Header**: Replace sidebar with a sticky, centered horizontal glass-bar containing: Logo, Search, Category Dropdown, and Auth.
-- **Feed toolbar**: Deliberately minimal — no region/sort/favorites-only/grid-list-toggle controls.
-  The only feed-level action is a floating "Refresh" glass button docked to the top-right of the
-  feed section; "Favorite" is a per-card action (top-right of each card), not a toolbar filter.
+- **Feed toolbar**: Deliberately minimal — no region/favorites-only/grid-list-toggle controls. The
+  one exception is **Sort** (`SortDropdown`, right-aligned above the main grid: Best Deals / Price
+  Low-High / Price High-Low / Newest) — reinstated deliberately since it's the #1 control users
+  expect on an affiliate deal site; it is not part of the sticky header. The only feed-level action
+  in the header itself is a floating "Refresh" glass button docked to the top-right of the feed
+  section; "Favorite" is a per-card action (top-right of each card), not a toolbar filter.
 - **Footer**: Add a professional footer mirroring Plusshop (links, trust badges, policies).
 
 ## UI Components Requirements
 - **Sticky Header**: A persistent top bar that follows scroll. 
   - Must include: Integrated search bar, user profile/auth icon, and a "Categories" dropdown button (triggered on hover/click).
-  - Must NOT include: region/flag switcher, sort menu, favorites-only toggle, or a grid/list view
-    toggle — the feed is grid-only now, and those controls were deliberately removed.
+  - Must NOT include: region/flag switcher, favorites-only toggle, or a grid/list view toggle — the
+    feed is grid-only now, and those controls were deliberately removed. Sort lives above the grid
+    itself (see `SortDropdown` in "Feed toolbar" above), not in this header.
 - **Deal Cards**: 
   - Must include: Visual price tracking sparkline (use `fl_chart`) inside the card.
   - Cards must use the Glassmorphic container style with soft white/light borders (not colored glow borders).

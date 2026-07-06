@@ -34,9 +34,11 @@ List<Deal> filteredDeals(Ref ref) {
     case ProductSort.priceDesc:
       displayDeals.sort((a, b) => b.currentPrice.compareTo(a.currentPrice));
       break;
-    case ProductSort.discountDesc:
+    case ProductSort.newest:
       displayDeals.sort(
-        (a, b) => (b.discountPercent ?? 0).compareTo(a.discountPercent ?? 0),
+        (a, b) => (b.lastUpdated ?? DateTime(0)).compareTo(
+          a.lastUpdated ?? DateTime(0),
+        ),
       );
       break;
     case ProductSort.none:
