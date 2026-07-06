@@ -105,7 +105,7 @@ class DealCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '${formatAmount(displayPrice ?? 0)} ${currency ?? ''}',
+                          '${formatAmount(displayPrice ?? deal.currentPrice)} ${currency ?? deal.currency}',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -113,7 +113,7 @@ class DealCard extends ConsumerWidget {
                               ),
                         ),
                         if (deal.originalPrice != null &&
-                            (displayPrice ?? 0) < deal.originalPrice!)
+                            (displayPrice ?? deal.currentPrice) < deal.originalPrice!)
                           Padding(
                             padding: const EdgeInsets.only(left: 8, bottom: 2),
                             child: Text(

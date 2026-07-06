@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../utils/error_formatting.dart';
 import '../domain/alert_config.dart';
 import '../providers/alert_configs_provider.dart';
 
@@ -92,7 +93,7 @@ class _EditAlertSheetState extends ConsumerState<EditAlertSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not update alert: $e'),
+            content: Text('Could not update alert: ${friendlyErrorMessage(e)}'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),

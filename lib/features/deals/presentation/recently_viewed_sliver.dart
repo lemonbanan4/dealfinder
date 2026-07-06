@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../widgets/deal_card.dart';
 import '../../../widgets/glass_dialog.dart';
-import '../domain/deal.dart';
-import '../providers/deals_provider.dart';
 import '../providers/recently_viewed_provider.dart';
 import 'horizontal_deal_sliver.dart';
 
@@ -13,28 +11,6 @@ class RecentlyViewedSliver extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final recentIds = ref.watch(recentlyViewedProvider);
-    final allDealsAsync = ref.watch(dealFeedProvider);
-
-    // This provider combines the two above to get the actual Deal objects.
-    final recentDealsProvider = Provider<AsyncValue<List<Deal>>>((ref) {
-      if (recentIds.isEmpty) return const AsyncValue.data([]);
-
-      return allDealsAsync.when(
-        data: (allDeals) {
-          final dealMap = {for (var deal in allDeals) deal.id: deal};
-          final recentDeals = recentIds
-              .map((id) => dealMap[id])
-              .where((d) => d != null)
-              .cast<Deal>()
-              .toList();
-          return AsyncValue.data(recentDeals);
-        },
-        loading: () => const AsyncValue.loading(),
-        error: (e, s) => AsyncValue.error(e, s),
-      );
-    });
-
     return HorizontalDealSliver(
       dealsProvider: recentDealsProvider,
       header: const _RecentlyViewedHeader(),

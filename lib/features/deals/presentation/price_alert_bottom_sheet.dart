@@ -6,6 +6,7 @@ import '../../settings/presentation/currency_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../utils/error_formatting.dart';
 import '../domain/deal.dart';
 import 'price_alert_provider.dart';
 
@@ -65,7 +66,7 @@ class _PriceAlertBottomSheetState extends ConsumerState<PriceAlertBottomSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(friendlyErrorMessage(e)),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),

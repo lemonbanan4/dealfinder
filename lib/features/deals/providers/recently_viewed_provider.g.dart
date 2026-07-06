@@ -61,3 +61,64 @@ abstract class _$RecentlyViewedNotifier extends $Notifier<List<String>> {
     return element.handleCreate(ref, build);
   }
 }
+
+/// Resolves recently-viewed deal IDs to their [Deal] objects, most recent
+/// first. A real top-level provider — not one built fresh inside a widget's
+/// `build()` (the previous approach), which registers a brand-new, never-
+/// disposed provider instance in the container on every rebuild.
+
+@ProviderFor(recentDeals)
+final recentDealsProvider = RecentDealsProvider._();
+
+/// Resolves recently-viewed deal IDs to their [Deal] objects, most recent
+/// first. A real top-level provider — not one built fresh inside a widget's
+/// `build()` (the previous approach), which registers a brand-new, never-
+/// disposed provider instance in the container on every rebuild.
+
+final class RecentDealsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Deal>>,
+          AsyncValue<List<Deal>>,
+          AsyncValue<List<Deal>>
+        >
+    with $Provider<AsyncValue<List<Deal>>> {
+  /// Resolves recently-viewed deal IDs to their [Deal] objects, most recent
+  /// first. A real top-level provider — not one built fresh inside a widget's
+  /// `build()` (the previous approach), which registers a brand-new, never-
+  /// disposed provider instance in the container on every rebuild.
+  RecentDealsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recentDealsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recentDealsHash();
+
+  @$internal
+  @override
+  $ProviderElement<AsyncValue<List<Deal>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  AsyncValue<List<Deal>> create(Ref ref) {
+    return recentDeals(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AsyncValue<List<Deal>> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AsyncValue<List<Deal>>>(value),
+    );
+  }
+}
+
+String _$recentDealsHash() => r'ad46ef356735030ce657dc76033b2a01c730c0d4';

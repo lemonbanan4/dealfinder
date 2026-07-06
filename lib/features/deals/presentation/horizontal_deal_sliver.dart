@@ -50,6 +50,21 @@ class HorizontalDealSliver extends ConsumerWidget {
   }
 }
 
+// Grid-mode tiles (e.g. "Insane Deals") host the wide, horizontal `_GridCard`
+// row layout (thumbnail + title/source/sparkline/price + action-button
+// column) — this needs to stay wide enough for that content or it'll
+// overflow, unlike the old vertical image-on-top layout these were sized for.
+const _gridTileWidth = 280.0;
+const _gridTileHeight = 180.0;
+
+// List-mode tiles (e.g. "Recently Viewed") host `DealCard`'s horizontal list
+// layout (110x110 image + Expanded title/source/sparkline/price column). A
+// `ListView` only bounds its cross-axis (height here, since this scrolls
+// horizontally) — each item MUST bring its own fixed width, or the card's
+// internal `Expanded` gets an unbounded width constraint and throws.
+const _listTileWidth = 320.0;
+const _listTileHeight = 140.0;
+
 class _DealSliverContent extends ConsumerWidget {
   const _DealSliverContent({required this.deals, required this.view});
   final List<Deal> deals;
@@ -58,20 +73,19 @@ class _DealSliverContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isGrid = view == DealCardView.grid;
-    const cardWidth = 148.0;
-    const cardHeight = 192.0;
 
     // For grid, calculate height dynamically based on available width
-    double containerHeight = cardHeight + 20; // Default for list view
+    double containerHeight = _listTileHeight + 20; // Default for list view
     if (isGrid) {
       final screenWidth = MediaQuery.of(context).size.width;
       const horizontalPadding = 16.0;
       const spacing = 10.0;
       final availableWidth = screenWidth - (horizontalPadding * 2);
       final crossAxisCount =
-          ((availableWidth + spacing) ~/ (cardWidth + spacing)).clamp(1, 10);
+          ((availableWidth + spacing) ~/ (_gridTileWidth + spacing)).clamp(1, 10);
       final rowCount = (deals.length / crossAxisCount).ceil();
-      containerHeight = rowCount * cardHeight + (rowCount - 1) * spacing + 20;
+      containerHeight =
+          rowCount * _gridTileHeight + (rowCount - 1) * spacing + 20;
     }
 
     return SizedBox(
@@ -83,18 +97,21 @@ class _DealSliverContent extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               itemCount: deals.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) => DealCard(
-                deal: deals[index],
-                view: view,
-                onTap: () {
-                  ref
-                      .read(recentlyViewedProvider.notifier)
-                      .addDeal(deals[index].id);
-                  launchUrl(
-                    Uri.parse(deals[index].url),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
+              itemBuilder: (context, index) => SizedBox(
+                width: _listTileWidth,
+                child: DealCard(
+                  deal: deals[index],
+                  view: view,
+                  onTap: () {
+                    ref
+                        .read(recentlyViewedProvider.notifier)
+                        .addDeal(deals[index].id);
+                    launchUrl(
+                      Uri.parse(deals[index].url),
+                      mode: LaunchMode.externalApplication,
+                    );
+                  },
+                ),
               ),
             ),
     );
@@ -109,14 +126,12 @@ class _DealGridView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const double cardWidth = 148;
-        const double cardHeight = 192;
         const double horizontalPadding = 16.0;
         const double spacing = 10.0;
 
         final crossAxisCount =
             ((constraints.maxWidth - horizontalPadding * 2 + spacing) ~/
-            (cardWidth + spacing)).clamp(1, 10);
+            (_gridTileWidth + spacing)).clamp(1, 10);
 
         return GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
@@ -128,7 +143,7 @@ class _DealGridView extends ConsumerWidget {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: spacing,
             mainAxisSpacing: spacing,
-            childAspectRatio: cardWidth / cardHeight,
+            childAspectRatio: _gridTileWidth / _gridTileHeight,
           ),
           itemCount: deals.length,
           itemBuilder: (context, index) => DealCard(

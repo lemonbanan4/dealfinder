@@ -363,6 +363,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     if (_isRefreshing.value) return;
 
     _isRefreshing.value = true;
+    ref.invalidate(pagedDealsProvider);
     await ref.read(dealFeedProvider.notifier).refresh();
     _isRefreshing.value = false;
   }
@@ -376,6 +377,33 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     final dealFeedAsync = ref.watch(dealFeedProvider);
     final isWide = MediaQuery.sizeOf(context).width >= 720;
     final isPagedBrowseMode = _isPagedBrowseMode(filters);
+
+    // The default browse view's main grid is server-paginated (see
+    // pagedDealsProvider) precisely so it doesn't have to wait on
+    // dealFeedProvider's full-catalog fetch — which, as the catalog grows,
+    // can take far longer than a single page. Only fall back to gating on
+    // the full fetch when a filter is active, since filtering genuinely
+    // needs that full catalog (see _isPagedBrowseMode).
+    final pagedAsync = ref.watch(pagedDealsProvider);
+    final bool isInitialLoading;
+    final bool hasLoadError;
+    final Object? loadError;
+    final bool feedIsEmpty;
+    if (isPagedBrowseMode) {
+      isInitialLoading = pagedAsync.isLoading && !pagedAsync.hasValue;
+      hasLoadError = pagedAsync.hasError && !pagedAsync.hasValue;
+      loadError = pagedAsync.error;
+      feedIsEmpty = !isInitialLoading &&
+          !hasLoadError &&
+          (pagedAsync.value?.totalCount ?? 0) == 0;
+    } else {
+      isInitialLoading = dealFeedAsync.isLoading && !dealFeedAsync.hasValue;
+      hasLoadError = dealFeedAsync.hasError && !dealFeedAsync.hasValue;
+      loadError = dealFeedAsync.error;
+      feedIsEmpty = !isInitialLoading &&
+          !hasLoadError &&
+          (dealFeedAsync.asData?.value ?? []).isEmpty;
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -397,14 +425,14 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                 children: [
                   RefreshIndicator(
                     onRefresh: _handleRefresh,
-                    child: dealFeedAsync.isLoading && !dealFeedAsync.hasValue
+                    child: isInitialLoading
                         ? const ShimmerGrid(isGrid: true)
-                        : dealFeedAsync.hasError && !dealFeedAsync.hasValue
+                        : hasLoadError
                         ? ErrorState(
-                            message: 'ERROR: ${dealFeedAsync.error.toString()}',
+                            message: 'ERROR: ${loadError.toString()}',
                             onRetry: () => _handleRefresh(),
                           ) // Removed redundant handleRefresh call
-                        : (dealFeedAsync.asData?.value ?? []).isEmpty
+                        : feedIsEmpty
                         ? EmptyState(onRefresh: () => _handleRefresh())
                         : (filters.searchQuery.isNotEmpty ||
                                   filters.showFavoritesOnly) &&
