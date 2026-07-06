@@ -334,8 +334,9 @@ class _FeedPageState extends ConsumerState<FeedPage> {
             : null,
         isEmpty:
             !pagedAsync.isLoading && (pagedAsync.value?.items.isEmpty ?? false),
-        onFavoriteTap: (deal) =>
-            ref.read(favoritesProvider.notifier).handleFavoriteTap(context, deal),
+        onFavoriteTap: (deal) => ref
+            .read(favoritesProvider.notifier)
+            .handleFavoriteTap(context, deal),
       );
     }
 
@@ -396,14 +397,16 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       isInitialLoading = pagedAsync.isLoading && !pagedAsync.hasValue;
       hasLoadError = pagedAsync.hasError && !pagedAsync.hasValue;
       loadError = pagedAsync.error;
-      feedIsEmpty = !isInitialLoading &&
+      feedIsEmpty =
+          !isInitialLoading &&
           !hasLoadError &&
           (pagedAsync.value?.totalCount ?? 0) == 0;
     } else {
       isInitialLoading = dealFeedAsync.isLoading && !dealFeedAsync.hasValue;
       hasLoadError = dealFeedAsync.hasError && !dealFeedAsync.hasValue;
       loadError = dealFeedAsync.error;
-      feedIsEmpty = !isInitialLoading &&
+      feedIsEmpty =
+          !isInitialLoading &&
           !hasLoadError &&
           (dealFeedAsync.asData?.value ?? []).isEmpty;
     }
@@ -415,186 +418,185 @@ class _FeedPageState extends ConsumerState<FeedPage> {
       // header is only needed on narrow/mobile screens (no top nav bar
       // there). Refresh lives in the floating button below instead of a
       // toolbar row on either layout.
-      appBar: isWide
-          ? null
-          : const GlassStickyHeader(),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: GlassColors.backgroundGradient),
-        child: Column(
-          children: [
-            // ─── Main Content ────────────────────────────────────────────────
-            Expanded(
-              child: Stack(
-                children: [
-                  RefreshIndicator(
-                    onRefresh: _handleRefresh,
-                    child: isInitialLoading
-                        ? const ShimmerGrid(isGrid: true)
-                        : hasLoadError
-                        ? ErrorState(
-                            message: 'ERROR: ${loadError.toString()}',
-                            onRetry: () => _handleRefresh(),
-                          ) // Removed redundant handleRefresh call
-                        : feedIsEmpty
-                        ? EmptyState(onRefresh: () => _handleRefresh())
-                        : (filters.searchQuery.isNotEmpty ||
-                                  filters.showFavoritesOnly) &&
-                              displayDeals.isEmpty
-                        ? SearchEmptyState(
-                            query: filters.searchQuery,
-                            onClear: () {
-                              cancelPendingSearchUpdate(ref);
-                              _searchController.clear();
-                              ref.read(feedFiltersProvider.notifier).clear();
-                              FocusManager.instance.primaryFocus?.unfocus();
-                            },
-                          )
-                        : CustomScrollView(
-                            controller: _scrollController,
-                            slivers: [
-                              // ---- Live status banner: a slim, centered
-                              // glass pill floating directly on the page's
-                              // background gradient — extra top inset here
-                              // is the "breathing room" gap between the
-                              // header/nav bar and the feed. ----
+      appBar: isWide ? null : const GlassStickyHeader(),
+      // No background decoration here — the app shell (adaptive_scaffold.dart)
+      // already paints one continuous gradient behind the top nav bar and
+      // this page's content together. Painting a second, independent
+      // gradient here (as this used to) restarts the color ramp from scratch
+      // right at this page's own top edge, which reads as a hard seam/line
+      // directly under the nav bar.
+      body: Column(
+        children: [
+          // ─── Main Content ──────────────────────────────────────────────────
+          Expanded(
+            child: Stack(
+              children: [
+                RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  child: isInitialLoading
+                      ? const ShimmerGrid(isGrid: true)
+                      : hasLoadError
+                      ? ErrorState(
+                          message: 'ERROR: ${loadError.toString()}',
+                          onRetry: () => _handleRefresh(),
+                        ) // Removed redundant handleRefresh call
+                      : feedIsEmpty
+                      ? EmptyState(onRefresh: () => _handleRefresh())
+                      : (filters.searchQuery.isNotEmpty ||
+                                filters.showFavoritesOnly) &&
+                            displayDeals.isEmpty
+                      ? SearchEmptyState(
+                          query: filters.searchQuery,
+                          onClear: () {
+                            cancelPendingSearchUpdate(ref);
+                            _searchController.clear();
+                            ref.read(feedFiltersProvider.notifier).clear();
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
+                        )
+                      : CustomScrollView(
+                          controller: _scrollController,
+                          slivers: [
+                            // ---- Live status banner: a slim, centered
+                            // glass pill floating directly on the page's
+                            // background gradient — extra top inset here
+                            // is the "breathing room" gap between the
+                            // header/nav bar and the feed. ----
+                            SliverPadding(
+                              padding: EdgeInsets.fromLTRB(
+                                _heroHorizontalPadding(context),
+                                32,
+                                _heroHorizontalPadding(context),
+                                0,
+                              ),
+                              sliver: const SliverToBoxAdapter(
+                                child: Center(child: LiveStatusBanner()),
+                              ),
+                            ),
+
+                            // ---- Recently Viewed: deliberately kept
+                            // OUTSIDE the boxed hero surface below so it
+                            // floats transparently on the page's own
+                            // gradient rather than sitting in its own
+                            // dark container — each card is still a
+                            // GlassCard, same as the main grid. ----
+                            if (filters.searchQuery.isEmpty &&
+                                !filters.showFavoritesOnly)
                               SliverPadding(
-                                padding: EdgeInsets.fromLTRB(
-                                  _heroHorizontalPadding(context),
-                                  32,
-                                  _heroHorizontalPadding(context),
-                                  0,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: _heroHorizontalPadding(context),
                                 ),
-                                sliver: const SliverToBoxAdapter(
-                                  child: Center(child: LiveStatusBanner()),
+                                sliver: const SliverMainAxisGroup(
+                                  slivers: [
+                                    SliverToBoxAdapter(
+                                      child: SizedBox(height: 20),
+                                    ),
+                                    RecentlyViewedSliver(),
+                                  ],
                                 ),
                               ),
 
-                              // ---- Recently Viewed: deliberately kept
-                              // OUTSIDE the boxed hero surface below so it
-                              // floats transparently on the page's own
-                              // gradient rather than sitting in its own
-                              // dark container — each card is still a
-                              // GlassCard, same as the main grid. ----
-                              if (filters.searchQuery.isEmpty &&
-                                  !filters.showFavoritesOnly)
-                                SliverPadding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: _heroHorizontalPadding(
-                                      context,
+                            // ---- Hero surface: a large, centered
+                            // (max-width 1200) gradient-glass panel housing
+                            // the core deal feed — Insane Deals, Biggest
+                            // Price Drops, and the main grid. ----
+                            SliverPadding(
+                              padding: EdgeInsets.fromLTRB(
+                                _heroHorizontalPadding(context),
+                                20,
+                                _heroHorizontalPadding(context),
+                                16,
+                              ),
+                              sliver: DecoratedSliver(
+                                decoration: _heroDecoration,
+                                sliver: SliverMainAxisGroup(
+                                  slivers: [
+                                    if (filters.searchQuery.isEmpty &&
+                                        !filters.showFavoritesOnly)
+                                      const TopDealsSliver(),
+                                    if (filters.searchQuery.isEmpty &&
+                                        !filters.showFavoritesOnly)
+                                      const TrendingDropsSliver(),
+                                    SliverToBoxAdapter(
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          20,
+                                          16,
+                                          20,
+                                          0,
+                                        ),
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: SortDropdown(),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  sliver: const SliverMainAxisGroup(
-                                    slivers: [
-                                      SliverToBoxAdapter(
-                                        child: SizedBox(height: 20),
-                                      ),
-                                      RecentlyViewedSliver(),
-                                    ],
-                                  ),
-                                ),
-
-                              // ---- Hero surface: a large, centered
-                              // (max-width 1200) gradient-glass panel housing
-                              // the core deal feed — Insane Deals, Biggest
-                              // Price Drops, and the main grid. ----
-                              SliverPadding(
-                                padding: EdgeInsets.fromLTRB(
-                                  _heroHorizontalPadding(context),
-                                  20,
-                                  _heroHorizontalPadding(context),
-                                  16,
-                                ),
-                                sliver: DecoratedSliver(
-                                  decoration: _heroDecoration,
-                                  sliver: SliverMainAxisGroup(
-                                    slivers: [
-                                      if (filters.searchQuery.isEmpty &&
-                                          !filters.showFavoritesOnly)
-                                        const TopDealsSliver(),
-                                      if (filters.searchQuery.isEmpty &&
-                                          !filters.showFavoritesOnly)
-                                        const TrendingDropsSliver(),
-                                      SliverToBoxAdapter(
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            20,
-                                            16,
-                                            20,
-                                            0,
-                                          ),
-                                          child: Align(
-                                            alignment: Alignment.centerRight,
-                                            child: SortDropdown(),
-                                          ),
-                                        ),
-                                      ),
-                                      SliverPadding(
-                                        padding: const EdgeInsets.all(20),
-                                        sliver: _buildDealsGridSliver(
-                                          ref,
-                                          isPagedBrowseMode,
-                                        ),
-                                      ),
-                                      _buildPageControlsSliver(
+                                    SliverPadding(
+                                      padding: const EdgeInsets.all(20),
+                                      sliver: _buildDealsGridSliver(
                                         ref,
                                         isPagedBrowseMode,
                                       ),
-                                      const SliverToBoxAdapter(
-                                        child: AffiliateDisclaimer(),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                    _buildPageControlsSliver(
+                                      ref,
+                                      isPagedBrowseMode,
+                                    ),
+                                    const SliverToBoxAdapter(
+                                      child: AffiliateDisclaimer(),
+                                    ),
+                                  ],
                                 ),
                               ),
+                            ),
 
-                              // ---- Featured brands + newsletter, then the
-                              // app footer — always shown regardless of the
-                              // active search/filter state, full-width
-                              // outside the hero surface. ----
-                              SliverToBoxAdapter(
-                                child: BrandLogosSection(
-                                  onBrandTap: _onBrandTap,
-                                ),
+                            // ---- Featured brands + newsletter, then the
+                            // app footer — always shown regardless of the
+                            // active search/filter state, full-width
+                            // outside the hero surface. ----
+                            SliverToBoxAdapter(
+                              child: BrandLogosSection(onBrandTap: _onBrandTap),
+                            ),
+                            const SliverToBoxAdapter(
+                              child: NewsletterSignupSection(),
+                            ),
+                            SliverToBoxAdapter(
+                              child: AppFooter(
+                                onShopCategoryTap: _onFooterShopTap,
                               ),
-                              const SliverToBoxAdapter(
-                                child: NewsletterSignupSection(),
-                              ),
-                              SliverToBoxAdapter(
-                                child: AppFooter(onShopCategoryTap: _onFooterShopTap),
-                              ),
-                            ],
-                          ),
-                  ),
-                  // --- Search History Overlay ---
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    child:
-                        (_searchFocusNode.hasFocus &&
-                            _searchController.text.isEmpty)
-                        ? SearchHistoryOverlay(
-                            onTap: (query) {
-                              // Add to the top of the history list
-                              ref.read(searchHistoryProvider.notifier).add(query);
+                            ),
+                          ],
+                        ),
+                ),
+                // --- Search History Overlay ---
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child:
+                      (_searchFocusNode.hasFocus &&
+                          _searchController.text.isEmpty)
+                      ? SearchHistoryOverlay(
+                          onTap: (query) {
+                            // Add to the top of the history list
+                            ref.read(searchHistoryProvider.notifier).add(query);
 
-                              // Set the text and perform the search
-                              _searchController.text = query;
-                              _searchController.selection =
-                                  TextSelection.fromPosition(
-                                    TextPosition(offset: query.length),
-                                  );
-                              ref
-                                  .read(feedFiltersProvider.notifier)
-                                  .updateSearchQuery(query);
-                              _searchFocusNode.unfocus();
-                            },
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              ),
+                            // Set the text and perform the search
+                            _searchController.text = query;
+                            _searchController.selection =
+                                TextSelection.fromPosition(
+                                  TextPosition(offset: query.length),
+                                );
+                            ref
+                                .read(feedFiltersProvider.notifier)
+                                .updateSearchQuery(query);
+                            _searchFocusNode.unfocus();
+                          },
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

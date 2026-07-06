@@ -12,17 +12,6 @@ import 'package:flutter/material.dart';
 class AppStyles {
   AppStyles._();
 
-  // ─── Background gradient ────────────────────────────────────────────────
-  // The app's deep-blue backdrop, applied once at the app-shell level.
-  static const backgroundGradientStart = Color(0xFF080C1C);
-  static const backgroundGradientEnd = Color(0xFF112240);
-
-  static const backgroundGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [backgroundGradientStart, backgroundGradientEnd],
-  );
-
   // ─── .glass-card ────────────────────────────────────────────────────────
   // background: rgba(8, 12, 28, 0.45);
   // backdrop-filter: blur(16px);

@@ -17,7 +17,6 @@ import '../features/settings/providers/cookie_consent_provider.dart';
 import 'cookie_consent_banner.dart';
 import '../features/alerts/providers/fired_alerts_provider.dart';
 import '../features/alerts/providers/unread_alerts_provider.dart';
-import '../theme/app_styles.dart';
 import '../theme/glass_colors.dart';
 import 'glass_container.dart';
 
@@ -102,11 +101,17 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
     final unreadAlerts = ref.watch(unreadAlertsProvider);
     final selectedIndex = ref.watch(appShellIndexProvider);
 
+    // The gradient is painted exactly once here, behind the nav bar AND the
+    // page content together, so it reads as one continuous backdrop rather
+    // than two separately-painted gradients meeting at a seam. Pages
+    // (FeedPage, AlertsPage) are transparent and rely on this.
     if (width >= 720) {
       return Scaffold(
         backgroundColor: Colors.transparent,
         body: Container(
-          decoration: const BoxDecoration(gradient: AppStyles.backgroundGradient),
+          decoration: const BoxDecoration(
+            gradient: GlassColors.backgroundGradient,
+          ),
           child: Column(
             children: [
               _GlassTopNavBar(
@@ -123,22 +128,21 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
       );
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: isDark
-          ? Container(
-              decoration: const BoxDecoration(gradient: AppStyles.backgroundGradient),
-              child: _pages[selectedIndex],
-            )
-          : _pages[selectedIndex],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: GlassColors.backgroundGradient,
+        ),
+        child: _pages[selectedIndex],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (i) => ref
             .read(appShellIndexProvider.notifier)
             .onDestinationSelected(context, ref, i),
-        backgroundColor: isDark ? AppStyles.backgroundGradientEnd : null,
-        indicatorColor: isDark ? const Color(0xFF1E2035) : null,
+        backgroundColor: GlassColors.surface,
+        indicatorColor: const Color(0xFF1E2035),
         destinations: [
           for (final (label, icon, selected) in _navDestinations)
             NavigationDestination(
@@ -216,7 +220,9 @@ class _GlassTopNavBar extends ConsumerWidget {
                     icon: _navDestinations[i].$2,
                     selectedIcon: _navDestinations[i].$3,
                     selected: selectedIndex == i,
-                    badgeCount: _navDestinations[i].$1 == 'Alerts' ? unreadAlerts : 0,
+                    badgeCount: _navDestinations[i].$1 == 'Alerts'
+                        ? unreadAlerts
+                        : 0,
                     onTap: () => onDestinationSelected(i),
                   ),
                 const SizedBox(width: 4),
