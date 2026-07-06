@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -11,6 +12,19 @@ import 'services/notification/fcm_service.dart';
 import 'features/settings/providers/cookie_consent_provider.dart';
 import 'services/analytics_service.dart';
 import 'theme/glass_colors.dart';
+
+// Flutter's default ScrollBehavior only treats touch/stylus pointers as
+// drag-to-scroll gestures — a mouse click-and-drag on web/desktop is
+// otherwise ignored (only the wheel/trackpad works). Add mouse so every
+// scrollable in the app, including horizontal rows like Recently Viewed,
+// can be click-dragged too.
+class _AppScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    ...super.dragDevices,
+    PointerDeviceKind.mouse,
+  };
+}
 
 class PrisPulsApp extends ConsumerStatefulWidget {
   const PrisPulsApp({super.key});
@@ -76,6 +90,7 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
 
     return MaterialApp(
       title: 'PrisPuls',
+      scrollBehavior: _AppScrollBehavior(),
       navigatorKey: FCMService.navigatorKey,
       themeMode: themeMode,
       theme: ThemeData(
