@@ -62,7 +62,6 @@ class _PriceAlertBottomSheetState extends ConsumerState<PriceAlertBottomSheet> {
           .createAlert(
             productId: widget.deal.id,
             productTitle: widget.deal.title,
-            productUrl: widget.deal.url,
             targetPrice: targetPrice,
           );
 

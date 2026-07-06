@@ -59,8 +59,8 @@ def verify_firebase_token(authorization: str | None) -> dict:
 class CreateAlertRequest(BaseModel):
     product_id: str
     product_title: str
-    product_url: str
     target_price: float
+    region: str
 
 
 class UpdateAlertRequest(BaseModel):
@@ -90,8 +90,8 @@ def create_alert(body: CreateAlertRequest, authorization: str = Header(None)):
         cursor.execute(
             """
             INSERT INTO price_alerts
-                (product_id, user_id, user_email, target_price, product_title, product_url, is_active, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, true, %s)
+                (product_id, user_id, user_email, target_price, product_title, currency, region, is_active, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, true, %s)
             """,
             (
                 body.product_id,
@@ -99,7 +99,8 @@ def create_alert(body: CreateAlertRequest, authorization: str = Header(None)):
                 email,
                 body.target_price,
                 body.product_title,
-                body.product_url,
+                "SEK",  # every product this app tracks is priced in SEK
+                body.region,
                 datetime.datetime.now(datetime.timezone.utc).isoformat(),
             ),
         )

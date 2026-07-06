@@ -9,6 +9,7 @@ import '../../../core/constants.dart';
 import '../../alerts/domain/alert_config.dart';
 import '../../alerts/providers/alert_configs_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import 'feed_page.dart' show regionProvider;
 
 part 'price_alert_provider.g.dart';
 
@@ -24,7 +25,6 @@ class PriceAlertNotifier extends _$PriceAlertNotifier {
   Future<void> createAlert({
     required String productId,
     required String productTitle,
-    required String productUrl,
     required double targetPrice,
   }) async {
     // This notifier is autoDispose and the caller only ever `ref.read`s it
@@ -71,8 +71,8 @@ class PriceAlertNotifier extends _$PriceAlertNotifier {
           body: jsonEncode({
             'product_id': productId,
             'product_title': productTitle,
-            'product_url': productUrl,
             'target_price': targetPrice,
+            'region': ref.read(regionProvider),
           }),
         );
         if (response.statusCode >= 400) {
