@@ -19,6 +19,7 @@ import '../providers/search_history_provider.dart';
 import 'brand_logos_section.dart';
 import 'glass_sticky_header.dart';
 import 'feed_states.dart';
+import 'live_status_banner.dart';
 import 'page_controls.dart';
 import 'search_history_overlay.dart';
 import 'top_deals_sliver.dart';
@@ -449,14 +450,57 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                         : CustomScrollView(
                             controller: _scrollController,
                             slivers: [
+                              // ---- Live status banner: a slim, centered
+                              // glass pill floating directly on the page's
+                              // background gradient — extra top inset here
+                              // is the "breathing room" gap between the
+                              // header/nav bar and the feed. ----
+                              SliverPadding(
+                                padding: EdgeInsets.fromLTRB(
+                                  _heroHorizontalPadding(context),
+                                  32,
+                                  _heroHorizontalPadding(context),
+                                  0,
+                                ),
+                                sliver: const SliverToBoxAdapter(
+                                  child: Center(child: LiveStatusBanner()),
+                                ),
+                              ),
+
+                              // ---- Recently Viewed: deliberately kept
+                              // OUTSIDE the boxed hero surface below so it
+                              // floats transparently on the page's own
+                              // gradient rather than sitting in its own
+                              // dark container — each card is still a
+                              // GlassCard, same as the main grid. ----
+                              if (filters.searchQuery.isEmpty &&
+                                  !filters.showFavoritesOnly)
+                                SliverPadding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: _heroHorizontalPadding(
+                                      context,
+                                    ),
+                                  ),
+                                  sliver: const SliverMainAxisGroup(
+                                    slivers: [
+                                      SliverToBoxAdapter(
+                                        child: SizedBox(height: 20),
+                                      ),
+                                      RecentlyViewedSliver(),
+                                    ],
+                                  ),
+                                ),
+
                               // ---- Hero surface: a large, centered
                               // (max-width 1200) gradient-glass panel housing
-                              // the whole deal feed — Insane Deals, Recently
-                              // Viewed, and the main grid. ----
+                              // the core deal feed — Insane Deals and the
+                              // main grid. ----
                               SliverPadding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: _heroHorizontalPadding(context),
-                                  vertical: 16,
+                                padding: EdgeInsets.fromLTRB(
+                                  _heroHorizontalPadding(context),
+                                  20,
+                                  _heroHorizontalPadding(context),
+                                  16,
                                 ),
                                 sliver: DecoratedSliver(
                                   decoration: _heroDecoration,
@@ -465,9 +509,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                       if (filters.searchQuery.isEmpty &&
                                           !filters.showFavoritesOnly)
                                         const TopDealsSliver(),
-                                      if (filters.searchQuery.isEmpty &&
-                                          !filters.showFavoritesOnly)
-                                        const RecentlyViewedSliver(),
                                       SliverPadding(
                                         padding: const EdgeInsets.all(20),
                                         sliver: _buildDealsGridSliver(
