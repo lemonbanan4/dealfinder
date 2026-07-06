@@ -43,7 +43,20 @@ class _PriceAlertBottomSheetState extends ConsumerState<PriceAlertBottomSheet> {
     setState(() => _isLoading = true);
 
     try {
-      final targetPrice = double.parse(_priceController.text);
+      final enteredPrice = double.parse(_priceController.text);
+      // The field above is entered in the user's display currency, but
+      // AlertConfig.targetPrice — and the backend's price comparison in
+      // scraper.py, which checks the raw (always-SEK) product price against
+      // it with no conversion — assume the stored value is in SEK. Convert
+      // back to SEK here so a target set in e.g. NOK doesn't get compared
+      // (or later re-displayed) as if it were already SEK.
+      final settings = ref.read(appSettingsProvider);
+      final currencyConverter = ref.read(currencyConverterProvider.notifier);
+      final targetPrice = currencyConverter.convert(
+        enteredPrice,
+        settings.displayCurrency,
+        'SEK',
+      );
       await ref
           .read(priceAlertProvider.notifier)
           .createAlert(
