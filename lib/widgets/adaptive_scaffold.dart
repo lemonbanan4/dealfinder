@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -13,6 +15,7 @@ import '../features/settings/presentation/settings_page.dart';
 import 'app_logo.dart';
 import '../features/settings/providers/cookie_consent_provider.dart';
 import 'cookie_consent_banner.dart';
+import '../features/alerts/providers/fired_alerts_provider.dart';
 import '../features/alerts/providers/unread_alerts_provider.dart';
 import '../theme/app_styles.dart';
 import '../theme/glass_colors.dart';
@@ -47,13 +50,15 @@ class AppShellIndex extends _$AppShellIndex {
       ).push<bool>(MaterialPageRoute<bool>(builder: (_) => const LoginPage()));
       if (signedIn == true) {
         state = 1;
-        ref.read(unreadAlertsProvider.notifier).updateCount(0);
+        ref.read(firedAlertsProvider.notifier)
+          ..start()
+          ..markAllSeen();
       }
       return;
     }
     state = index;
     if (index == 1) {
-      ref.read(unreadAlertsProvider.notifier).updateCount(0);
+      ref.read(firedAlertsProvider.notifier).markAllSeen();
     }
   }
 }
@@ -88,6 +93,7 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
         (_) => ref.read(cookieConsentProvider.notifier).loadConsent(),
       );
     }
+    ref.read(firedAlertsProvider.notifier).start();
   }
 
   @override
@@ -262,28 +268,40 @@ class _TopNavItem extends StatelessWidget {
 
   static const _selectedColor = Color(0xFF00B4FF);
   static const _unselectedColor = Color(0xFF8A8AA0);
+  static const _pillRadius = 20.0;
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? _selectedColor : _unselectedColor;
-    Widget iconWidget = Icon(selected ? selectedIcon : icon, color: color, size: 20);
-    if (badgeCount > 0) {
-      iconWidget = Badge(label: Text(badgeCount.toString()), child: iconWidget);
+    // A newly-triggered, not-yet-seen alert takes over this item's look —
+    // spinning rainbow border, pulsing green bell + label — until the user
+    // opens the Alerts tab (see FiredAlertsNotifier.markAllSeen).
+    final pulsing = label == 'Alerts' && badgeCount > 0;
+
+    if (pulsing) {
+      return _PulsingAlertItem(
+        label: label,
+        icon: selected ? selectedIcon : icon,
+        badgeCount: badgeCount,
+        borderRadius: _pillRadius,
+        selected: selected,
+        onTap: onTap,
+      );
     }
 
+    final color = selected ? _selectedColor : _unselectedColor;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(_pillRadius),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: selected ? const Color(0xFF1E2035) : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(_pillRadius),
               border: selected
                   ? Border.all(color: GlassColors.glowBorderHover)
                   : null,
@@ -291,7 +309,7 @@ class _TopNavItem extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                iconWidget,
+                Icon(selected ? selectedIcon : icon, color: color, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   label,
@@ -308,6 +326,153 @@ class _TopNavItem extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The "Alerts" nav pill's look while it has an unseen triggered price
+/// alert: a rainbow ring spins around the border and the bell + label pulse
+/// green, both driven off one repeating animation so they stay in sync.
+class _PulsingAlertItem extends StatefulWidget {
+  const _PulsingAlertItem({
+    required this.label,
+    required this.icon,
+    required this.badgeCount,
+    required this.borderRadius,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final int badgeCount;
+  final double borderRadius;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_PulsingAlertItem> createState() => _PulsingAlertItemState();
+}
+
+class _PulsingAlertItemState extends State<_PulsingAlertItem>
+    with SingleTickerProviderStateMixin {
+  static const _idleGreen = Color(0xFF1B4D3E);
+  static const _pulseGreen = Color(0xFF00E676);
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 2),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final pulse = (math.sin(_controller.value * 2 * math.pi) + 1) / 2;
+              final glowColor = Color.lerp(_idleGreen, _pulseGreen, pulse)!;
+              return CustomPaint(
+                foregroundPainter: _SpinningRainbowBorderPainter(
+                  rotation: _controller.value * 2 * math.pi,
+                  borderRadius: widget.borderRadius,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: widget.selected
+                        ? const Color(0xFF1E2035)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(widget.borderRadius),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Transform.scale(
+                        scale: 1 + pulse * 0.18,
+                        child: Badge(
+                          label: Text(widget.badgeCount.toString()),
+                          backgroundColor: _pulseGreen,
+                          child: Icon(widget.icon, color: glowColor, size: 20),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          color: glowColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Paints a rounded-rect ring stroke whose hue sweeps continuously as
+/// [rotation] advances, giving the "spinning rainbow border" effect.
+class _SpinningRainbowBorderPainter extends CustomPainter {
+  _SpinningRainbowBorderPainter({
+    required this.rotation,
+    required this.borderRadius,
+  });
+
+  final double rotation;
+  final double borderRadius;
+
+  static const _colors = [
+    Color(0xFFFF3B30),
+    Color(0xFFFF9500),
+    Color(0xFFFFCC00),
+    Color(0xFF34C759),
+    Color(0xFF00E676),
+    Color(0xFF00B4FF),
+    Color(0xFF5E5CE6),
+    Color(0xFFFF2D95),
+    Color(0xFFFF3B30),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(1),
+      Radius.circular(borderRadius),
+    );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..shader = SweepGradient(
+        colors: _colors,
+        transform: GradientRotation(rotation),
+      ).createShader(rect);
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpinningRainbowBorderPainter oldDelegate) =>
+      oldDelegate.rotation != rotation;
 }
 
 class _TopNavAuthIcon extends ConsumerWidget {
