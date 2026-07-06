@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -149,6 +150,23 @@ class _FadingHorizontalDealListState
     }
   }
 
+  // A plain vertical mouse wheel doesn't drive a horizontal ListView on
+  // Flutter web by default (only shift+wheel or a trackpad's horizontal
+  // swipe do) — redirect vertical wheel deltas into horizontal scrolling
+  // so this row responds to a normal mouse wheel too.
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || !_controller.hasClients) return;
+    final delta = event.scrollDelta.dx.abs() > event.scrollDelta.dy.abs()
+        ? event.scrollDelta.dx
+        : event.scrollDelta.dy;
+    _controller.jumpTo(
+      (_controller.position.pixels + delta).clamp(
+        _controller.position.minScrollExtent,
+        _controller.position.maxScrollExtent,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final list = ListView.separated(
@@ -175,26 +193,34 @@ class _FadingHorizontalDealListState
       ),
     );
 
-    if (!_showLeftFade && !_showRightFade) return list;
+    final fadedList = (!_showLeftFade && !_showRightFade)
+        ? list
+        : ShaderMask(
+            blendMode: BlendMode.dstIn,
+            shaderCallback: (rect) {
+              final leftStop = (_edgeFadeWidth / rect.width).clamp(0.01, 0.49);
+              final rightStop = (1 - _edgeFadeWidth / rect.width).clamp(
+                0.51,
+                0.99,
+              );
+              return LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  _showLeftFade ? Colors.transparent : Colors.black,
+                  Colors.black,
+                  Colors.black,
+                  _showRightFade ? Colors.transparent : Colors.black,
+                ],
+                stops: [0.0, leftStop, rightStop, 1.0],
+              ).createShader(rect);
+            },
+            child: list,
+          );
 
-    return ShaderMask(
-      blendMode: BlendMode.dstIn,
-      shaderCallback: (rect) {
-        final leftStop = (_edgeFadeWidth / rect.width).clamp(0.01, 0.49);
-        final rightStop = (1 - _edgeFadeWidth / rect.width).clamp(0.51, 0.99);
-        return LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            _showLeftFade ? Colors.transparent : Colors.black,
-            Colors.black,
-            Colors.black,
-            _showRightFade ? Colors.transparent : Colors.black,
-          ],
-          stops: [0.0, leftStop, rightStop, 1.0],
-        ).createShader(rect);
-      },
-      child: list,
+    return Listener(
+      onPointerSignal: _handlePointerSignal,
+      child: fadedList,
     );
   }
 }
