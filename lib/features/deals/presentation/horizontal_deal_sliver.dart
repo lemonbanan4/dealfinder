@@ -65,13 +65,13 @@ const _gridTileHeight = 180.0;
 const _listTileWidth = 320.0;
 const _listTileHeight = 140.0;
 
-class _DealSliverContent extends ConsumerWidget {
+class _DealSliverContent extends StatelessWidget {
   const _DealSliverContent({required this.deals, required this.view});
   final List<Deal> deals;
   final DealCardView view;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final isGrid = view == DealCardView.grid;
 
     // For grid, calculate height dynamically based on available width
@@ -92,28 +92,109 @@ class _DealSliverContent extends ConsumerWidget {
       height: containerHeight,
       child: isGrid
           ? _DealGridView(deals: deals)
-          : ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              itemCount: deals.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) => SizedBox(
-                width: _listTileWidth,
-                child: DealCard(
-                  deal: deals[index],
-                  view: view,
-                  onTap: () {
-                    ref
-                        .read(recentlyViewedProvider.notifier)
-                        .addDeal(deals[index].id);
-                    launchUrl(
-                      Uri.parse(deals[index].url),
-                      mode: LaunchMode.externalApplication,
-                    );
-                  },
-                ),
-              ),
-            ),
+          : _FadingHorizontalDealList(deals: deals, view: view),
+    );
+  }
+}
+
+/// A horizontally-scrolling row of [DealCard]s (used for "Recently Viewed")
+/// whose leading/trailing edges fade to transparent instead of hard-clipping
+/// a partially-visible card against the glass panel's edge. Each edge fade
+/// only appears while there's actually more content to scroll to in that
+/// direction, so a fully-scrolled-to-the-end list shows its last card at
+/// full opacity rather than perpetually faded.
+class _FadingHorizontalDealList extends ConsumerStatefulWidget {
+  const _FadingHorizontalDealList({required this.deals, required this.view});
+
+  final List<Deal> deals;
+  final DealCardView view;
+
+  @override
+  ConsumerState<_FadingHorizontalDealList> createState() =>
+      _FadingHorizontalDealListState();
+}
+
+const _edgeFadeWidth = 32.0;
+
+class _FadingHorizontalDealListState
+    extends ConsumerState<_FadingHorizontalDealList> {
+  final _controller = ScrollController();
+  bool _showLeftFade = false;
+  bool _showRightFade = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_updateFades);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateFades());
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_updateFades);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _updateFades() {
+    if (!_controller.hasClients) return;
+    final position = _controller.position;
+    final showLeft = position.pixels > 4;
+    final showRight = position.pixels < position.maxScrollExtent - 4;
+    if (showLeft != _showLeftFade || showRight != _showRightFade) {
+      setState(() {
+        _showLeftFade = showLeft;
+        _showRightFade = showRight;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = ListView.separated(
+      controller: _controller,
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      itemCount: widget.deals.length,
+      separatorBuilder: (_, _) => const SizedBox(width: 12),
+      itemBuilder: (context, index) => SizedBox(
+        width: _listTileWidth,
+        child: DealCard(
+          deal: widget.deals[index],
+          view: widget.view,
+          onTap: () {
+            ref
+                .read(recentlyViewedProvider.notifier)
+                .addDeal(widget.deals[index].id);
+            launchUrl(
+              Uri.parse(widget.deals[index].url),
+              mode: LaunchMode.externalApplication,
+            );
+          },
+        ),
+      ),
+    );
+
+    if (!_showLeftFade && !_showRightFade) return list;
+
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (rect) {
+        final leftStop = (_edgeFadeWidth / rect.width).clamp(0.01, 0.49);
+        final rightStop = (1 - _edgeFadeWidth / rect.width).clamp(0.51, 0.99);
+        return LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            _showLeftFade ? Colors.transparent : Colors.black,
+            Colors.black,
+            Colors.black,
+            _showRightFade ? Colors.transparent : Colors.black,
+          ],
+          stops: [0.0, leftStop, rightStop, 1.0],
+        ).createShader(rect);
+      },
+      child: list,
     );
   }
 }
