@@ -1,6 +1,11 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
+import '../../../core/constants.dart';
 import '../../../widgets/app_logo.dart';
 import '../providers/alerts_provider.dart';
 import '../providers/alert_configs_provider.dart';
@@ -8,6 +13,28 @@ import '../domain/alert_config.dart';
 import '../../settings/presentation/currency_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import 'edit_alert_sheet.dart';
+
+/// Best-effort delete of the backend's `price_alerts` row for [productId] —
+/// otherwise the scraper's price check has no idea an alert was dismissed
+/// in-app and keeps emailing the user for it indefinitely.
+Future<void> deleteBackendAlert(String productId) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+  try {
+    final idToken = await user.getIdToken();
+    final response = await http.delete(
+      Uri.parse('${ApiUrls.apiUrl}/api/alerts/$productId'),
+      headers: {'Authorization': 'Bearer $idToken'},
+    );
+    if (response.statusCode >= 400) {
+      throw Exception(
+        'Backend rejected the delete (${response.statusCode}): ${response.body}',
+      );
+    }
+  } catch (e) {
+    debugPrint('Failed to delete backend alert row: $e');
+  }
+}
 
 class AlertsPage extends ConsumerWidget {
   const AlertsPage({super.key});
@@ -205,6 +232,7 @@ class _ActiveTargetCard extends ConsumerWidget {
       ),
       onDismissed: (_) {
         ref.read(alertRepositoryProvider).deleteAlertConfig(config.id);
+        unawaited(deleteBackendAlert(config.productId));
       },
       child: Material(
         color: Theme.of(context).colorScheme.surfaceContainer,

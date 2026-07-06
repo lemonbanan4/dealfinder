@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
 
+import '../../../core/constants.dart';
 import '../../../utils/error_formatting.dart';
 import '../domain/alert_config.dart';
 import '../providers/alert_configs_provider.dart';
@@ -63,19 +66,32 @@ class _EditAlertSheetState extends ConsumerState<EditAlertSheet> {
       // saveAlertConfig natively behaves as an "upsert", so it will safely override the old values!
       await ref.read(alertRepositoryProvider).saveAlertConfig(updatedConfig);
 
-      // Best-effort: keep the backend scraper's Supabase row in sync too,
-      // otherwise its server-side email check keeps firing at the old
-      // target price even though the app shows the new one.
+      // Best-effort: keep the backend scraper's price_alerts row in sync
+      // too, otherwise its server-side email check keeps firing at the old
+      // target price even though the app shows the new one. Routed through
+      // the backend, which verifies the ID token and scopes the update to
+      // that uid, rather than writing to Supabase directly with the anon key.
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         try {
-          await Supabase.instance.client
-              .from('price_alerts')
-              .update({'target_price': targetPrice})
-              .eq('product_id', updatedConfig.productId)
-              .eq('user_id', user.uid);
+          final idToken = await user.getIdToken();
+          final response = await http.patch(
+            Uri.parse(
+              '${ApiUrls.apiUrl}/api/alerts/${updatedConfig.productId}',
+            ),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $idToken',
+            },
+            body: jsonEncode({'target_price': targetPrice}),
+          );
+          if (response.statusCode >= 400) {
+            throw Exception(
+              'Backend rejected the update (${response.statusCode}): ${response.body}',
+            );
+          }
         } catch (e) {
-          debugPrint('Failed to sync updated target to Supabase: $e');
+          debugPrint('Failed to sync updated target to backend: $e');
         }
       }
 

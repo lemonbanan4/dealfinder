@@ -1,20 +1,30 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/constants.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'unread_alerts_provider.dart';
 
 const _pollInterval = Duration(seconds: 60);
 
-/// Polls Supabase's `price_alerts` table (the same table `scraper.py`'s
-/// `check_and_fire_price_alerts()` flips `is_active` to false on when a
-/// tracked price drops) for alerts that have fired for the signed-in user,
-/// and drives [unreadAlertsProvider] off of however many the user hasn't
-/// seen yet — "seen" is tracked locally, since nothing server-side records
-/// per-alert acknowledgement.
+/// Polls the backend's `/api/alerts/fired` endpoint — backed by the same
+/// `price_alerts` table `scraper.py`'s `check_and_fire_price_alerts()` flips
+/// `is_active` to false on when a tracked price drops — for alerts that have
+/// fired for the signed-in user, and drives [unreadAlertsProvider] off of
+/// however many the user hasn't seen yet — "seen" is tracked locally, since
+/// nothing server-side records per-alert acknowledgement.
+///
+/// This goes through the backend (with a verified Firebase ID token) rather
+/// than querying Supabase directly: `price_alerts` holds other users' email
+/// addresses, and the app never authenticates with Supabase itself (only
+/// Firebase), so there's no `auth.uid()` for Supabase RLS to scope a SELECT
+/// to — a client-side query would either be blocked entirely or, if opened
+/// up, readable by anyone holding the public anon key.
 class FiredAlertsNotifier extends Notifier<void> {
   Timer? _timer;
 
@@ -29,13 +39,20 @@ class FiredAlertsNotifier extends Notifier<void> {
     _timer = Timer.periodic(_pollInterval, (_) => _poll());
   }
 
-  Future<Set<String>> _fetchFiredAlertIds(String userId) async {
-    final rows = await Supabase.instance.client
-        .from('price_alerts')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('is_active', false);
-    return (rows as List).map((row) => row['id'].toString()).toSet();
+  Future<Set<String>> _fetchFiredAlertIds() async {
+    final idToken = await fb.FirebaseAuth.instance.currentUser?.getIdToken();
+    final response = await http.get(
+      Uri.parse('${ApiUrls.apiUrl}/api/alerts/fired'),
+      headers: {'Authorization': 'Bearer $idToken'},
+    );
+    if (response.statusCode >= 400) {
+      throw Exception(
+        'Failed to fetch fired alerts (${response.statusCode}): ${response.body}',
+      );
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final items = body['items'] as List;
+    return items.map((row) => row['id'].toString()).toSet();
   }
 
   Future<void> _poll() async {
@@ -45,7 +62,7 @@ class FiredAlertsNotifier extends Notifier<void> {
       return;
     }
     try {
-      final firedIds = await _fetchFiredAlertIds(user.id);
+      final firedIds = await _fetchFiredAlertIds();
       final prefs = await SharedPreferences.getInstance();
       final seenIds =
           (prefs.getStringList(_seenIdsKey(user.id)) ?? const []).toSet();
@@ -53,7 +70,7 @@ class FiredAlertsNotifier extends Notifier<void> {
       ref.read(unreadAlertsProvider.notifier).updateCount(unseenCount);
     } catch (_) {
       // Best-effort: leave the previous count as-is on a transient failure
-      // (e.g. offline, or RLS not yet configured to allow this select).
+      // (e.g. offline, or the backend is momentarily unreachable).
     }
   }
 
@@ -63,7 +80,7 @@ class FiredAlertsNotifier extends Notifier<void> {
     final user = ref.read(authProvider).value;
     if (user == null) return;
     try {
-      final firedIds = await _fetchFiredAlertIds(user.id);
+      final firedIds = await _fetchFiredAlertIds();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_seenIdsKey(user.id), firedIds.toList());
     } catch (_) {
