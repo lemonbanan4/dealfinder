@@ -200,16 +200,13 @@ class _GlassTopNavBar extends ConsumerWidget {
             borderRadius: 32,
             blurSigma: 24,
             enableHoverAnimation: false,
-            // A flat fill this opaque (was 0.6) pulls the bar's visible color
-            // most of the way to this one solid RGB value regardless of what
-            // the shared page gradient looks like behind it at that scroll
-            // position — measurably (~12 units on the blue channel, checked
-            // pixel-by-pixel) darker/flatter than the gradient immediately
-            // outside the bar. That's what read as "a different background
-            // behind the header." A much lower alpha still tints/darkens
-            // enough for text/icon legibility without flattening the bar to
-            // one fixed color.
-            fillColor: const Color.fromRGBO(10, 25, 47, 0.25),
+            // No fill tint at all — any flat color overlay here (even at low
+            // alpha) pulls the bar's visible color toward one fixed RGB
+            // value regardless of what the shared page gradient looks like
+            // behind it, reading as a separate, flatter "box" rather than a
+            // frosted pane of the same backdrop. Just the blur + border below
+            // is enough to read as glass.
+            fillColor: Colors.transparent,
             borderColor: GlassColors.glowBorder,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
