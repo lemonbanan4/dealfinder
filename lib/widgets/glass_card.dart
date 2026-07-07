@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import '../theme/glass_colors.dart';
 
 /// Flutter port of the CSS `.glass-card` / `.glass-card-interactive`
-/// classes (see `AppStyles` for the exact rgba/box-shadow values ported
-/// from `iGaming-Affiliate-Review/src/index.css`).
+/// classes (see `GlassColors` for the exact rgba/box-shadow token values).
 ///
 /// Static by default (matching `.glass-card`): a frosted, translucent panel
 /// with a soft white border and drop shadow. Pass [onTap] to opt into the

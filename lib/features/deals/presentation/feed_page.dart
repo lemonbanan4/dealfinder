@@ -478,7 +478,9 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                 0,
                               ),
                               sliver: const SliverToBoxAdapter(
-                                child: Center(child: LiveStatusBanner()),
+                                child: BannerGlowBackdrop(
+                                  child: LiveStatusBanner(),
+                                ),
                               ),
                             ),
 

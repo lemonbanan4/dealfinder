@@ -80,6 +80,43 @@ class _LiveStatusBannerState extends ConsumerState<LiveStatusBanner> {
   }
 }
 
+/// A soft radial indigo/blue glow sitting behind [child] — a decorative
+/// "spotlight" effect (reference: screenshots/blue_black.png) rather than a
+/// flat background, so the live-status banner reads as the focal point of
+/// this part of the page instead of just another pill on a plain backdrop.
+/// Self-contained (fixed height, no overflow) so it drops into the feed's
+/// sliver flow like any other box.
+class BannerGlowBackdrop extends StatelessWidget {
+  const BannerGlowBackdrop({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 220,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 640,
+            height: 220,
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  Color(0x594F46E5), // indigo-600 glow, ~35% alpha
+                  Color(0x00000000),
+                ],
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
 class _PulsingDot extends StatefulWidget {
   const _PulsingDot();
 
