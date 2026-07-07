@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'widgets/adaptive_scaffold.dart';
 import 'features/settings/providers/theme_provider.dart';
@@ -12,6 +13,21 @@ import 'services/notification/fcm_service.dart';
 import 'features/settings/providers/cookie_consent_provider.dart';
 import 'services/analytics_service.dart';
 import 'theme/glass_colors.dart';
+
+// Inter for body/label text, Space Grotesk for anything headline/title/
+// display-level — matches the reference design's font pairing. Built once
+// and reused by both the light and dark ThemeData below.
+final _appTextTheme = GoogleFonts.interTextTheme().copyWith(
+  displayLarge: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700),
+  displayMedium: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700),
+  displaySmall: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w600),
+  headlineLarge: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w700),
+  headlineMedium: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w600),
+  headlineSmall: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w600),
+  titleLarge: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w600),
+  titleMedium: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w500),
+  titleSmall: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.w500),
+);
 
 // Flutter's default ScrollBehavior only treats touch/stylus pointers as
 // drag-to-scroll gestures — a mouse click-and-drag on web/desktop is
@@ -98,10 +114,10 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
           builders: {TargetPlatform.android: CupertinoPageTransitionsBuilder()},
         ),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF006EFF),
+          seedColor: GlassColors.blue500,
           brightness: Brightness.light,
         ),
-        fontFamily: 'Poppins',
+        textTheme: _appTextTheme,
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
@@ -110,7 +126,7 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
         ),
         colorScheme:
             ColorScheme.fromSeed(
-              seedColor: const Color(0xFF006EFF),
+              seedColor: GlassColors.blue500,
               brightness: Brightness.dark,
             ).copyWith(
               surface: GlassColors.background,
@@ -120,7 +136,10 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
         scaffoldBackgroundColor: isAmoled
             ? Colors.black
             : GlassColors.background,
-        fontFamily: 'Poppins',
+        textTheme: _appTextTheme.apply(
+          bodyColor: GlassColors.textBody,
+          displayColor: GlassColors.textHeading,
+        ),
         useMaterial3: true,
       ),
       navigatorObservers: [

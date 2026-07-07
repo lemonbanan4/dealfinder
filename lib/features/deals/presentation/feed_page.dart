@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -9,7 +10,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
+import '../../../widgets/app_logo.dart';
+import '../../../widgets/glass_container.dart';
+import '../../auth/presentation/login_page.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../newsletter/presentation/newsletter_signup_section.dart';
+import '../../settings/presentation/settings_page.dart';
 import '../../settings/presentation/shimmer_grid.dart';
 import '../providers/filtered_deals_provider.dart';
 import '../providers/favorites_provider.dart';
@@ -17,6 +23,8 @@ import '../providers/deals_provider.dart';
 import '../providers/paged_deals_provider.dart';
 import '../providers/search_history_provider.dart';
 import 'brand_logos_section.dart';
+import 'glass_categories_menu.dart';
+import 'glass_search_field.dart';
 import 'glass_sticky_header.dart';
 import 'feed_states.dart';
 import 'live_status_banner.dart';
@@ -605,3 +613,349 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 // ─── Shimmer skeleton loading ─────────────────────────────────────────────────
 
 // ─── Empty / Error states ─────────────────────────────────────────────────────
+
+// ─── Top glass nav bar (desktop/tablet) ────────────────────────────────────────
+//
+// Replaces the old sidebar with a sticky, centered, floating "Liquid Glass"
+// pill bar per the design system: logo, the Feed/Alerts switcher, the
+// Categories dropdown (where the Settings tab used to sit — Settings now
+// lives behind the profile/auth icon instead), the search field (Feed tab
+// only), and the auth icon, living above every page rather than beside it.
+// Lives here (alongside FeedPage) rather than in adaptive_scaffold.dart so
+// the feed's own header and the app-shell nav bar it sits under are defined
+// and styled in one place instead of two.
+
+/// Top-level nav destinations — shared by the top glass nav bar and the
+/// mobile bottom nav bar (adaptive_scaffold.dart). Settings lives behind the
+/// profile/auth icon instead of being a primary destination here.
+const navDestinations = <(String, IconData, IconData)>[
+  ('Feed', Icons.storefront_outlined, Icons.storefront),
+  ('Alerts', Icons.notifications_outlined, Icons.notifications),
+];
+
+class GlassTopNavBar extends ConsumerWidget {
+  const GlassTopNavBar({
+    super.key,
+    required this.selectedIndex,
+    required this.unreadAlerts,
+    required this.onDestinationSelected,
+  });
+
+  final int selectedIndex;
+  final int unreadAlerts;
+  final void Function(int) onDestinationSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchController = ref.watch(searchControllerProvider);
+    final searchFocusNode = ref.watch(searchFocusNodeProvider);
+    final isFeedTab = selectedIndex == 0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: GlassContainer(
+            borderRadius: 32,
+            enableHoverAnimation: false,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Row(
+              children: [
+                const AppLogo(iconSize: 28, fontSize: 21),
+                const SizedBox(width: 32),
+                for (int i = 0; i < navDestinations.length; i++)
+                  _TopNavItem(
+                    label: navDestinations[i].$1,
+                    icon: navDestinations[i].$2,
+                    selectedIcon: navDestinations[i].$3,
+                    selected: selectedIndex == i,
+                    badgeCount: navDestinations[i].$1 == 'Alerts'
+                        ? unreadAlerts
+                        : 0,
+                    onTap: () => onDestinationSelected(i),
+                  ),
+                const SizedBox(width: 4),
+                GlassCategoriesMenu(
+                  onCategorySelected: (_) {
+                    // Picking a category only means something on the
+                    // Feed tab, so jump there if we're elsewhere.
+                    if (!isFeedTab) onDestinationSelected(0);
+                  },
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: isFeedTab
+                      ? GlassSearchField(
+                          controller: searchController,
+                          focusNode: searchFocusNode,
+                          onChanged: (value) => handleSearchChanged(ref, value),
+                          height: 44,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                const SizedBox(width: 20),
+                const _TopNavAuthIcon(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopNavItem extends StatelessWidget {
+  const _TopNavItem({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.selected,
+    required this.onTap,
+    required this.badgeCount,
+  });
+
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final bool selected;
+  final VoidCallback onTap;
+  final int badgeCount;
+
+  static const _selectedColor = Color(0xFF00B4FF);
+  static const _unselectedColor = Color(0xFF8A8AA0);
+  static const _pillRadius = 20.0;
+
+  @override
+  Widget build(BuildContext context) {
+    // A newly-triggered, not-yet-seen alert takes over this item's look —
+    // spinning rainbow border, pulsing green bell + label — until the user
+    // opens the Alerts tab (see FiredAlertsNotifier.markAllSeen).
+    final pulsing = label == 'Alerts' && badgeCount > 0;
+
+    if (pulsing) {
+      return _PulsingAlertItem(
+        label: label,
+        icon: selected ? selectedIcon : icon,
+        badgeCount: badgeCount,
+        borderRadius: _pillRadius,
+        selected: selected,
+        onTap: onTap,
+      );
+    }
+
+    final color = selected ? _selectedColor : _unselectedColor;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(_pillRadius),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFF1E2035) : Colors.transparent,
+              borderRadius: BorderRadius.circular(_pillRadius),
+              border: selected
+                  ? Border.all(color: GlassColors.glowBorderHover)
+                  : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(selected ? selectedIcon : icon, color: color, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The "Alerts" nav pill's look while it has an unseen triggered price
+/// alert: a rainbow ring spins around the border and the bell + label pulse
+/// green, both driven off one repeating animation so they stay in sync.
+class _PulsingAlertItem extends StatefulWidget {
+  const _PulsingAlertItem({
+    required this.label,
+    required this.icon,
+    required this.badgeCount,
+    required this.borderRadius,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final int badgeCount;
+  final double borderRadius;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_PulsingAlertItem> createState() => _PulsingAlertItemState();
+}
+
+class _PulsingAlertItemState extends State<_PulsingAlertItem>
+    with SingleTickerProviderStateMixin {
+  static const _idleGreen = Color(0xFF1B4D3E);
+  static const _pulseGreen = Color(0xFF00E676);
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 2),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final pulse = (math.sin(_controller.value * 2 * math.pi) + 1) / 2;
+              final glowColor = Color.lerp(_idleGreen, _pulseGreen, pulse)!;
+              return CustomPaint(
+                foregroundPainter: _SpinningRainbowBorderPainter(
+                  rotation: _controller.value * 2 * math.pi,
+                  borderRadius: widget.borderRadius,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: widget.selected
+                        ? const Color(0xFF1E2035)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(widget.borderRadius),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Transform.scale(
+                        scale: 1 + pulse * 0.18,
+                        child: Badge(
+                          label: Text(widget.badgeCount.toString()),
+                          backgroundColor: _pulseGreen,
+                          child: Icon(widget.icon, color: glowColor, size: 20),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          color: glowColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Paints a rounded-rect ring stroke whose hue sweeps continuously as
+/// [rotation] advances, giving the "spinning rainbow border" effect.
+class _SpinningRainbowBorderPainter extends CustomPainter {
+  _SpinningRainbowBorderPainter({
+    required this.rotation,
+    required this.borderRadius,
+  });
+
+  final double rotation;
+  final double borderRadius;
+
+  static const _colors = [
+    Color(0xFFFF3B30),
+    Color(0xFFFF9500),
+    Color(0xFFFFCC00),
+    Color(0xFF34C759),
+    Color(0xFF00E676),
+    Color(0xFF00B4FF),
+    Color(0xFF5E5CE6),
+    Color(0xFFFF2D95),
+    Color(0xFFFF3B30),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(1),
+      Radius.circular(borderRadius),
+    );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..shader = SweepGradient(
+        colors: _colors,
+        transform: GradientRotation(rotation),
+      ).createShader(rect);
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpinningRainbowBorderPainter oldDelegate) =>
+      oldDelegate.rotation != rotation;
+}
+
+class _TopNavAuthIcon extends ConsumerWidget {
+  const _TopNavAuthIcon();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    return authState.when(
+      data: (user) => IconButton(
+        tooltip: user != null ? 'Profile' : 'Sign In',
+        icon: Icon(
+          user != null ? Icons.account_circle : Icons.person_outline,
+          color: Colors.white,
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  user != null ? const SettingsPage() : const LoginPage(),
+            ),
+          );
+        },
+      ),
+      loading: () => const SizedBox(width: 48),
+      error: (e, s) => const Icon(Icons.error, color: Colors.white),
+    );
+  }
+}

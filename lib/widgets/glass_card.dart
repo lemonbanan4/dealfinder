@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../theme/app_styles.dart';
+import '../theme/glass_colors.dart';
 
 /// Flutter port of the CSS `.glass-card` / `.glass-card-interactive`
 /// classes (see `AppStyles` for the exact rgba/box-shadow values ported
@@ -50,14 +50,14 @@ class _GlassCardState extends State<GlassCard> {
     final transform = hovering
         ? (Matrix4.identity()
             ..translateByDouble(
-              AppStyles.glassCardHoverLift.dx,
-              AppStyles.glassCardHoverLift.dy,
+              GlassColors.glassHoverLift.dx,
+              GlassColors.glassHoverLift.dy,
               0,
               1,
             )
             ..scaleByDouble(
-              AppStyles.glassCardHoverScale,
-              AppStyles.glassCardHoverScale,
+              GlassColors.glassHoverScale,
+              GlassColors.glassHoverScale,
               1,
               1,
             ))
@@ -67,27 +67,27 @@ class _GlassCardState extends State<GlassCard> {
       borderRadius: radius,
       child: BackdropFilter(
         filter: ImageFilter.blur(
-          sigmaX: AppStyles.glassCardBlurSigma,
-          sigmaY: AppStyles.glassCardBlurSigma,
+          sigmaX: GlassColors.glassBlurSigma,
+          sigmaY: GlassColors.glassBlurSigma,
         ),
         child: AnimatedContainer(
-          duration: AppStyles.glassCardHoverDuration,
-          curve: AppStyles.glassCardHoverCurve,
+          duration: GlassColors.glassHoverDuration,
+          curve: GlassColors.glassHoverCurve,
           transform: transform,
           transformAlignment: Alignment.center,
           margin: widget.margin,
           padding: widget.padding,
           decoration: BoxDecoration(
-            color: AppStyles.glassCardFill,
+            color: GlassColors.glassFill,
             borderRadius: radius,
             border: Border.all(
               color: hovering
-                  ? AppStyles.glassCardHoverBorder
-                  : AppStyles.glassCardBorder,
+                  ? GlassColors.glowBorderHover
+                  : GlassColors.glowBorder,
             ),
             boxShadow: hovering
-                ? AppStyles.glassCardHoverShadow
-                : AppStyles.glassCardShadow,
+                ? GlassColors.glassHoverShadow
+                : GlassColors.glassShadow,
           ),
           child: widget.child,
         ),

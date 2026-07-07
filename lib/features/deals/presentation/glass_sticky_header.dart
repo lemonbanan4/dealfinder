@@ -33,9 +33,7 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
 
     return GlassContainer(
       borderRadius: 0,
-      blurSigma: 20,
       enableHoverAnimation: false,
-      fillColor: const Color.fromRGBO(10, 25, 47, 0.75),
       padding: EdgeInsets.fromLTRB(
         16,
         MediaQuery.paddingOf(context).top + 8,
