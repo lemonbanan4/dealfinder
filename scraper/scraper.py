@@ -66,6 +66,11 @@ log = logging.getLogger(__name__)
 REQUEST_TIMEOUT = 30          # seconds; one broken store won't block the pipeline
 FIRESTORE_BATCH_SIZE = 500    # Firestore hard limit per batch commit
 
+# The FastAPI backend (api.py, deployed separately on Render) — used here
+# only to reuse its /api/exchange-rates proxy rather than holding a second
+# copy of the exchangerate-api.com key in this service too.
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://dealfinder-swr5.onrender.com")
+
 MIN_DISCOUNT_PCT = float(os.environ.get("SCRAPER_MIN_DISCOUNT_PCT", "0"))
 
 # ── Store configuration schema ───────────────────────────────────────────────────
@@ -721,29 +726,55 @@ def send_alert_email(
         log.error("Failed to send email to %s: %s", to_email, e)
         return False
 
+def _fetch_sek_rates() -> Optional[Dict[str, float]]:
+    """Conversion rates keyed by currency code, base SEK (rates[X] = how many
+    units of X equal 1 SEK) — via api.py's /api/exchange-rates proxy, so this
+    doesn't need its own copy of the exchangerate-api.com key. Returns None
+    on any failure; callers should treat that as "skip conversion" rather
+    than raising, since a stale/missing rate shouldn't block every alert
+    check.
+    """
+    try:
+        resp = requests.get(f"{API_BASE_URL}/api/exchange-rates", timeout=10)
+        data = resp.json()
+        if data.get("result") == "success":
+            return {k: float(v) for k, v in data["conversion_rates"].items()}
+    except Exception as exc:
+        log.warning("Could not fetch exchange rates for alert check: %s", exc)
+    return None
+
+
 def check_and_fire_price_alerts(supabase):
     log.info("Checking for triggered price alerts...")
-    
+
     alerts_response = supabase.table('price_alerts').select('*').eq('is_active', True).execute()
-    
+
     active_alerts: List[Dict[str, Any]] = alerts_response.data or []
 
     if not active_alerts:
         log.info("No active alerts to check.")
         return
-    
+
     # Fetch all product details in one query using the proper 'product_id' column name
     product_ids = {str(alert['product_id']) for alert in active_alerts}
-    products_response = supabase.table('products').select('product_id, price, title, tracking_url').in_('product_id', list(product_ids)).execute()
-    
+    products_response = supabase.table('products').select('product_id, price, title, tracking_url, currency').in_('product_id', list(product_ids)).execute()
+
     products_data: List[Dict[str, Any]] = products_response.data or []
-    
+
     if not products_data:
         log.warning("Could not fetch current prices/details for alerted products.")
         return
 
     product_map = {str(p['product_id']): p for p in products_data}
     alerts_to_deactivate = []
+
+    # price_alerts.target_price is always denominated in SEK (the client
+    # converts to SEK before saving — see price_alert_bottom_sheet.dart), but
+    # products.price is in whatever currency that store's feed uses (several
+    # NO stores are NOK). Comparing a NOK current_price directly against a
+    # SEK target — as this used to — silently mispriced every alert on a
+    # non-SEK product by the SEK/NOK exchange rate.
+    sek_rates = _fetch_sek_rates()
     
     try:
         # Fetch the password from Google Secret Manager
@@ -770,6 +801,21 @@ def check_and_fire_price_alerts(supabase):
                 continue
 
             current_price = float(product['price'])
+            product_currency = (product.get('currency') or 'SEK').upper()
+            if product_currency != 'SEK':
+                if sek_rates and product_currency in sek_rates:
+                    current_price = current_price / sek_rates[product_currency]
+                else:
+                    # No rate available — comparing raw NOK/EUR/etc. against a
+                    # SEK target would be worse than not checking at all, so
+                    # skip this one alert rather than risk a wrong-currency
+                    # false fire.
+                    log.warning(
+                        "Skipping alert %s: no exchange rate for %s -> SEK",
+                        alert['id'], product_currency,
+                    )
+                    continue
+
             if current_price <= float(alert['target_price']):
                 log.info("HIT! %s dropped to %s for %s", alert['product_title'], current_price, alert['user_email'])
                 
@@ -852,6 +898,11 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
     if rrp_col and rrp_col in df.columns:
         df[rrp_col] = pd.to_numeric(df[rrp_col], errors="coerce")
     df = df.dropna(subset=[price_col])
+    # Gift cards / free-item rows ("Presentkort" etc.) come through the feed
+    # with a literal 0 price — kept before this point only because dropna
+    # doesn't catch 0, they'd otherwise read as a permanent, fake "100% off"
+    # deal (any historical price is "higher" than free) once in `products`.
+    df = df[df[price_col] > 0]
 
     # Identify rows that have a valid, higher RRP — but do NOT discard the rest.
     # Products where rrp_price is missing or ≤ search_price are kept and stored

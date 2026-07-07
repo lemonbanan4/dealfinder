@@ -84,13 +84,17 @@ Future<PagedDealsResult> pagedDeals(Ref ref) async {
   }
 
   final data = json.decode(response.body) as Map<String, dynamic>;
-  final items = (data['items'] as List<dynamic>)
+  final rawItems = data['items'];
+  if (rawItems is! List) {
+    throw Exception('Malformed /api/products response: missing "items".');
+  }
+  final items = rawItems
       .map((json) => Deal.fromJson(json as Map<String, dynamic>))
       .toList();
 
   return PagedDealsResult(
     items: items,
-    totalCount: data['total_count'] as int,
-    totalPages: data['total_pages'] as int,
+    totalCount: (data['total_count'] as num?)?.toInt() ?? items.length,
+    totalPages: (data['total_pages'] as num?)?.toInt() ?? 1,
   );
 }

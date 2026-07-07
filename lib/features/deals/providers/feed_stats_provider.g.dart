@@ -55,4 +55,4 @@ final class FeedStatsProvider
   }
 }
 
-String _$feedStatsHash() => r'f57ab07232f154f57801d03f64d0915d98bc4f4f';
+String _$feedStatsHash() => r'2b1bbd5aaee7fa16bc8a063628354bd3550b4116';

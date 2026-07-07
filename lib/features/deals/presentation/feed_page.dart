@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/constants.dart';
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
@@ -126,18 +129,15 @@ enum ProductSort { none, priceAsc, priceDesc, newest }
 // ─── Feed page ─────────────────────────────────────────────────────────────────
 
 @riverpod
-class SearchQuery extends _$SearchQuery {
-  @override
-  String build() => '';
-  void update(String query) => state = query;
-  void clear() => state = '';
-}
-
-@riverpod
 class Region extends _$Region {
+  static const _prefsKey = 'user_selected_region';
+
   @override
   String build() {
-    // 1. Calculate the system default instantly so the app doesn't freeze
+    // 1. Calculate a locale-based guess instantly so first paint doesn't
+    // wait on anything async. This is a weak signal (an English-language
+    // browser physically in Norway would guess 'se'), so it's only ever
+    // the fallback below, not the last word.
     final locale = ui.PlatformDispatcher.instance.locale;
     final country = locale.countryCode?.toUpperCase() ?? '';
     final language = locale.languageCode.toLowerCase();
@@ -150,27 +150,50 @@ class Region extends _$Region {
       defaultRegion = 'no';
     }
 
-    // 2. Fire off a background task to check for a saved user preference
-    _loadSavedRegion();
+    // 2. Resolve the real region in the background: an explicit past choice
+    // (Settings' region switch) always wins; otherwise upgrade the locale
+    // guess with an IP-based geolocation lookup, which is far more reliable
+    // than browser language.
+    _resolveRegion();
 
-    // 3. Return the default immediately. If a saved preference is found,
-    // it will smoothly update the state a millisecond later.
+    // 3. Return the locale guess immediately. Step 2 will smoothly update
+    // the state a moment later if it finds something better.
     return defaultRegion;
   }
 
-  Future<void> _loadSavedRegion() async {
+  Future<void> _resolveRegion() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedRegion = prefs.getString('user_selected_region');
+    final savedRegion = prefs.getString(_prefsKey);
     if (savedRegion != null) {
-      state =
-          savedRegion; // Updates the UI automatically if a saved region exists
+      state = savedRegion;
+      return;
+    }
+
+    final geoRegion = await _fetchGeoRegion();
+    if (geoRegion != null) {
+      state = geoRegion;
+    }
+  }
+
+  /// Best-effort IP geolocation via the backend's `/api/geo-region` — never
+  /// throws; a slow/failed lookup just means the locale-based guess from
+  /// [build] stands.
+  Future<String?> _fetchGeoRegion() async {
+    try {
+      final uri = Uri.parse('${ApiUrls.apiUrl}/api/geo-region');
+      final response = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (response.statusCode != 200) return null;
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      return data['region'] as String?;
+    } catch (_) {
+      return null;
     }
   }
 
   Future<void> setRegion(String newRegion) async {
     // Save to device storage
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_selected_region', newRegion);
+    await prefs.setString(_prefsKey, newRegion);
 
     // Instantly update the UI state
     state = newRegion;
@@ -181,7 +204,6 @@ class Region extends _$Region {
 class FeedFiltersNotifier extends _$FeedFiltersNotifier {
   @override
   FeedFilters build() {
-    //_loadInitialState(); // It's okay for this to be async here
     return const FeedFilters();
   }
 

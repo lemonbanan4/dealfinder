@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/constants.dart';
 import '../../../utils/error_formatting.dart';
+import '../../settings/presentation/currency_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../domain/alert_config.dart';
 import '../providers/alert_configs_provider.dart';
 
@@ -36,9 +38,20 @@ class _EditAlertSheetState extends ConsumerState<EditAlertSheet> {
   @override
   void initState() {
     super.initState();
-    _priceCtrl = TextEditingController(
-      text: widget.config.targetPrice.round().toString(),
+    // widget.config.targetPrice/currency is always SEK (the create flow
+    // converts to SEK before saving — see price_alert_bottom_sheet.dart), so
+    // pre-fill in the user's chosen display currency instead of raw SEK,
+    // matching what the create sheet shows. Best-effort: if exchange rates
+    // haven't loaded yet this falls back to the raw SEK value (rare in
+    // practice, since rates are fetched once at app startup and cached).
+    final settings = ref.read(appSettingsProvider);
+    final converter = ref.read(currencyConverterProvider.notifier);
+    final displayValue = converter.convert(
+      widget.config.targetPrice,
+      widget.config.currency,
+      settings.displayCurrency,
     );
+    _priceCtrl = TextEditingController(text: displayValue.round().toString());
   }
 
   @override
@@ -51,8 +64,20 @@ class _EditAlertSheetState extends ConsumerState<EditAlertSheet> {
     setState(() => _isSaving = true);
 
     try {
-      final targetPrice =
+      final enteredPrice =
           double.tryParse(_priceCtrl.text) ?? widget.config.targetPrice;
+      // Convert back from the display currency shown above to SEK — every
+      // alert's targetPrice is stored/interpreted as SEK app-wide (see
+      // price_alert_bottom_sheet.dart), so saving the entered value
+      // unconverted would silently corrupt the target by the exchange rate
+      // whenever displayCurrency != SEK.
+      final settings = ref.read(appSettingsProvider);
+      final converter = ref.read(currencyConverterProvider.notifier);
+      final targetPrice = converter.convert(
+        enteredPrice,
+        settings.displayCurrency,
+        'SEK',
+      );
 
       final updatedConfig = AlertConfig(
         id: widget.config.id,
@@ -125,6 +150,7 @@ class _EditAlertSheetState extends ConsumerState<EditAlertSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final displayCurrency = ref.watch(appSettingsProvider).displayCurrency;
 
     return Container(
       margin: EdgeInsets.only(bottom: bottomInset),
@@ -172,7 +198,7 @@ class _EditAlertSheetState extends ConsumerState<EditAlertSheet> {
               color: Color(0xFF00B4FF),
             ),
             decoration: InputDecoration(
-              labelText: 'Target Price (SEK)',
+              labelText: 'Target Price ($displayCurrency)',
               labelStyle: const TextStyle(fontSize: 14),
               prefixIcon: const Icon(Icons.edit_notifications_outlined),
               border: OutlineInputBorder(

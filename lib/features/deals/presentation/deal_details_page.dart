@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../settings/presentation/currency_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../domain/deal.dart';
 
@@ -22,14 +23,27 @@ class DealDetailsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final settings = ref.watch(appSettingsProvider);
+    final targetCurrency = settings.displayCurrency;
+    final converter = ref.watch(currencyConverterProvider.notifier);
+
+    final displayPrice = converter.convert(
+      deal.currentPrice,
+      deal.currency,
+      targetCurrency,
+    );
     final formattedPrice = ref.watch(
-      formattedPriceProvider(price: deal.currentPrice, currency: deal.currency),
+      formattedPriceProvider(price: displayPrice, currency: targetCurrency),
     );
     final originalPrice = deal.originalPrice != null
         ? ref.watch(
             formattedPriceProvider(
-              price: deal.originalPrice!,
-              currency: deal.currency,
+              price: converter.convert(
+                deal.originalPrice!,
+                deal.currency,
+                targetCurrency,
+              ),
+              currency: targetCurrency,
             ),
           )
         : null;

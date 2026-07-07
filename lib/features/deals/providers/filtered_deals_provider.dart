@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';
 import '../domain/product_category.dart';
 import '../presentation/feed_page.dart';
@@ -26,13 +27,27 @@ List<Deal> filteredDeals(Ref ref) {
         (filters.category == 'All' || categoryForDeal(d) == filters.category);
   }).toList();
 
-  // Apply the active sorting method
+  // Apply the active sorting method. Deals span multiple currencies (SEK/NOK
+  // stores mixed together), so comparing raw currentPrice would interleave
+  // them nonsensically (100 NOK sorting "cheaper" than 90 SEK despite being
+  // worth more) — normalize to EUR first, same as the dedup sort in
+  // deals_provider.dart.
   switch (filters.sort) {
     case ProductSort.priceAsc:
-      displayDeals.sort((a, b) => a.currentPrice.compareTo(b.currentPrice));
+      displayDeals.sort(
+        (a, b) => CurrencyConverter.toEur(
+          a.currentPrice,
+          a.currency,
+        ).compareTo(CurrencyConverter.toEur(b.currentPrice, b.currency)),
+      );
       break;
     case ProductSort.priceDesc:
-      displayDeals.sort((a, b) => b.currentPrice.compareTo(a.currentPrice));
+      displayDeals.sort(
+        (a, b) => CurrencyConverter.toEur(
+          b.currentPrice,
+          b.currency,
+        ).compareTo(CurrencyConverter.toEur(a.currentPrice, a.currency)),
+      );
       break;
     case ProductSort.newest:
       displayDeals.sort(

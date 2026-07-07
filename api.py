@@ -1,13 +1,19 @@
 import datetime
+import ipaddress
+import logging
 import math
 import os
 import psycopg2
+import requests
 from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from google.auth.transport import requests as google_auth_requests
 from google.oauth2 import id_token as google_id_token
 from pydantic import BaseModel
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("prispuls-api")
 
 # Get connection string from environment
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -16,6 +22,13 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 # accepted if they were issued for this project (checked as the JWT audience).
 FIREBASE_PROJECT_ID = "dealfinderpro-bc5be"
 _google_auth_request = google_auth_requests.Request()
+
+# Used by /api/exchange-rates — kept server-side only. Previously this key
+# was hardcoded directly in the Flutter client (currency_provider.dart),
+# trivially extractable from the compiled web bundle on a public site.
+EXCHANGE_RATE_API_KEY = os.environ.get("EXCHANGE_RATE_API_KEY")
+
+_GENERIC_ERROR = "Internal server error. Please try again later."
 
 app = FastAPI(title="Prispuls Product Engine")
 
@@ -109,7 +122,8 @@ def create_alert(body: CreateAlertRequest, authorization: str = Header(None)):
     except Exception as e:
         if conn:
             conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        log.exception("create_alert failed for uid=%s product_id=%s", uid, body.product_id)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
     finally:
         if cursor:
             cursor.close()
@@ -127,8 +141,13 @@ def update_alert(product_id: str, body: UpdateAlertRequest, authorization: str =
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        # Also re-arm the alert (is_active=true): editing implies the user
+        # wants to be notified again. Without this, an alert that already
+        # fired once (is_active flipped false by the scraper) would accept
+        # the new target price but never actually fire again, since the
+        # scraper only ever checks rows where is_active=true.
         cursor.execute(
-            "UPDATE price_alerts SET target_price = %s WHERE product_id = %s AND user_id = %s",
+            "UPDATE price_alerts SET target_price = %s, is_active = true WHERE product_id = %s AND user_id = %s",
             (body.target_price, product_id, uid),
         )
         conn.commit()
@@ -136,7 +155,8 @@ def update_alert(product_id: str, body: UpdateAlertRequest, authorization: str =
     except Exception as e:
         if conn:
             conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        log.exception("update_alert failed for uid=%s product_id=%s", uid, product_id)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
     finally:
         if cursor:
             cursor.close()
@@ -163,7 +183,8 @@ def delete_alert(product_id: str, authorization: str = Header(None)):
     except Exception as e:
         if conn:
             conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        log.exception("delete_alert failed for uid=%s product_id=%s", uid, product_id)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
     finally:
         if cursor:
             cursor.close()
@@ -195,7 +216,8 @@ def get_fired_alerts(authorization: str = Header(None)):
         )
         return {"items": cursor.fetchall()}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.exception("get_fired_alerts failed for uid=%s", uid)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
     finally:
         if cursor:
             cursor.close()
@@ -205,6 +227,60 @@ def get_fired_alerts(authorization: str = Header(None)):
 @app.get("/")
 def read_root():
     return {"message": "API is alive!"}
+
+
+# In-memory per-IP cache — geolocation is a best-effort default-region guess,
+# not something that needs to survive a restart, so a plain dict (no TTL) is
+# fine at this traffic scale and avoids hitting the geo-IP service on every
+# single page load from the same visitor.
+_geo_region_cache: dict[str, str] = {}
+
+
+def _client_ip(request: Request) -> str:
+    # Render (and most PaaS proxies) put the real client IP first in
+    # X-Forwarded-For; request.client.host would otherwise just be the proxy.
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
+@app.get("/api/geo-region")
+def get_geo_region(request: Request):
+    """Best-effort 'se'/'no' region guess from the caller's IP — lets the
+    client set a sensible default region without relying solely on browser
+    language, which can easily be wrong (e.g. an English-language browser
+    physically in Norway would otherwise default to Sweden). Returns
+    {"region": null} whenever a confident guess isn't available; the client
+    is expected to keep its own locale-based guess in that case.
+    """
+    ip = _client_ip(request)
+
+    try:
+        if not ip or ipaddress.ip_address(ip).is_private:
+            return {"region": None}
+    except ValueError:
+        return {"region": None}
+
+    if ip in _geo_region_cache:
+        return {"region": _geo_region_cache[ip]}
+
+    region = None
+    try:
+        resp = requests.get(
+            f"http://ip-api.com/json/{ip}",
+            params={"fields": "status,countryCode"},
+            timeout=3,
+        )
+        data = resp.json()
+        if data.get("status") == "success":
+            region = "no" if data.get("countryCode") == "NO" else "se"
+    except Exception:
+        region = None
+
+    if region:
+        _geo_region_cache[ip] = region
+    return {"region": region}
 
 # Whitelisted sort options for /api/products — the query param is only ever
 # used as a dict key here, never interpolated directly into SQL, so an
@@ -232,13 +308,21 @@ def get_products(
 
         # Base query
         query = "SELECT * FROM products"
-        where_clause = ""
         params = []
+
+        # price > 0 excludes gift-card/free-item rows (e.g. "Presentkort")
+        # that the Awin feed sometimes includes with a literal 0 price —
+        # without this they sort to the very top of every "biggest discount"
+        # ordering as a permanent, fake "100% off" deal, and to the top of
+        # "Price: Low to High" too.
+        conditions = ["price > 0"]
 
         # Filter by region if requested (matches "all_se" or "all_no")
         if region:
-            where_clause = " WHERE feed_region LIKE %s"
+            conditions.append("feed_region LIKE %s")
             params.append(f"%{region.lower()}%")
+
+        where_clause = " WHERE " + " AND ".join(conditions)
 
         if sort in _SORT_ORDER_CLAUSES:
             order_clause = f" ORDER BY {_SORT_ORDER_CLAUSES[sort]}"
@@ -275,7 +359,8 @@ def get_products(
             "total_pages": max(1, math.ceil(total_count / limit)),
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.exception("get_products failed (region=%s page=%s sort=%s)", region, page, sort)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
     finally:
         if cursor:
             cursor.close()
@@ -331,7 +416,7 @@ def get_biggest_drops(
                 ORDER BY recorded_at DESC
                 LIMIT 1
             ) ph ON true
-            WHERE ph.price > p.price
+            WHERE ph.price > p.price AND p.price > 0
             {where_region}
             ORDER BY ((ph.price - p.price) / ph.price) DESC
             LIMIT %s
@@ -340,7 +425,8 @@ def get_biggest_drops(
         cursor.execute(query, params)
         return {"items": cursor.fetchall()}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.exception("get_biggest_drops failed (region=%s)", region)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
     finally:
         if cursor:
             cursor.close()
@@ -371,7 +457,7 @@ def get_stats(region: str = Query(None, description="Region to filter")):
                 ORDER BY recorded_at DESC
                 LIMIT 1
             ) ph ON true
-            WHERE ph.price > p.price
+            WHERE ph.price > p.price AND p.price > 0
             {where_region}
             """,
             drop_params,
@@ -396,12 +482,65 @@ def get_stats(region: str = Query(None, description="Region to filter")):
             "updated_last_sync": updated_last_sync,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.exception("get_stats failed (region=%s)", region)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
+
+# In-memory cache — exchangerate-api.com's free tier is capped at a modest
+# number of calls/month, and rates only meaningfully change a few times a
+# day, so refetching more than every 12h would be pure waste.
+_exchange_rates_cache: dict = {"data": None, "fetched_at": None}
+
+
+@app.get("/api/exchange-rates")
+def get_exchange_rates():
+    """Proxies exchangerate-api.com so its API key lives only in this
+    server's environment — previously the key was hardcoded directly in the
+    Flutter client (currency_provider.dart), trivially readable by anyone
+    via browser devtools on a public web app. Response shape is passed
+    through unchanged (`result`, `base_code`, `conversion_rates`, ...) so the
+    client's existing parsing needs no changes beyond the URL it calls.
+    """
+    cached = _exchange_rates_cache["data"]
+    fetched_at = _exchange_rates_cache["fetched_at"]
+    if (
+        cached
+        and fetched_at
+        and (datetime.datetime.now(datetime.timezone.utc) - fetched_at).total_seconds() < 12 * 3600
+    ):
+        return cached
+
+    if not EXCHANGE_RATE_API_KEY:
+        if cached:
+            return cached
+        raise HTTPException(status_code=503, detail="Exchange rate service not configured.")
+
+    try:
+        resp = requests.get(
+            f"https://v6.exchangerate-api.com/v6/{EXCHANGE_RATE_API_KEY}/latest/SEK",
+            timeout=5,
+        )
+        data = resp.json()
+    except Exception:
+        log.exception("Failed to fetch exchange rates")
+        if cached:
+            return cached
+        raise HTTPException(status_code=502, detail="Exchange rate service unavailable.")
+
+    if data.get("result") != "success":
+        log.error("Exchange rate API returned non-success: %s", data)
+        if cached:
+            return cached
+        raise HTTPException(status_code=502, detail="Exchange rate service error.")
+
+    _exchange_rates_cache["data"] = data
+    _exchange_rates_cache["fetched_at"] = datetime.datetime.now(datetime.timezone.utc)
+    return data
 
 
 if __name__ == "__main__":

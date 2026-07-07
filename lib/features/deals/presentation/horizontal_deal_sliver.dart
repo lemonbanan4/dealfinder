@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../widgets/deal_card.dart';
+import '../../settings/presentation/currency_provider.dart';
 import '../../settings/presentation/top_deals_shimmer.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../domain/deal.dart';
 import '../providers/recently_viewed_provider.dart';
 
@@ -169,28 +171,43 @@ class _FadingHorizontalDealListState
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(appSettingsProvider);
+    final targetCurrency = settings.displayCurrency;
+    final converter = ref.watch(currencyConverterProvider.notifier);
+
     final list = ListView.separated(
       controller: _controller,
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       itemCount: widget.deals.length,
       separatorBuilder: (_, _) => const SizedBox(width: 12),
-      itemBuilder: (context, index) => SizedBox(
-        width: _listTileWidth,
-        child: DealCard(
-          deal: widget.deals[index],
-          view: widget.view,
-          onTap: () {
-            ref
-                .read(recentlyViewedProvider.notifier)
-                .addDeal(widget.deals[index].id);
-            launchUrl(
-              Uri.parse(widget.deals[index].url),
-              mode: LaunchMode.externalApplication,
-            );
-          },
-        ),
-      ),
+      itemBuilder: (context, index) {
+        final deal = widget.deals[index];
+        return SizedBox(
+          width: _listTileWidth,
+          child: DealCard(
+            deal: deal,
+            view: widget.view,
+            displayPrice: converter.convert(
+              deal.currentPrice,
+              deal.currency,
+              targetCurrency,
+            ),
+            displayOriginalPrice: deal.originalPrice == null
+                ? null
+                : converter.convert(
+                    deal.originalPrice!,
+                    deal.currency,
+                    targetCurrency,
+                  ),
+            currency: targetCurrency,
+            onTap: () {
+              ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
+              launchUrl(Uri.parse(deal.url), mode: LaunchMode.externalApplication);
+            },
+          ),
+        );
+      },
     );
 
     final fadedList = (!_showLeftFade && !_showRightFade)
@@ -231,6 +248,10 @@ class _DealGridView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final targetCurrency = settings.displayCurrency;
+    final converter = ref.watch(currencyConverterProvider.notifier);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         const double horizontalPadding = 16.0;
@@ -253,19 +274,30 @@ class _DealGridView extends ConsumerWidget {
             childAspectRatio: _gridTileWidth / _gridTileHeight,
           ),
           itemCount: deals.length,
-          itemBuilder: (context, index) => DealCard(
-            deal: deals[index],
-            view: DealCardView.grid,
-            onTap: () {
-              ref
-                  .read(recentlyViewedProvider.notifier)
-                  .addDeal(deals[index].id);
-              launchUrl(
-                Uri.parse(deals[index].url),
-                mode: LaunchMode.externalApplication,
-              );
-            },
-          ),
+          itemBuilder: (context, index) {
+            final deal = deals[index];
+            return DealCard(
+              deal: deal,
+              view: DealCardView.grid,
+              displayPrice: converter.convert(
+                deal.currentPrice,
+                deal.currency,
+                targetCurrency,
+              ),
+              displayOriginalPrice: deal.originalPrice == null
+                  ? null
+                  : converter.convert(
+                      deal.originalPrice!,
+                      deal.currency,
+                      targetCurrency,
+                    ),
+              currency: targetCurrency,
+              onTap: () {
+                ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
+                launchUrl(Uri.parse(deal.url), mode: LaunchMode.externalApplication);
+              },
+            );
+          },
         );
       },
     );

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/constants.dart';
+
 part 'currency_provider.g.dart';
 
 /// A simple model to hold the fetched exchange rate data.
@@ -19,13 +21,6 @@ class ExchangeRates {
 
 @Riverpod(keepAlive: true)
 class CurrencyConverter extends _$CurrencyConverter {
-  // IMPORTANT: Replace with your own API key from a provider like exchangerate-api.com
-  // It's best practice to load this from environment variables rather than hardcoding.
-  final _apiKey = 'c3593d75019cfbd8df32f9ef';
-
-  // We'll fetch all rates against SEK as the base currency.
-  final _baseCurrency = 'SEK';
-
   @override
   Future<ExchangeRates?> build() async {
     // Fetch rates when the provider is first read.
@@ -43,9 +38,12 @@ class CurrencyConverter extends _$CurrencyConverter {
     }
 
     try {
-      final url = Uri.parse(
-        'https://v6.exchangerate-api.com/v6/$_apiKey/latest/$_baseCurrency',
-      );
+      // Routed through the backend (rather than calling exchangerate-api.com
+      // directly) so its API key lives only in that server's environment —
+      // a Flutter web build ships every client-side string in plain text,
+      // so a key embedded here would be trivially readable by anyone via
+      // devtools on a public site.
+      final url = Uri.parse('${ApiUrls.apiUrl}/api/exchange-rates');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {

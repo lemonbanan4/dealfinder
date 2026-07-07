@@ -22,6 +22,7 @@ class DealCard extends ConsumerWidget {
     this.view = DealCardView.list,
     // These are optional because for horizontal cards, the price is calculated inside
     this.displayPrice,
+    this.displayOriginalPrice,
     this.currency,
     this.trailingActions,
     required this.onTap,
@@ -30,6 +31,7 @@ class DealCard extends ConsumerWidget {
   final Deal deal;
   final DealCardView view;
   final double? displayPrice;
+  final double? displayOriginalPrice;
   final String? currency;
   final List<Widget>? trailingActions;
   final VoidCallback onTap;
@@ -43,6 +45,7 @@ class DealCard extends ConsumerWidget {
         deal: deal,
         onTap: onTap,
         displayPrice: displayPrice,
+        displayOriginalPrice: displayOriginalPrice,
         currency: currency,
         trailingActions: trailingActions,
       );
@@ -112,12 +115,14 @@ class DealCard extends ConsumerWidget {
                                 color: GlassColors.priceAccent,
                               ),
                         ),
-                        if (deal.originalPrice != null &&
-                            (displayPrice ?? deal.currentPrice) < deal.originalPrice!)
+                        if ((displayOriginalPrice ?? deal.originalPrice) !=
+                                null &&
+                            (displayPrice ?? deal.currentPrice) <
+                                (displayOriginalPrice ?? deal.originalPrice)!)
                           Padding(
                             padding: const EdgeInsets.only(left: 8, bottom: 2),
                             child: Text(
-                              formatAmount(deal.originalPrice!),
+                              '${formatAmount((displayOriginalPrice ?? deal.originalPrice)!)} ${currency ?? deal.currency}',
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     decoration: TextDecoration.lineThrough,
@@ -145,12 +150,14 @@ class _GridCard extends ConsumerWidget {
     required this.deal,
     required this.onTap,
     this.displayPrice,
+    this.displayOriginalPrice,
     this.currency,
     this.trailingActions,
   });
   final Deal deal;
   final VoidCallback onTap;
   final double? displayPrice;
+  final double? displayOriginalPrice;
   final String? currency;
   final List<Widget>? trailingActions;
 
@@ -267,7 +274,7 @@ class _GridCard extends ConsumerWidget {
                   currencyState: currencyState,
                   displayPrice: displayPrice ?? deal.currentPrice,
                   targetCurrency: currency ?? deal.currency,
-                  displayOriginalPrice: deal.originalPrice,
+                  displayOriginalPrice: displayOriginalPrice ?? deal.originalPrice,
                 ),
               ],
             ),

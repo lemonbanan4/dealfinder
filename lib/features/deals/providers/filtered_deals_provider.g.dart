@@ -48,7 +48,7 @@ final class FilteredDealsProvider
   }
 }
 
-String _$filteredDealsHash() => r'9fe5a3840b88c5e7724b95abd2ab7c89f568992b';
+String _$filteredDealsHash() => r'0379aefa476585fdfc467b549b5e743b454ba31c';
 
 /// Client-side pagination over [filteredDealsProvider] — used whenever a
 /// search/category/favorites filter is active, since category matching is a

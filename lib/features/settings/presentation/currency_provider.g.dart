@@ -33,7 +33,7 @@ final class CurrencyConverterProvider
   CurrencyConverter create() => CurrencyConverter();
 }
 
-String _$currencyConverterHash() => r'3a5cce5b2ed9e9f67f2b2c9e030e4684f874b759';
+String _$currencyConverterHash() => r'8eaf9fa088ff102eeb4e2d3f1e198901af6feae6';
 
 abstract class _$CurrencyConverter extends $AsyncNotifier<ExchangeRates?> {
   FutureOr<ExchangeRates?> build();

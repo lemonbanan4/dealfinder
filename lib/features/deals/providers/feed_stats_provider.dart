@@ -35,7 +35,7 @@ Future<FeedStats> feedStats(Ref ref) async {
 
   final data = json.decode(response.body) as Map<String, dynamic>;
   return FeedStats(
-    priceDropsToday: data['price_drops_today'] as int,
-    updatedLastSync: data['updated_last_sync'] as int,
+    priceDropsToday: (data['price_drops_today'] as num?)?.toInt() ?? 0,
+    updatedLastSync: (data['updated_last_sync'] as num?)?.toInt() ?? 0,
   );
 }
