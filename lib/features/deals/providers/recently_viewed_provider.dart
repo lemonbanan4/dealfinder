@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/api_client.dart';
 import '../domain/deal.dart';
-import 'deals_provider.dart';
 
 part 'recently_viewed_provider.g.dart';
 
@@ -60,26 +62,24 @@ class RecentlyViewedNotifier extends _$RecentlyViewedNotifier {
 }
 
 /// Resolves recently-viewed deal IDs to their [Deal] objects, most recent
-/// first. A real top-level provider — not one built fresh inside a widget's
-/// `build()` (the previous approach), which registers a brand-new, never-
-/// disposed provider instance in the container on every rebuild.
+/// first. Fetches just those ~10 products by id (`/api/products?ids=...`)
+/// rather than depending on [dealFeedProvider]'s full-catalog fetch — that
+/// full-catalog fetch is a 20MB+ response as the product count has grown,
+/// and resolving a handful of ids never needed the rest of it.
 @riverpod
-AsyncValue<List<Deal>> recentDeals(Ref ref) {
+Future<List<Deal>> recentDeals(Ref ref) async {
   final recentIds = ref.watch(recentlyViewedProvider);
-  if (recentIds.isEmpty) return const AsyncValue.data([]);
+  if (recentIds.isEmpty) return [];
 
-  return ref
-      .watch(dealFeedProvider)
-      .when(
-        data: (allDeals) {
-          final dealMap = {for (final deal in allDeals) deal.id: deal};
-          final recentDeals = recentIds
-              .map((id) => dealMap[id])
-              .whereType<Deal>()
-              .toList();
-          return AsyncValue.data(recentDeals);
-        },
-        loading: () => const AsyncValue.loading(),
-        error: (e, s) => AsyncValue.error(e, s),
-      );
+  final response = await apiGet(
+    '/api/products',
+    queryParameters: {'ids': recentIds.join(',')},
+  );
+  final List<dynamic> data = json.decode(response.body);
+  final dealMap = {
+    for (final item in data)
+      (item as Map<String, dynamic>)['product_id'] as String:
+          Deal.fromJson(item),
+  };
+  return recentIds.map((id) => dealMap[id]).whereType<Deal>().toList();
 }

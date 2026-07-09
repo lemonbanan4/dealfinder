@@ -53,6 +53,61 @@ abstract class _$DealFeedNotifier extends $AsyncNotifier<List<Deal>> {
   }
 }
 
+/// Deals discounted >= 25% off their own retail_price, sorted deepest first
+/// (see `/api/deals/top-discounts` in api.py). Fetched directly rather than
+/// derived from [dealFeedProvider]'s full catalog — that full-catalog fetch
+/// is a 20MB+ response as the product count has grown, and this shelf only
+/// ever needed a small, already-filtered slice of it.
+
+@ProviderFor(topDeals)
+final topDealsProvider = TopDealsProvider._();
+
+/// Deals discounted >= 25% off their own retail_price, sorted deepest first
+/// (see `/api/deals/top-discounts` in api.py). Fetched directly rather than
+/// derived from [dealFeedProvider]'s full catalog — that full-catalog fetch
+/// is a 20MB+ response as the product count has grown, and this shelf only
+/// ever needed a small, already-filtered slice of it.
+
+final class TopDealsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Deal>>,
+          List<Deal>,
+          FutureOr<List<Deal>>
+        >
+    with $FutureModifier<List<Deal>>, $FutureProvider<List<Deal>> {
+  /// Deals discounted >= 25% off their own retail_price, sorted deepest first
+  /// (see `/api/deals/top-discounts` in api.py). Fetched directly rather than
+  /// derived from [dealFeedProvider]'s full catalog — that full-catalog fetch
+  /// is a 20MB+ response as the product count has grown, and this shelf only
+  /// ever needed a small, already-filtered slice of it.
+  TopDealsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'topDealsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$topDealsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Deal>> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Deal>> create(Ref ref) {
+    return topDeals(ref);
+  }
+}
+
+String _$topDealsHash() => r'051adaadeadd84fa5539722ccf00052e18debbd3';
+
 @ProviderFor(priceHistoryProvider)
 final priceHistoryProviderProvider = PriceHistoryProviderFamily._();
 

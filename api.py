@@ -349,9 +349,20 @@ def get_products(
     page: int = Query(None, ge=1, description="1-indexed page number; omit for the legacy unpaginated response"),
     limit: int = Query(24, ge=1, le=200, description="Items per page"),
     sort: str = Query(None, description="price_asc | price_desc | newest; omit for the default best-deals order"),
+    ids: str = Query(None, description="Comma-separated product_ids; when set, returns just those products (ignores region/page/sort)"),
 ):
     try:
         with db_cursor(dict_cursor=True) as (conn, cursor):
+            if ids is not None:
+                id_list = [i.strip() for i in ids.split(",") if i.strip()][:50]
+                if not id_list:
+                    return []
+                cursor.execute(
+                    "SELECT * FROM products WHERE product_id = ANY(%s) AND price > 0",
+                    (id_list,),
+                )
+                return cursor.fetchall()
+
             # Base query
             query = "SELECT * FROM products"
             params = []
@@ -465,6 +476,42 @@ def get_biggest_drops(
             return {"items": cursor.fetchall()}
     except Exception:
         log.exception("get_biggest_drops failed (region=%s)", region)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
+
+
+@app.get("/api/deals/top-discounts")
+@limiter.limit("30/minute")
+def get_top_discounts(
+    request: Request,
+    region: str = Query(None, description="Region to filter"),
+    min_discount: float = Query(25, ge=0, le=100, description="Minimum % off a product's own retail_price"),
+    limit: int = Query(100, ge=1, le=200),
+):
+    """Products discounted >= min_discount% off their own listed retail_price,
+    biggest discount first — backs the "Insane Deals" shelf. Unlike
+    /api/deals/biggest-drops (a real price_history-based drop over time),
+    this compares a product's own retail_price column vs its current price.
+    """
+    try:
+        with db_cursor(dict_cursor=True) as (conn, cursor):
+            threshold = min_discount / 100.0
+            params: list = [threshold]
+            where_region = _region_filter(region, params)
+            query = f"""
+                SELECT p.*
+                FROM products p
+                WHERE p.price > 0
+                  AND p.retail_price > p.price
+                  AND (p.retail_price - p.price) / p.retail_price >= %s
+                {where_region}
+                ORDER BY (p.retail_price - p.price) / p.retail_price DESC
+                LIMIT %s
+            """
+            params.append(limit)
+            cursor.execute(query, params)
+            return {"items": cursor.fetchall()}
+    except Exception:
+        log.exception("get_top_discounts failed (region=%s)", region)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
 

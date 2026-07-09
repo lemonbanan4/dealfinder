@@ -19,6 +19,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../newsletter/presentation/newsletter_signup_section.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../settings/presentation/shimmer_grid.dart';
+import '../domain/deal.dart';
 import '../providers/filtered_deals_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/deals_provider.dart';
@@ -405,20 +406,20 @@ class _FeedPageState extends ConsumerState<FeedPage> {
   @override
   Widget build(BuildContext context) {
     final filters = ref.watch(feedFiltersProvider);
-    final displayDeals = ref.watch(
-      filteredDealsProvider,
-    ); // This is now optimized
-    final dealFeedAsync = ref.watch(dealFeedProvider);
     final isWide = MediaQuery.sizeOf(context).width >= 720;
     final isPagedBrowseMode = _isPagedBrowseMode(filters);
 
     // The default browse view's main grid is server-paginated (see
-    // pagedDealsProvider) precisely so it doesn't have to wait on
-    // dealFeedProvider's full-catalog fetch — which, as the catalog grows,
-    // can take far longer than a single page. Only fall back to gating on
-    // the full fetch when a filter is active, since filtering genuinely
-    // needs that full catalog (see _isPagedBrowseMode).
+    // pagedDealsProvider) precisely so it doesn't have to wait on — or
+    // even trigger — dealFeedProvider's full-catalog fetch, which as the
+    // catalog grows can be a 20MB+ response. Only watch filteredDeals/
+    // dealFeedProvider (which watching alone forces a fetch, regardless of
+    // whether the result below ends up used) when a filter is genuinely
+    // active and needs that full catalog (see _isPagedBrowseMode).
     final pagedAsync = ref.watch(pagedDealsProvider);
+    final displayDeals = isPagedBrowseMode
+        ? const <Deal>[]
+        : ref.watch(filteredDealsProvider);
     final bool isInitialLoading;
     final bool hasLoadError;
     final Object? loadError;
@@ -432,6 +433,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
           !hasLoadError &&
           (pagedAsync.value?.totalCount ?? 0) == 0;
     } else {
+      final dealFeedAsync = ref.watch(dealFeedProvider);
       isInitialLoading = dealFeedAsync.isLoading && !dealFeedAsync.hasValue;
       hasLoadError = dealFeedAsync.hasError && !dealFeedAsync.hasValue;
       loadError = dealFeedAsync.error;

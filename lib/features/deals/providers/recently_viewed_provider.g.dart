@@ -63,30 +63,33 @@ abstract class _$RecentlyViewedNotifier extends $Notifier<List<String>> {
 }
 
 /// Resolves recently-viewed deal IDs to their [Deal] objects, most recent
-/// first. A real top-level provider — not one built fresh inside a widget's
-/// `build()` (the previous approach), which registers a brand-new, never-
-/// disposed provider instance in the container on every rebuild.
+/// first. Fetches just those ~10 products by id (`/api/products?ids=...`)
+/// rather than depending on [dealFeedProvider]'s full-catalog fetch — that
+/// full-catalog fetch is a 20MB+ response as the product count has grown,
+/// and resolving a handful of ids never needed the rest of it.
 
 @ProviderFor(recentDeals)
 final recentDealsProvider = RecentDealsProvider._();
 
 /// Resolves recently-viewed deal IDs to their [Deal] objects, most recent
-/// first. A real top-level provider — not one built fresh inside a widget's
-/// `build()` (the previous approach), which registers a brand-new, never-
-/// disposed provider instance in the container on every rebuild.
+/// first. Fetches just those ~10 products by id (`/api/products?ids=...`)
+/// rather than depending on [dealFeedProvider]'s full-catalog fetch — that
+/// full-catalog fetch is a 20MB+ response as the product count has grown,
+/// and resolving a handful of ids never needed the rest of it.
 
 final class RecentDealsProvider
     extends
         $FunctionalProvider<
           AsyncValue<List<Deal>>,
-          AsyncValue<List<Deal>>,
-          AsyncValue<List<Deal>>
+          List<Deal>,
+          FutureOr<List<Deal>>
         >
-    with $Provider<AsyncValue<List<Deal>>> {
+    with $FutureModifier<List<Deal>>, $FutureProvider<List<Deal>> {
   /// Resolves recently-viewed deal IDs to their [Deal] objects, most recent
-  /// first. A real top-level provider — not one built fresh inside a widget's
-  /// `build()` (the previous approach), which registers a brand-new, never-
-  /// disposed provider instance in the container on every rebuild.
+  /// first. Fetches just those ~10 products by id (`/api/products?ids=...`)
+  /// rather than depending on [dealFeedProvider]'s full-catalog fetch — that
+  /// full-catalog fetch is a 20MB+ response as the product count has grown,
+  /// and resolving a handful of ids never needed the rest of it.
   RecentDealsProvider._()
     : super(
         from: null,
@@ -103,22 +106,13 @@ final class RecentDealsProvider
 
   @$internal
   @override
-  $ProviderElement<AsyncValue<List<Deal>>> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $FutureProviderElement<List<Deal>> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
   @override
-  AsyncValue<List<Deal>> create(Ref ref) {
+  FutureOr<List<Deal>> create(Ref ref) {
     return recentDeals(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(AsyncValue<List<Deal>> value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<AsyncValue<List<Deal>>>(value),
-    );
   }
 }
 
-String _$recentDealsHash() => r'ad46ef356735030ce657dc76033b2a01c730c0d4';
+String _$recentDealsHash() => r'3a230d2f778e62d8d4679a3ed7eb446e02904b6e';

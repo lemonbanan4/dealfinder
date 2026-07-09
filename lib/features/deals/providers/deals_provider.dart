@@ -89,14 +89,25 @@ class DealFeedNotifier extends _$DealFeedNotifier {
   }
 }
 
-/// Deals discounted ≥ 25 % off their original price, sorted deepest first.
-final topDealsProvider = Provider<AsyncValue<List<Deal>>>((ref) {
-  return ref.watch(dealFeedProvider).whenData((deals) {
-    return deals.where((d) => (d.discountPercent ?? 0) >= 25).toList()..sort(
-      (a, b) => (b.discountPercent ?? 0).compareTo(a.discountPercent ?? 0),
-    );
-  });
-});
+/// Deals discounted >= 25% off their own retail_price, sorted deepest first
+/// (see `/api/deals/top-discounts` in api.py). Fetched directly rather than
+/// derived from [dealFeedProvider]'s full catalog — that full-catalog fetch
+/// is a 20MB+ response as the product count has grown, and this shelf only
+/// ever needed a small, already-filtered slice of it.
+@riverpod
+Future<List<Deal>> topDeals(Ref ref) async {
+  final region = ref.watch(regionProvider);
+  final response = await apiGet(
+    '/api/deals/top-discounts',
+    queryParameters: {'region': region},
+  );
+
+  final data = json.decode(response.body) as Map<String, dynamic>;
+  final items = data['items'] as List<dynamic>;
+  return items
+      .map((item) => Deal.fromJson(item as Map<String, dynamic>))
+      .toList();
+}
 
 @riverpod
 Future<List<FlSpot>> priceHistoryProvider(Ref ref, String productId) async {
