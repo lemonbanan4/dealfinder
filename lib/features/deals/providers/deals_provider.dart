@@ -45,7 +45,11 @@ class DealFeedNotifier extends _$DealFeedNotifier {
       }
       return deals;
     } catch (e, s) {
-      log('Failed to fetch deals from API, attempting local cache fallback...', error: e, stackTrace: s);
+      log(
+        'Failed to fetch deals from API, attempting local cache fallback...',
+        error: e,
+        stackTrace: s,
+      );
       try {
         final cached = ref.read(dealRepositoryProvider).getAll();
         if (cached.isNotEmpty) {

@@ -62,7 +62,9 @@ class PreferencesSection extends ConsumerWidget {
                 trailing: SegmentedSwitch<String>(
                   selected: settings.displayCurrency,
                   onSelect: (c) => settingsNotifier.setDisplayCurrency(c),
-                  segments: <String, String>{for (var c in _supportedCurrencies) c: c},
+                  segments: <String, String>{
+                    for (var c in _supportedCurrencies) c: c,
+                  },
                 ),
               ),
             ],

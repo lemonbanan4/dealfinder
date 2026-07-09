@@ -18,7 +18,8 @@ class GlassCategoriesMenu extends ConsumerStatefulWidget {
   final ValueChanged<String>? onCategorySelected;
 
   @override
-  ConsumerState<GlassCategoriesMenu> createState() => _GlassCategoriesMenuState();
+  ConsumerState<GlassCategoriesMenu> createState() =>
+      _GlassCategoriesMenuState();
 }
 
 class _GlassCategoriesMenuState extends ConsumerState<GlassCategoriesMenu> {
@@ -27,7 +28,9 @@ class _GlassCategoriesMenuState extends ConsumerState<GlassCategoriesMenu> {
   @override
   Widget build(BuildContext context) {
     final filters = ref.watch(feedFiltersProvider);
-    final activeLabel = filters.category == 'All' ? 'Categories' : filters.category;
+    final activeLabel = filters.category == 'All'
+        ? 'Categories'
+        : filters.category;
 
     return MenuAnchor(
       controller: _menuController,
@@ -36,12 +39,16 @@ class _GlassCategoriesMenuState extends ConsumerState<GlassCategoriesMenu> {
           GlassColors.surface.withValues(alpha: 0.98),
         ),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-        side: const WidgetStatePropertyAll(BorderSide(color: GlassColors.glowBorder)),
+        side: const WidgetStatePropertyAll(
+          BorderSide(color: GlassColors.glowBorder),
+        ),
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         elevation: const WidgetStatePropertyAll(12),
-        padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 4)),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(vertical: 4),
+        ),
       ),
       // A single scrollable child rather than one MenuItemButton per
       // category: with ~20 categories now (not just electronics), a flat
@@ -64,7 +71,11 @@ class _GlassCategoriesMenuState extends ConsumerState<GlassCategoriesMenu> {
                   leadingIcon: SizedBox(
                     width: 18,
                     child: filters.category == cat
-                        ? const Icon(Icons.check, size: 18, color: Color(0xFF00B4FF))
+                        ? const Icon(
+                            Icons.check,
+                            size: 18,
+                            color: Color(0xFF00B4FF),
+                          )
                         : null,
                   ),
                   child: Text(cat),
@@ -79,7 +90,8 @@ class _GlassCategoriesMenuState extends ConsumerState<GlassCategoriesMenu> {
             if (!controller.isOpen) controller.open();
           },
           child: OutlinedButton.icon(
-            onPressed: () => controller.isOpen ? controller.close() : controller.open(),
+            onPressed: () =>
+                controller.isOpen ? controller.close() : controller.open(),
             icon: const Icon(Icons.category_outlined, size: 18),
             label: Text(activeLabel, overflow: TextOverflow.ellipsis),
             style: OutlinedButton.styleFrom(
@@ -91,7 +103,9 @@ class _GlassCategoriesMenuState extends ConsumerState<GlassCategoriesMenu> {
                     ? GlassColors.glowBorderHover
                     : GlassColors.glowBorder,
               ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
           ),
         );

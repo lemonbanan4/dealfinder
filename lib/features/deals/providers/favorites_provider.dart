@@ -94,8 +94,6 @@ class FavoritesNotifier extends _$FavoritesNotifier {
     }
   }
 
-
-
   bool isFavorite(String dealId) {
     return state.value?.contains(dealId) ?? false;
   }

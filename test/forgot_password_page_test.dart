@@ -34,9 +34,7 @@ void main() {
   Future<void> pumpForgotPasswordPage(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          authProvider.overrideWith(() => fakeAuth),
-        ],
+        overrides: [authProvider.overrideWith(() => fakeAuth)],
         child: const MaterialApp(home: ForgotPasswordPage()),
       ),
     );

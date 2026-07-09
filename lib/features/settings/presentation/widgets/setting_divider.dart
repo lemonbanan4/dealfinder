@@ -7,6 +7,10 @@ class SettingDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(height: 1, thickness: 1, color: GlassColors.glowBorder);
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      color: GlassColors.glowBorder,
+    );
   }
 }

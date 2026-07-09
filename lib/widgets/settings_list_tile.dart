@@ -52,7 +52,9 @@ class SettingsListTile extends StatelessWidget {
               ? Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.6,
+                  ),
                 )
               : null),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),

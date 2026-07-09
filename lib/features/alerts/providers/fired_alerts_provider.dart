@@ -58,8 +58,8 @@ class FiredAlertsNotifier extends Notifier<void> {
     try {
       final firedIds = await _fetchFiredAlertIds();
       final prefs = await SharedPreferences.getInstance();
-      final seenIds =
-          (prefs.getStringList(_seenIdsKey(user.id)) ?? const []).toSet();
+      final seenIds = (prefs.getStringList(_seenIdsKey(user.id)) ?? const [])
+          .toSet();
       final unseenCount = firedIds.difference(seenIds).length;
       ref.read(unreadAlertsProvider.notifier).updateCount(unseenCount);
     } catch (_) {

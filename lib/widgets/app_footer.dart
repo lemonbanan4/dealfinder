@@ -121,7 +121,10 @@ class _TrustBadgeRow extends StatelessWidget {
       runSpacing: 12,
       children: [
         _TrustBadge(icon: Icons.lock_outline, label: 'Secure (HTTPS)'),
-        _TrustBadge(icon: Icons.verified_user_outlined, label: 'Verified Affiliate Partner'),
+        _TrustBadge(
+          icon: Icons.verified_user_outlined,
+          label: 'Verified Affiliate Partner',
+        ),
         _TrustBadge(icon: Icons.privacy_tip_outlined, label: 'GDPR Compliant'),
         _TrustBadge(icon: Icons.bolt_outlined, label: 'Live Price Updates'),
         _TrustBadge(emoji: '🇸🇪', label: 'Sweden'),
@@ -204,7 +207,10 @@ Widget _shopColumn(ValueChanged<String>? onTap) {
     title: 'Shop',
     children: [
       for (final category in dealCategories.where((c) => c != 'All'))
-        _FooterLink(label: category, onTap: onTap == null ? null : () => onTap(category)),
+        _FooterLink(
+          label: category,
+          onTap: onTap == null ? null : () => onTap(category),
+        ),
     ],
   );
 }
@@ -213,7 +219,10 @@ Widget _informationColumn(BuildContext context) {
   return _FooterColumn(
     title: 'Information',
     children: [
-      _FooterLink(label: 'About Us', onTap: () => _push(context, const AboutUsPage())),
+      _FooterLink(
+        label: 'About Us',
+        onTap: () => _push(context, const AboutUsPage()),
+      ),
       _FooterLink(
         label: 'Privacy Policy',
         onTap: () => _push(context, const PrivacyPolicyPage()),
@@ -243,7 +252,9 @@ Widget _supportColumn(BuildContext context) {
 }
 
 void _push(BuildContext context, Widget page) {
-  Navigator.of(context).push<void>(MaterialPageRoute<void>(builder: (_) => page));
+  Navigator.of(
+    context,
+  ).push<void>(MaterialPageRoute<void>(builder: (_) => page));
 }
 
 class _FooterLink extends StatelessWidget {
@@ -285,7 +296,11 @@ class _FooterBottomBar extends StatelessWidget {
       children: [
         Text(
           '© ${DateTime.now().year} PrisPuls. All rights reserved.',
-          style: const TextStyle(color: _kMuted, fontSize: 11, letterSpacing: 0.1),
+          style: const TextStyle(
+            color: _kMuted,
+            fontSize: 11,
+            letterSpacing: 0.1,
+          ),
         ),
       ],
     );

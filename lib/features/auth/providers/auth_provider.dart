@@ -16,14 +16,14 @@ class Auth extends _$Auth {
   @override
   FutureOr<User?> build() {
     final authRepository = ref.watch(authRepositoryProvider);
-    
+
     _authStateChangesSubscription = authRepository.authStateChanges().listen(
       (user) {
         state = AsyncData(user);
       },
       onError: (err, stack) {
         state = AsyncError(err, stack);
-      }
+      },
     );
 
     ref.onDispose(() {
@@ -68,13 +68,17 @@ class Auth extends _$Auth {
 
   Future<void> signInWithEmailAndPassword(String email, String password) async {
     await _runAuthMethod(
-      () => ref.read(authRepositoryProvider).signInWithEmailAndPassword(email, password),
+      () => ref
+          .read(authRepositoryProvider)
+          .signInWithEmailAndPassword(email, password),
     );
   }
 
   Future<void> signUpWithEmailAndPassword(String email, String password) async {
     await _runAuthMethod(
-      () => ref.read(authRepositoryProvider).signUpWithEmailAndPassword(email, password),
+      () => ref
+          .read(authRepositoryProvider)
+          .signUpWithEmailAndPassword(email, password),
     );
   }
 

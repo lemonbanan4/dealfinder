@@ -43,13 +43,7 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Row(
-            children: [
-              AppLogo(),
-              Spacer(),
-              _AuthIcon(),
-            ],
-          ),
+          const Row(children: [AppLogo(), Spacer(), _AuthIcon()]),
           const SizedBox(height: 10),
           Row(
             children: [

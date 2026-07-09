@@ -37,7 +37,9 @@ class PageControls extends StatelessWidget {
               _NavButton(
                 icon: Icons.chevron_left,
                 tooltip: 'Previous page',
-                onPressed: currentPage > 1 ? () => onPageChanged(currentPage - 1) : null,
+                onPressed: currentPage > 1
+                    ? () => onPageChanged(currentPage - 1)
+                    : null,
               ),
               for (final page in _pagesToShow())
                 if (page == null)
@@ -54,7 +56,9 @@ class PageControls extends StatelessWidget {
               _NavButton(
                 icon: Icons.chevron_right,
                 tooltip: 'Next page',
-                onPressed: currentPage < totalPages ? () => onPageChanged(currentPage + 1) : null,
+                onPressed: currentPage < totalPages
+                    ? () => onPageChanged(currentPage + 1)
+                    : null,
               ),
               if (currentPage < totalPages) ...[
                 const SizedBox(width: 4),
@@ -97,7 +101,11 @@ class PageControls extends StatelessWidget {
 }
 
 class _NavButton extends StatelessWidget {
-  const _NavButton({required this.icon, required this.tooltip, required this.onPressed});
+  const _NavButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
 
   final IconData icon;
   final String tooltip;
@@ -136,7 +144,13 @@ class _TextNavButton extends StatelessWidget {
         onTap: onPressed,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
@@ -144,7 +158,11 @@ class _TextNavButton extends StatelessWidget {
 }
 
 class _PageNumberButton extends StatelessWidget {
-  const _PageNumberButton({required this.page, required this.selected, required this.onTap});
+  const _PageNumberButton({
+    required this.page,
+    required this.selected,
+    required this.onTap,
+  });
 
   final int page;
   final bool selected;
@@ -153,7 +171,9 @@ class _PageNumberButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? GlassColors.priceAccent.withValues(alpha: 0.18) : GlassColors.glassFill,
+      color: selected
+          ? GlassColors.priceAccent.withValues(alpha: 0.18)
+          : GlassColors.glassFill,
       shape: const CircleBorder(
         side: BorderSide(color: GlassColors.glowBorder),
       ),

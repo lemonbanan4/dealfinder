@@ -42,20 +42,10 @@ class TappableSettingRow extends StatelessWidget {
               ),
             ),
             if (trailingText != null) ...[
-              Text(
-                trailingText!,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: color,
-                ),
-              ),
+              Text(trailingText!, style: TextStyle(fontSize: 13, color: color)),
               const SizedBox(width: 8),
             ],
-            Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: color.withAlpha(120),
-            ),
+            Icon(Icons.chevron_right, size: 20, color: color.withAlpha(120)),
           ],
         ),
       ),

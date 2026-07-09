@@ -85,7 +85,10 @@ class _DealSliverContent extends StatelessWidget {
       const spacing = 10.0;
       final availableWidth = screenWidth - (horizontalPadding * 2);
       final crossAxisCount =
-          ((availableWidth + spacing) ~/ (_gridTileWidth + spacing)).clamp(1, 10);
+          ((availableWidth + spacing) ~/ (_gridTileWidth + spacing)).clamp(
+            1,
+            10,
+          );
       final rowCount = (deals.length / crossAxisCount).ceil();
       containerHeight =
           rowCount * _gridTileHeight + (rowCount - 1) * spacing + 20;
@@ -203,7 +206,10 @@ class _FadingHorizontalDealListState
             currency: targetCurrency,
             onTap: () {
               ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
-              launchUrl(Uri.parse(deal.url), mode: LaunchMode.externalApplication);
+              launchUrl(
+                Uri.parse(deal.url),
+                mode: LaunchMode.externalApplication,
+              );
             },
           ),
         );
@@ -235,10 +241,7 @@ class _FadingHorizontalDealListState
             child: list,
           );
 
-    return Listener(
-      onPointerSignal: _handlePointerSignal,
-      child: fadedList,
-    );
+    return Listener(onPointerSignal: _handlePointerSignal, child: fadedList);
   }
 }
 
@@ -259,7 +262,8 @@ class _DealGridView extends ConsumerWidget {
 
         final crossAxisCount =
             ((constraints.maxWidth - horizontalPadding * 2 + spacing) ~/
-            (_gridTileWidth + spacing)).clamp(1, 10);
+                    (_gridTileWidth + spacing))
+                .clamp(1, 10);
 
         return GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
@@ -294,7 +298,10 @@ class _DealGridView extends ConsumerWidget {
               currency: targetCurrency,
               onTap: () {
                 ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
-                launchUrl(Uri.parse(deal.url), mode: LaunchMode.externalApplication);
+                launchUrl(
+                  Uri.parse(deal.url),
+                  mode: LaunchMode.externalApplication,
+                );
               },
             );
           },

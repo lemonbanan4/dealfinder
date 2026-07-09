@@ -6,10 +6,9 @@ import '../../../theme/glass_colors.dart';
 import '../../deals/presentation/user.dart' as domain;
 import '../providers/auth_provider.dart';
 
-final loginProvider =
-    NotifierProvider<LoginNotifier, LoginState>(
-      () => LoginNotifier(FirebaseAuth.instance),
-    );
+final loginProvider = NotifierProvider<LoginNotifier, LoginState>(
+  () => LoginNotifier(FirebaseAuth.instance),
+);
 
 @immutable
 class LoginState {
@@ -111,7 +110,9 @@ class LoginNotifier extends Notifier<LoginState> {
     } catch (e) {
       state = state.copyWith(
         loading: false,
-        error: e is FirebaseAuthException ? e.message : 'An unexpected error occurred.',
+        error: e is FirebaseAuthException
+            ? e.message
+            : 'An unexpected error occurred.',
       );
     }
   }
@@ -312,7 +313,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                  Expanded(
+                    child: Divider(color: theme.colorScheme.outlineVariant),
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
@@ -322,7 +325,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                     ),
                   ),
-                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                  Expanded(
+                    child: Divider(color: theme.colorScheme.outlineVariant),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -337,7 +342,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                       )
                     : Image.asset('assets/images/google_logo.png', height: 20),
-                label: Text(_isGoogleLoading ? 'Signing in…' : 'Continue with Google'),
+                label: Text(
+                  _isGoogleLoading ? 'Signing in…' : 'Continue with Google',
+                ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: isDark ? GlassColors.background : null,
                   foregroundColor: isDark

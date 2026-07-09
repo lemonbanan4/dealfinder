@@ -81,7 +81,11 @@ class DealsSliver extends ConsumerWidget {
       );
       final displayOriginalPrice = deal.originalPrice == null
           ? null
-          : converter.convert(deal.originalPrice!, deal.currency, targetCurrency);
+          : converter.convert(
+              deal.originalPrice!,
+              deal.currency,
+              targetCurrency,
+            );
 
       return DealCard(
         view: DealCardView.grid,

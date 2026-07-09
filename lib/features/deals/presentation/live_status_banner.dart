@@ -151,9 +151,7 @@ class _PulsingDotState extends State<_PulsingDot>
             color: GlassColors.priceAccent,
             boxShadow: [
               BoxShadow(
-                color: GlassColors.priceAccent.withValues(
-                  alpha: 0.2 + 0.6 * t,
-                ),
+                color: GlassColors.priceAccent.withValues(alpha: 0.2 + 0.6 * t),
                 blurRadius: 6 + 6 * t,
                 spreadRadius: 1 + t,
               ),

@@ -10,11 +10,7 @@ import '../../../theme/glass_colors.dart';
 /// rest of the app (feed, nav bar, settings) — this is one tap away from
 /// Settings, so it needs to look like the same app, not a different one.
 class LegalPage extends StatelessWidget {
-  const LegalPage({
-    super.key,
-    required this.title,
-    required this.sections,
-  });
+  const LegalPage({super.key, required this.title, required this.sections});
 
   final String title;
   final List<LegalSection> sections;
@@ -47,7 +43,11 @@ class LegalPage extends StatelessWidget {
         ),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1, color: GlassColors.glowBorder),
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: GlassColors.glowBorder,
+          ),
         ),
       ),
       body: ListView.builder(

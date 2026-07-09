@@ -121,7 +121,8 @@ class _AuthPageState extends State<AuthPage> {
 
       if (mounted) Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'popup-closed-by-user' || e.code == 'cancelled-popup-request') {
+      if (e.code == 'popup-closed-by-user' ||
+          e.code == 'cancelled-popup-request') {
         return;
       }
       if (mounted) {
@@ -235,7 +236,9 @@ class _AuthPageState extends State<AuthPage> {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                  Expanded(
+                    child: Divider(color: theme.colorScheme.outlineVariant),
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
@@ -245,7 +248,9 @@ class _AuthPageState extends State<AuthPage> {
                       ),
                     ),
                   ),
-                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                  Expanded(
+                    child: Divider(color: theme.colorScheme.outlineVariant),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -257,7 +262,9 @@ class _AuthPageState extends State<AuthPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Image.asset('assets/images/google_logo.png', height: 20),
-                label: Text(_isGoogleLoading ? 'Signing in…' : 'Continue with Google'),
+                label: Text(
+                  _isGoogleLoading ? 'Signing in…' : 'Continue with Google',
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: theme.colorScheme.onSurface,
                   side: BorderSide(color: theme.colorScheme.outlineVariant),

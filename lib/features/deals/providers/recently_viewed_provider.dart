@@ -68,16 +68,18 @@ AsyncValue<List<Deal>> recentDeals(Ref ref) {
   final recentIds = ref.watch(recentlyViewedProvider);
   if (recentIds.isEmpty) return const AsyncValue.data([]);
 
-  return ref.watch(dealFeedProvider).when(
-    data: (allDeals) {
-      final dealMap = {for (final deal in allDeals) deal.id: deal};
-      final recentDeals = recentIds
-          .map((id) => dealMap[id])
-          .whereType<Deal>()
-          .toList();
-      return AsyncValue.data(recentDeals);
-    },
-    loading: () => const AsyncValue.loading(),
-    error: (e, s) => AsyncValue.error(e, s),
-  );
+  return ref
+      .watch(dealFeedProvider)
+      .when(
+        data: (allDeals) {
+          final dealMap = {for (final deal in allDeals) deal.id: deal};
+          final recentDeals = recentIds
+              .map((id) => dealMap[id])
+              .whereType<Deal>()
+              .toList();
+          return AsyncValue.data(recentDeals);
+        },
+        loading: () => const AsyncValue.loading(),
+        error: (e, s) => AsyncValue.error(e, s),
+      );
 }

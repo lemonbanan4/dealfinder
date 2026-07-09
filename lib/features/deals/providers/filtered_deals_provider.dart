@@ -85,5 +85,8 @@ FilteredDealsPage filteredDealsPage(Ref ref) {
     return FilteredDealsPage(items: const [], totalPages: totalPages);
   }
   final end = (start + dealsPageSize).clamp(0, deals.length);
-  return FilteredDealsPage(items: deals.sublist(start, end), totalPages: totalPages);
+  return FilteredDealsPage(
+    items: deals.sublist(start, end),
+    totalPages: totalPages,
+  );
 }

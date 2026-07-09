@@ -100,7 +100,10 @@ Future<List<Brand>> _fetchCuratedBrands(SupabaseClient supabase) async {
     return [
       for (final row in rows as List)
         if (row['brand'] != null)
-          Brand(name: row['brand'] as String, logoUrl: row['logo_url'] as String?),
+          Brand(
+            name: row['brand'] as String,
+            logoUrl: row['logo_url'] as String?,
+          ),
     ];
   } catch (_) {
     return const [];

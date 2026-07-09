@@ -10,7 +10,8 @@ class MockGlobalKey extends Mock implements GlobalKey<FormState> {}
 
 class MockFormState extends Mock implements FormState {
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) => super.toString();
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) =>
+      super.toString();
 }
 
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}

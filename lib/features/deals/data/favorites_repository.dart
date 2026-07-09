@@ -105,9 +105,9 @@ class FavoritesRepository {
   Future<void> clearFavorites(User? user) async {
     await clearLocalFavorites();
     if (user != null) {
-      await _userFavoritesDoc(user)!.set({
-        'favorites': <String>[],
-      }, SetOptions(merge: true));
+      await _userFavoritesDoc(
+        user,
+      )!.set({'favorites': <String>[]}, SetOptions(merge: true));
     }
   }
 }

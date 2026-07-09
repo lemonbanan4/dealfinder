@@ -60,87 +60,82 @@ class DealCard extends ConsumerWidget {
         // This is for the main list view
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-              // --- Image ---
-              SizedBox(
-                width: 110,
-                height: 110,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: deal.imageUrl != null && deal.imageUrl!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: deal.imageUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: Theme.of(context).colorScheme.secondary,
-                          ),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
-                        )
-                      : Container(
-                          color: Theme.of(context).colorScheme.secondary,
-                          child: const Icon(Icons.shopping_bag_outlined),
-                        ),
+          // --- Image ---
+          SizedBox(
+            width: 110,
+            height: 110,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: deal.imageUrl != null && deal.imageUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: deal.imageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
+                    )
+                  : Container(
+                      color: Theme.of(context).colorScheme.secondary,
+                      child: const Icon(Icons.shopping_bag_outlined),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // --- Details ---
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  deal.title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: 12),
-              // --- Details ---
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 4),
+                Text(deal.source, style: Theme.of(context).textTheme.bodySmall),
+                const Spacer(),
+                PriceSparkline(productId: deal.id, height: 24),
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      deal.title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      '${formatAmount(displayPrice ?? deal.currentPrice)} ${currency ?? deal.currency}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: GlassColors.priceAccent,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      deal.source,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const Spacer(),
-                    PriceSparkline(productId: deal.id, height: 24),
-                    const SizedBox(height: 2),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${formatAmount(displayPrice ?? deal.currentPrice)} ${currency ?? deal.currency}',
-                          style: Theme.of(context).textTheme.titleMedium
+                    if ((displayOriginalPrice ?? deal.originalPrice) != null &&
+                        (displayPrice ?? deal.currentPrice) <
+                            (displayOriginalPrice ?? deal.originalPrice)!)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, bottom: 2),
+                        child: Text(
+                          '${formatAmount((displayOriginalPrice ?? deal.originalPrice)!)} ${currency ?? deal.currency}',
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: GlassColors.priceAccent,
+                                decoration: TextDecoration.lineThrough,
                               ),
                         ),
-                        if ((displayOriginalPrice ?? deal.originalPrice) !=
-                                null &&
-                            (displayPrice ?? deal.currentPrice) <
-                                (displayOriginalPrice ?? deal.originalPrice)!)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8, bottom: 2),
-                            child: Text(
-                              '${formatAmount((displayOriginalPrice ?? deal.originalPrice)!)} ${currency ?? deal.currency}',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    decoration: TextDecoration.lineThrough,
-                                  ),
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
-              ),
-              // --- Actions ---
-              Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [...?trailingActions],
-              ),
-            ],
+              ],
+            ),
           ),
+          // --- Actions ---
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [...?trailingActions],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -261,9 +256,9 @@ class _GridCard extends ConsumerWidget {
                 const SizedBox(height: 3),
                 Text(
                   deal.source,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white54,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.white54),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -274,7 +269,8 @@ class _GridCard extends ConsumerWidget {
                   currencyState: currencyState,
                   displayPrice: displayPrice ?? deal.currentPrice,
                   targetCurrency: currency ?? deal.currency,
-                  displayOriginalPrice: displayOriginalPrice ?? deal.originalPrice,
+                  displayOriginalPrice:
+                      displayOriginalPrice ?? deal.originalPrice,
                 ),
               ],
             ),
@@ -286,9 +282,7 @@ class _GridCard extends ConsumerWidget {
             children: [
               _CardActionButton(
                 icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-                iconColor: isFavorite
-                    ? GlassColors.priceAccent
-                    : Colors.white,
+                iconColor: isFavorite ? GlassColors.priceAccent : Colors.white,
                 tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
                 onPressed: () async {
                   try {
@@ -371,4 +365,3 @@ class _CardActionButton extends StatelessWidget {
     );
   }
 }
-

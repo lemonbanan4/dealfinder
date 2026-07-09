@@ -44,7 +44,9 @@ class PriceDisplay extends StatelessWidget {
             Text(
               '${formatAmount(displayOriginalPrice!)} $targetCurrency',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.7,
+                ),
                 decoration: TextDecoration.lineThrough,
                 decorationColor: theme.colorScheme.onSurfaceVariant.withValues(
                   alpha: 0.7,

@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../widgets/glass_card.dart';
 
 class SettingsCard extends StatelessWidget {
-  const SettingsCard({
-    required this.child,
-    this.padding,
-    super.key,
-  });
+  const SettingsCard({required this.child, this.padding, super.key});
 
   final Widget child;
   final EdgeInsetsGeometry? padding;

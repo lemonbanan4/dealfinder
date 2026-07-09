@@ -32,7 +32,9 @@ class AccountSection extends ConsumerWidget {
         final email = user.email ?? 'No email';
         final name = user.displayName ?? 'User';
         final avatarUrl = user.photoURL;
-        final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
+        final initials = name.isNotEmpty
+            ? name.substring(0, 1).toUpperCase()
+            : '?';
 
         final isPasswordProvider = user.providerData.any(
           (userInfo) => userInfo.providerId == 'password',
@@ -50,7 +52,9 @@ class AccountSection extends ConsumerWidget {
                       CircleAvatar(
                         radius: 28,
                         backgroundColor: theme.colorScheme.primaryContainer,
-                        backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                        backgroundImage: avatarUrl != null
+                            ? NetworkImage(avatarUrl)
+                            : null,
                         child: avatarUrl == null
                             ? Text(
                                 initials,
@@ -100,7 +104,8 @@ class AccountSection extends ConsumerWidget {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.lock_outline, size: 18),
-                        onPressed: () => _showChangePasswordDialog(context, ref),
+                        onPressed: () =>
+                            _showChangePasswordDialog(context, ref),
                         label: const Text('Change Password'),
                       ),
                     ),

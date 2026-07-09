@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Mocks for Supabase dependencies
 class MockSupabaseClient extends Mock implements SupabaseClient {}
+
 class MockSupabaseQueryBuilder extends Mock implements SupabaseQueryBuilder {}
 
 class FakePostgrestFilterBuilder extends Fake
@@ -16,7 +17,8 @@ class FakePostgrestFilterBuilder extends Fake
   final Future<PostgrestList> _future;
 
   @override
-  PostgrestFilterBuilder<PostgrestList> eq(String column, Object? value) => this;
+  PostgrestFilterBuilder<PostgrestList> eq(String column, Object? value) =>
+      this;
 
   @override
   PostgrestFilterBuilder<PostgrestList> order(
@@ -24,8 +26,7 @@ class FakePostgrestFilterBuilder extends Fake
     bool ascending = false,
     bool nullsFirst = false,
     String? referencedTable,
-  }) =>
-      this;
+  }) => this;
 
   @override
   Future<R> then<R>(
@@ -36,7 +37,10 @@ class FakePostgrestFilterBuilder extends Fake
   }
 
   @override
-  Future<PostgrestList> catchError(Function onError, {bool Function(Object)? test}) {
+  Future<PostgrestList> catchError(
+    Function onError, {
+    bool Function(Object)? test,
+  }) {
     return _future.catchError(onError, test: test);
   }
 
@@ -81,8 +85,12 @@ void main() {
         Future.value(PostgrestList.from(mockResponse)),
       );
 
-      when(() => mockSupabaseClient.from(any())).thenAnswer((_) => mockQueryBuilder);
-      when(() => mockQueryBuilder.select(any())).thenAnswer((_) => fakeFilterBuilder);
+      when(
+        () => mockSupabaseClient.from(any()),
+      ).thenAnswer((_) => mockQueryBuilder);
+      when(
+        () => mockQueryBuilder.select(any()),
+      ).thenAnswer((_) => fakeFilterBuilder);
 
       container = ProviderContainer(
         overrides: [supabaseProvider.overrideWithValue(mockSupabaseClient)],
@@ -98,43 +106,52 @@ void main() {
       expect(result.last.y, 120.0);
     });
 
-    test('priceHistoryProvider throws an exception on Supabase error', () async {
-      final exception = Exception('Network error');
-      final fakeFilterBuilder = FakePostgrestFilterBuilder(
-        Future<PostgrestList>.error(exception),
-      );
+    test(
+      'priceHistoryProvider throws an exception on Supabase error',
+      () async {
+        final exception = Exception('Network error');
+        final fakeFilterBuilder = FakePostgrestFilterBuilder(
+          Future<PostgrestList>.error(exception),
+        );
 
-      when(() => mockSupabaseClient.from(any())).thenAnswer((_) => mockQueryBuilder);
-      when(() => mockQueryBuilder.select(any())).thenAnswer((_) => fakeFilterBuilder);
+        when(
+          () => mockSupabaseClient.from(any()),
+        ).thenAnswer((_) => mockQueryBuilder);
+        when(
+          () => mockQueryBuilder.select(any()),
+        ).thenAnswer((_) => fakeFilterBuilder);
 
-      container = ProviderContainer(
-        overrides: [supabaseProvider.overrideWithValue(mockSupabaseClient)],
-      );
+        container = ProviderContainer(
+          overrides: [supabaseProvider.overrideWithValue(mockSupabaseClient)],
+        );
 
-      // `container.read(provider.future)` races this (autoDispose)
-      // provider's own error-handling against Riverpod's dispose
-      // scheduling: reading `.future` creates and immediately closes a
-      // transient subscription, which can schedule the provider's disposal
-      // before the mocked error actually finishes propagating through the
-      // build function — the provider then gets torn down mid-"loading"
-      // and throws a StateError instead of the real exception. Watching the
-      // AsyncValue directly via a real (held-open) listener sidesteps that
-      // race entirely.
-      final completer = Completer<Object>();
-      final subscription = container.listen(
-        priceHistoryProviderProvider('product-1'),
-        (previous, next) {
-          if (next.hasError && !completer.isCompleted) {
-            completer.complete(next.error);
-          }
-        },
-        fireImmediately: true,
-      );
+        // `container.read(provider.future)` races this (autoDispose)
+        // provider's own error-handling against Riverpod's dispose
+        // scheduling: reading `.future` creates and immediately closes a
+        // transient subscription, which can schedule the provider's disposal
+        // before the mocked error actually finishes propagating through the
+        // build function — the provider then gets torn down mid-"loading"
+        // and throws a StateError instead of the real exception. Watching the
+        // AsyncValue directly via a real (held-open) listener sidesteps that
+        // race entirely.
+        final completer = Completer<Object>();
+        final subscription = container.listen(
+          priceHistoryProviderProvider('product-1'),
+          (previous, next) {
+            if (next.hasError && !completer.isCompleted) {
+              completer.complete(next.error);
+            }
+          },
+          fireImmediately: true,
+        );
 
-      final error = await completer.future.timeout(const Duration(seconds: 5));
-      expect(error, equals(exception));
+        final error = await completer.future.timeout(
+          const Duration(seconds: 5),
+        );
+        expect(error, equals(exception));
 
-      subscription.close();
-    });
+        subscription.close();
+      },
+    );
   });
 }

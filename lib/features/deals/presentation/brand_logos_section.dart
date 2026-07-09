@@ -59,7 +59,9 @@ class _BrandSectionBody extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       decoration: BoxDecoration(
-        color: isDark ? GlassColors.background : theme.colorScheme.surfaceContainerLow,
+        color: isDark
+            ? GlassColors.background
+            : theme.colorScheme.surfaceContainerLow,
         border: isDark
             ? const Border(
                 top: BorderSide(color: GlassColors.glowBorder),
@@ -82,7 +84,9 @@ class _BrandSectionBody extends StatelessWidget {
           Text(
             'Ett litet urval av varumärken vi kan erbjuda dig till unika priser.',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark ? Colors.white60 : theme.colorScheme.onSurfaceVariant,
+              color: isDark
+                  ? Colors.white60
+                  : theme.colorScheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),
@@ -93,7 +97,10 @@ class _BrandSectionBody extends StatelessWidget {
             runSpacing: 18,
             children: [
               for (final brand in brands)
-                _BrandLogoTile(brand: brand, onTap: () => onBrandTap(brand.name)),
+                _BrandLogoTile(
+                  brand: brand,
+                  onTap: () => onBrandTap(brand.name),
+                ),
             ],
           ),
         ],
@@ -167,7 +174,8 @@ class _BrandLogoImage extends StatelessWidget {
         url,
         fit: BoxFit.contain,
         placeholderBuilder: (context) => const _LogoPlaceholder(),
-        errorBuilder: (context, _, _) => _BrandTextBadge(name: brand, dimmed: false),
+        errorBuilder: (context, _, _) =>
+            _BrandTextBadge(name: brand, dimmed: false),
       );
     }
 
@@ -176,7 +184,8 @@ class _BrandLogoImage extends StatelessWidget {
       fit: BoxFit.contain,
       fadeInDuration: const Duration(milliseconds: 150),
       placeholder: (context, _) => const _LogoPlaceholder(),
-      errorWidget: (context, _, _) => _BrandTextBadge(name: brand, dimmed: false),
+      errorWidget: (context, _, _) =>
+          _BrandTextBadge(name: brand, dimmed: false),
     );
   }
 }

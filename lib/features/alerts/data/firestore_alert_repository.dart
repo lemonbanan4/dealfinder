@@ -9,10 +9,10 @@ class FirestoreAlertRepository {
       _db.collection('users').doc(userId).collection('alerts');
 
   Future<List<PriceAlert>> getAll(String userId) async {
-    final snap = await _col(userId).orderBy('createdAt', descending: true).get();
-    return snap.docs
-        .map((d) => PriceAlert.fromJson(d.data()))
-        .toList();
+    final snap = await _col(
+      userId,
+    ).orderBy('createdAt', descending: true).get();
+    return snap.docs.map((d) => PriceAlert.fromJson(d.data())).toList();
   }
 
   Future<void> save(String userId, PriceAlert alert) =>

@@ -16,11 +16,7 @@ class AffiliateRouter {
     'komplett.no',
     'elkjop.no',
   ];
-  static const _awinHosts = [
-    'dustinhome.no',
-    'proshop.no',
-    'webhallen.com',
-  ];
+  static const _awinHosts = ['dustinhome.no', 'proshop.no', 'webhallen.com'];
 
   /// Resolves affiliate URL and launches external browser.
   void launch(String rawUrl) {

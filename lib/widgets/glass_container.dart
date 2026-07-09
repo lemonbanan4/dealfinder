@@ -102,7 +102,8 @@ class _GlassContainerState extends State<GlassContainer> {
           color: targetFill,
           borderRadius: radius,
           border: widget.border ?? Border.all(color: targetGlow, width: 1),
-          boxShadow: widget.boxShadow ??
+          boxShadow:
+              widget.boxShadow ??
               [
                 BoxShadow(
                   color: targetGlow.withValues(alpha: hovering ? 0.45 : 0.25),

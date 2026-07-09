@@ -53,10 +53,7 @@ void main() {
       final container = createContainer(authedUser: null);
 
       // Act
-      final listener = container.listen(
-        favoritesProvider,
-        (previous, next) {},
-      );
+      final listener = container.listen(favoritesProvider, (previous, next) {});
 
       // Assert
       expect(listener.read(), const AsyncValue<Set<String>>.loading());

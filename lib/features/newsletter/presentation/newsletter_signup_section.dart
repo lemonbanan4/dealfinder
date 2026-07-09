@@ -89,7 +89,9 @@ class _NewsletterSignupSectionState
             'Get the deals first',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : theme.colorScheme.onPrimaryContainer,
+              color: isDark
+                  ? Colors.white
+                  : theme.colorScheme.onPrimaryContainer,
             ),
             textAlign: TextAlign.center,
           ),
@@ -110,7 +112,9 @@ class _NewsletterSignupSectionState
                 ? Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: _EmailField(controller: _emailController)),
+                      Expanded(
+                        child: _EmailField(controller: _emailController),
+                      ),
                       const SizedBox(width: 12),
                       _SubmitButton(
                         isSubmitting: _isSubmitting,
@@ -147,7 +151,10 @@ class _NewsletterSignupSectionState
             ? ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 560),
                 child: GlassCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 32,
+                  ),
                   child: formContent,
                 ),
               )
@@ -168,7 +175,11 @@ class _EmailField extends StatelessWidget {
       controller: controller,
       keyboardType: TextInputType.emailAddress,
       autofillHints: const [AutofillHints.email],
-      style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.black : null),
+      style: TextStyle(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.black
+            : null,
+      ),
       decoration: InputDecoration(
         hintText: 'Email address',
         filled: true,
@@ -177,7 +188,10 @@ class _EmailField extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       validator: Validators.validateEmail,
     );
@@ -200,7 +214,10 @@ class _SubmitButton extends StatelessWidget {
       child: isSubmitting
           ? const SizedBox.square(
               dimension: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             )
           : const Text('Register'),
     );

@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-
 // Mock for the FavoritesNotifier using a fake class
 class MockFavoritesNotifier extends FavoritesNotifier {
   final Set<String> _initialState;

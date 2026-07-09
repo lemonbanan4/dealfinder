@@ -6,8 +6,7 @@ import '../domain/deal.dart';
 
 class FirestoreDealRepository {
   FirebaseFirestore get _db => FirebaseFirestore.instance;
-  CollectionReference<Map<String, dynamic>> get _col =>
-      _db.collection('deals');
+  CollectionReference<Map<String, dynamic>> get _col => _db.collection('deals');
 
   Stream<List<Deal>> watchAll() {
     return _col
@@ -46,10 +45,7 @@ class FirestoreDealRepository {
       final chunk = deals.sublist(i, min(i + batchLimit, deals.length));
       final batch = _db.batch();
       for (final deal in chunk) {
-        batch.set(_col.doc(deal.id), {
-          ...deal.toJson(),
-          'scrapedAt': now,
-        });
+        batch.set(_col.doc(deal.id), {...deal.toJson(), 'scrapedAt': now});
       }
       await batch.commit();
     }
@@ -61,8 +57,9 @@ class FirestoreDealRepository {
       // Store scrapedAt as a Firestore Timestamp so server-side
       // orderBy works correctly with native timestamp ordering.
       final data = Map<String, dynamic>.from(deal.toJson());
-      data['scrapedAt'] =
-          Timestamp.fromDate(DateTime.parse(deal.toJson()['scrapedAt'] as String));
+      data['scrapedAt'] = Timestamp.fromDate(
+        DateTime.parse(deal.toJson()['scrapedAt'] as String),
+      );
       batch.set(_col.doc(deal.id), data);
     }
     await batch.commit();
