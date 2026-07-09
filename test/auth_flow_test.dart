@@ -7,8 +7,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   // Define screen sizes to test
-  final aPhone = const Size(414, 896); // iPhone 11 Pro Max
-  final aTablet = const Size(1024, 1366); // iPad Pro 12.9"
+  const aPhone = Size(414, 896); // iPhone 11 Pro Max
+  const aTablet = Size(1024, 1366); // iPad Pro 12.9"
 
   void runAuthFlowTest(Size size) {
     testWidgets(

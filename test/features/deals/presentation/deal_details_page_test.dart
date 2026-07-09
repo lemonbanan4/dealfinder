@@ -1,12 +1,13 @@
-import 'dart:async';
 import 'package:dealfinder_pro/features/deals/domain/deal.dart';
 import 'package:dealfinder_pro/features/deals/presentation/deal_details_page.dart';
 import 'package:dealfinder_pro/features/deals/providers/favorites_provider.dart';
+import 'package:dealfinder_pro/features/settings/domain/app_settings.dart';
+import 'package:dealfinder_pro/features/settings/presentation/currency_provider.dart';
+import 'package:dealfinder_pro/features/settings/providers/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../../mocks.dart';
 
 // Mock for the FavoritesNotifier using a fake class
 class MockFavoritesNotifier extends FavoritesNotifier {
@@ -25,6 +26,22 @@ class MockFavoritesNotifier extends FavoritesNotifier {
       state = AsyncData(Set<String>.from(current)..add(productId));
     }
   }
+}
+
+// Fakes AppSettingsNotifier so the test never touches the real Hive-backed
+// SettingsRepository (which requires Hive.openBox() to have run). Uses the
+// same currency as mockDeal so DealDetailsPage's conversion is a no-op.
+class FakeAppSettingsNotifier extends AppSettingsNotifier {
+  @override
+  AppSettings build() => const AppSettings(displayCurrency: 'USD');
+}
+
+// Fakes CurrencyConverter so the test never makes a real HTTP call to the
+// exchange-rate endpoint. Resolves with no rates; DealDetailsPage.convert()
+// returns the original price unchanged whenever rates are unavailable.
+class FakeCurrencyConverter extends CurrencyConverter {
+  @override
+  Future<ExchangeRates?> build() async => null;
 }
 
 void main() {
@@ -53,6 +70,8 @@ void main() {
       ProviderScope(
         overrides: [
           favoritesProvider.overrideWith(() => mockFavoritesNotifier),
+          appSettingsProvider.overrideWith(FakeAppSettingsNotifier.new),
+          currencyConverterProvider.overrideWith(FakeCurrencyConverter.new),
         ],
         child: const MaterialApp(home: DealDetailsPage(deal: mockDeal)),
       ),

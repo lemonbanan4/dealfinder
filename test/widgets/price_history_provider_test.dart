@@ -111,22 +111,28 @@ void main() {
         overrides: [supabaseProvider.overrideWithValue(mockSupabaseClient)],
       );
 
-      // Listen to the provider to keep it alive
+      // `container.read(provider.future)` races this (autoDispose)
+      // provider's own error-handling against Riverpod's dispose
+      // scheduling: reading `.future` creates and immediately closes a
+      // transient subscription, which can schedule the provider's disposal
+      // before the mocked error actually finishes propagating through the
+      // build function — the provider then gets torn down mid-"loading"
+      // and throws a StateError instead of the real exception. Watching the
+      // AsyncValue directly via a real (held-open) listener sidesteps that
+      // race entirely.
+      final completer = Completer<Object>();
       final subscription = container.listen(
         priceHistoryProviderProvider('product-1'),
-        (previous, next) {},
+        (previous, next) {
+          if (next.hasError && !completer.isCompleted) {
+            completer.complete(next.error);
+          }
+        },
+        fireImmediately: true,
       );
 
-      final future = container.read(
-        priceHistoryProviderProvider('product-1').future,
-      );
-
-      await expectLater(future, throwsA(equals(exception)));
-
-      // Ensure the future has fully completed and errors are caught
-      try {
-        await future;
-      } catch (_) {}
+      final error = await completer.future.timeout(const Duration(seconds: 5));
+      expect(error, equals(exception));
 
       subscription.close();
     });
