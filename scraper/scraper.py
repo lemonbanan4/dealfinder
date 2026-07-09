@@ -606,9 +606,8 @@ def get_db_connection():
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
         raise ValueError("DATABASE_URL is not set")
-    print(f"DEBUG: Using DATABASE_URL: {db_url}")
     # Use the connection string you got from Supabase (port 6543)
-    return psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+    return psycopg2.connect(db_url, sslmode='require')
 
 
 def _make_doc_id(store_id: str, product_url: str, fallback_key: str = "") -> str:
