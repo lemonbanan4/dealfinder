@@ -14,6 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.auth.transport import requests as google_auth_requests
 from google.oauth2 import id_token as google_id_token
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("prispuls-api")
@@ -33,6 +35,15 @@ EXCHANGE_RATE_API_KEY = os.environ.get("EXCHANGE_RATE_API_KEY")
 
 _GENERIC_ERROR = "Internal server error. Please try again later."
 
+def _client_ip(request: Request) -> str:
+    # Render (and most PaaS proxies) put the real client IP first in
+    # X-Forwarded-For; request.client.host would otherwise just be the proxy.
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
 app = FastAPI(title="Prispuls Product Engine")
 
 app.add_middleware(
@@ -48,6 +59,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Per-IP rate limiting on the public, unauthenticated endpoints
+# (/api/products, /api/deals/biggest-drops, /api/stats, /api/geo-region,
+# /api/exchange-rates) — previously nothing stood between a scripted caller
+# and unlimited requests, each of which (pre-pooling) opened its own DB
+# connection. Limits below are deliberately generous — well above anything
+# a real browser session would trigger — so they only ever throttle abuse,
+# not normal use.
+limiter = Limiter(key_func=_client_ip)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # A pooled connection is borrowed per-request and returned when the request
 # finishes, instead of opening a brand-new Postgres connection on every
@@ -270,16 +292,8 @@ def health_check():
 _geo_region_cache: dict[str, str] = {}
 
 
-def _client_ip(request: Request) -> str:
-    # Render (and most PaaS proxies) put the real client IP first in
-    # X-Forwarded-For; request.client.host would otherwise just be the proxy.
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else ""
-
-
 @app.get("/api/geo-region")
+@limiter.limit("20/minute")
 def get_geo_region(request: Request):
     """Best-effort 'se'/'no' region guess from the caller's IP — lets the
     client set a sensible default region without relying solely on browser
@@ -328,7 +342,9 @@ _SORT_ORDER_CLAUSES = {
 
 
 @app.get("/api/products")
+@limiter.limit("60/minute")
 def get_products(
+    request: Request,
     region: str = Query(None, description="Region to filter"),
     page: int = Query(None, ge=1, description="1-indexed page number; omit for the legacy unpaginated response"),
     limit: int = Query(24, ge=1, le=200, description="Items per page"),
@@ -401,7 +417,9 @@ def _region_filter(region: str | None, params: list) -> str:
 
 
 @app.get("/api/deals/biggest-drops")
+@limiter.limit("30/minute")
 def get_biggest_drops(
+    request: Request,
     region: str = Query(None, description="Region to filter"),
     limit: int = Query(3, ge=1, le=20),
 ):
@@ -451,7 +469,8 @@ def get_biggest_drops(
 
 
 @app.get("/api/stats")
-def get_stats(region: str = Query(None, description="Region to filter")):
+@limiter.limit("30/minute")
+def get_stats(request: Request, region: str = Query(None, description="Region to filter")):
     """Aggregate counts driving the feed's live-status banner."""
     try:
         with db_cursor(dict_cursor=True) as (conn, cursor):
@@ -505,7 +524,8 @@ _exchange_rates_cache: dict = {"data": None, "fetched_at": None}
 
 
 @app.get("/api/exchange-rates")
-def get_exchange_rates():
+@limiter.limit("20/minute")
+def get_exchange_rates(request: Request):
     """Proxies exchangerate-api.com so its API key lives only in this
     server's environment — previously the key was hardcoded directly in the
     Flutter client (currency_provider.dart), trivially readable by anyone

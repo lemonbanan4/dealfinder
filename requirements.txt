@@ -8,3 +8,4 @@ google-auth
 pandas
 requests
 psycopg2-binary
+slowapi
