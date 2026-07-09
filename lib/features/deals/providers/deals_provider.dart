@@ -9,9 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart';
 
 import '../../../providers/repositories.dart';
-import '../../../services/currency_converter.dart';
 import '../domain/deal.dart';
-import 'scraper_configs_provider.dart';
 import '../presentation/feed_page.dart' show regionProvider;
 
 part 'deals_provider.g.dart';
@@ -86,60 +84,9 @@ class DealFeedNotifier extends _$DealFeedNotifier {
     try {
       final deals = await _fetchFromApi(region);
       state = AsyncValue.data(deals);
-      await _scrapeAndSave();
     } catch (e, s) {
       state = AsyncValue.error(e, s);
     }
-  }
-
-  Future<void> _scrapeAndSave() async {
-    final configs = ref
-        .read(scraperConfigsProvider)
-        .where((c) => c.isEnabled)
-        .toList();
-
-    if (configs.isEmpty) return;
-
-    final service = ref.read(scraperServiceProvider);
-    final configsNotifier = ref.read(scraperConfigsProvider.notifier);
-
-    final results = await Future.wait(
-      configs.map((c) async {
-        try {
-          final deals = await service.scrape(c);
-          if (c.lastError != null) {
-            await configsNotifier.saveConfig(
-              c.copyWith(lastError: null, lastErrorAt: null),
-            );
-          }
-          return deals;
-        } catch (e, s) {
-          log(
-            'Scraper failed for "${c.name}"',
-            name: 'DealFeedNotifier',
-            error: e,
-            stackTrace: s,
-          );
-          await configsNotifier.saveConfig(
-            c.copyWith(lastError: e.toString(), lastErrorAt: DateTime.now()),
-          );
-          return <Deal>[];
-        }
-      }),
-    );
-
-    final merged = _deduplicate(results.expand((l) => l).toList());
-    await ref.read(dealRepositoryProvider).saveAll(merged);
-  }
-
-  List<Deal> _deduplicate(List<Deal> deals) {
-    final seen = <String>{};
-    return deals.where((d) => seen.add(d.url)).toList()..sort(
-      (a, b) => CurrencyConverter.toEur(
-        a.currentPrice,
-        a.currency,
-      ).compareTo(CurrencyConverter.toEur(b.currentPrice, b.currency)),
-    );
   }
 }
 

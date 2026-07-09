@@ -16,9 +16,8 @@ dependencies:
   riverpod_annotation: ^4.0.3
 
 
-  # Networking & scraping
+  # Networking
   http: ^1.6.0
-  html: ^0.15.6
 
   # Local persistence
   hive_flutter: ^1.1.0
@@ -27,13 +26,7 @@ dependencies:
   freezed_annotation: ^3.0.0
   json_annotation: ^4.12.0
 
-  # XML parsing (ECB rate feed)
-  xml: ^6.5.0
-
-  # UUID generation
-  uuid: ^4.5.1
   google_fonts: ^6.2.1
-  workmanager: ^0.5.2
   flutter_app_badger: ^1.5.0
 
   # UI effects

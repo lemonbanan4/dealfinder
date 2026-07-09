@@ -84,9 +84,8 @@ class PriceAlertNotifier extends _$PriceAlertNotifier {
         debugPrint('Failed to save price alert to backend (non-fatal): $e');
       }
 
-      // Required: this is the source of truth for the "Active Targets" tab
-      // and for the background price-check (see AlertEvaluationService). If
-      // this fails, the alert genuinely was not set, so let it throw.
+      // Required: this is the source of truth for the "Active Targets" tab.
+      // If this fails, the alert genuinely was not set, so let it throw.
       final config = AlertConfig(
         id: productId, // Use product ID as document ID for simple 1-to-1 alert configs
         productId: productId,

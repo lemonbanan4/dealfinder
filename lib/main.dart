@@ -24,14 +24,12 @@ void main() async {
     await GoogleSignIn.instance.initialize();
   }
 
-  // Repositories (settings, deals, alerts, currency) read their Hive box
+  // Repositories (settings, deals, alerts) read their Hive box
   // synchronously, so every box must be open before runApp builds the tree.
   await Hive.initFlutter();
   await Future.wait([
     Hive.openBox<String>(HiveBoxes.alerts),
     Hive.openBox<String>(HiveBoxes.deals),
-    Hive.openBox<String>(HiveBoxes.scraperConfigs),
-    Hive.openBox<String>(HiveBoxes.currencyRates),
     Hive.openBox<String>(HiveBoxes.settings),
   ]);
 

@@ -1,28 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../features/alerts/data/alert_repository.dart';
 import '../features/alerts/data/firestore_alert_repository.dart';
-import '../features/currency/data/currency_repository.dart';
-import '../features/currency/data/ecb_client.dart';
 import '../features/deals/data/deal_repository.dart';
 import '../features/deals/data/firestore_deal_repository.dart';
 import '../features/settings/data/settings_repository.dart';
 import '../services/affiliate_router.dart';
-import '../services/currency_service.dart';
-import '../services/scraper_service.dart';
-import '../services/scraper_strategy.dart';
-
-final httpClientProvider = Provider<http.Client>(
-  (ref) {
-    final client = http.Client();
-    ref.onDispose(client.close);
-    return client;
-  },
-  name: 'httpClientProvider',
-);
 
 final dealRepositoryProvider = Provider<DealRepository>(
   (_) => DealRepository(),
@@ -37,32 +22,6 @@ final alertRepositoryProvider = Provider<AlertRepository>(
 final settingsRepositoryProvider = Provider<SettingsRepository>(
   (_) => SettingsRepository(),
   name: 'settingsRepositoryProvider',
-);
-
-final currencyRepositoryProvider = Provider<CurrencyRepository>(
-  (_) => CurrencyRepository(),
-  name: 'currencyRepositoryProvider',
-);
-
-final ecbClientProvider = Provider<EcbClient>(
-  (ref) => EcbClient(ref.watch(httpClientProvider)),
-  name: 'ecbClientProvider',
-);
-
-final currencyServiceProvider = Provider<CurrencyService>(
-  (ref) => CurrencyService(
-    ref.watch(currencyRepositoryProvider),
-    ref.watch(ecbClientProvider),
-  ),
-  name: 'currencyServiceProvider',
-);
-
-final scraperServiceProvider = Provider<ScraperService>(
-  (ref) {
-    final strategy = buildScraperStrategy(client: ref.watch(httpClientProvider));
-    return ScraperService(strategy, ref.watch(currencyServiceProvider));
-  },
-  name: 'scraperServiceProvider',
 );
 
 final firestoreAlertRepositoryProvider = Provider<FirestoreAlertRepository>(
