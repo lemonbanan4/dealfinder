@@ -189,7 +189,7 @@ def create_alert(body: CreateAlertRequest, authorization: str = Header(None)):
             )
             conn.commit()
             return {"status": "ok"}
-    except Exception as e:
+    except Exception:
         log.exception("create_alert failed for uid=%s product_id=%s", uid, body.product_id)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
@@ -213,7 +213,7 @@ def update_alert(product_id: str, body: UpdateAlertRequest, authorization: str =
             )
             conn.commit()
             return {"status": "ok"}
-    except Exception as e:
+    except Exception:
         log.exception("update_alert failed for uid=%s product_id=%s", uid, product_id)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
@@ -231,7 +231,7 @@ def delete_alert(product_id: str, authorization: str = Header(None)):
             )
             conn.commit()
             return {"status": "ok"}
-    except Exception as e:
+    except Exception:
         log.exception("delete_alert failed for uid=%s product_id=%s", uid, product_id)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
@@ -256,7 +256,7 @@ def get_fired_alerts(authorization: str = Header(None)):
                 (uid,),
             )
             return {"items": cursor.fetchall()}
-    except Exception as e:
+    except Exception:
         log.exception("get_fired_alerts failed for uid=%s", uid)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
@@ -404,7 +404,7 @@ def get_products(
                 "limit": limit,
                 "total_pages": max(1, math.ceil(total_count / limit)),
             }
-    except Exception as e:
+    except Exception:
         log.exception("get_products failed (region=%s page=%s sort=%s)", region, page, sort)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
@@ -463,7 +463,7 @@ def get_biggest_drops(
             params.append(limit)
             cursor.execute(query, params)
             return {"items": cursor.fetchall()}
-    except Exception as e:
+    except Exception:
         log.exception("get_biggest_drops failed (region=%s)", region)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
@@ -512,7 +512,7 @@ def get_stats(request: Request, region: str = Query(None, description="Region to
                 "price_drops_today": price_drops_today,
                 "updated_last_sync": updated_last_sync,
             }
-    except Exception as e:
+    except Exception:
         log.exception("get_stats failed (region=%s)", region)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
