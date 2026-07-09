@@ -3,7 +3,10 @@ import ipaddress
 import logging
 import math
 import os
+from contextlib import contextmanager
+
 import psycopg2
+import psycopg2.pool
 import requests
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Header, HTTPException, Query, Request
@@ -46,9 +49,56 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def get_db_connection():
-    # sslmode=require is required by Supabase
-    return psycopg2.connect(DATABASE_URL, sslmode='require')
+# A pooled connection is borrowed per-request and returned when the request
+# finishes, instead of opening a brand-new Postgres connection on every
+# single request (including the public, unauthenticated, likely-highest-
+# traffic endpoints below) — the previous pattern risked exhausting
+# Supabase's connection cap under any real concurrent load, which would
+# fail every endpoint at once, not just the one under load.
+# maxconn is intentionally conservative — this only needs to comfortably
+# cover concurrent requests to *this* service, well under Supabase's own
+# connection limit (shared with the scraper and any other client).
+#
+# Created lazily (on first request) rather than at import time: eagerly
+# connecting at module load would mean a transient DB/DATABASE_URL problem
+# takes down the entire process before it can even start serving the
+# DB-independent endpoints (/, /api/geo-region, /api/exchange-rates)
+# instead of just failing the DB-touching ones, which is how this behaved
+# before pooling.
+_connection_pool: psycopg2.pool.ThreadedConnectionPool | None = None
+
+
+def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
+    global _connection_pool
+    if _connection_pool is None:
+        _connection_pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=1, maxconn=10, dsn=DATABASE_URL, sslmode="require",
+        )
+    return _connection_pool
+
+
+@contextmanager
+def db_cursor(dict_cursor: bool = False):
+    """Borrows a pooled connection + cursor for the duration of the `with`
+    block. On success, callers are responsible for calling conn.commit()
+    themselves (mirroring the previous explicit-commit pattern); on any
+    exception the connection is rolled back before being returned to the
+    pool, so a failed transaction on one request can't leak into whatever
+    unrelated request borrows that same connection next.
+    """
+    pool = _get_pool()
+    conn = pool.getconn()
+    cursor = None
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor if dict_cursor else None)
+        yield conn, cursor
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        pool.putconn(conn)
 
 
 def verify_firebase_token(authorization: str | None) -> dict:
@@ -88,47 +138,38 @@ def create_alert(body: CreateAlertRequest, authorization: str = Header(None)):
     uid = claims["sub"]
     email = claims.get("email")
 
-    conn = None
-    cursor = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        # This table has no known unique constraint on (product_id, user_id)
-        # to rely on an upsert for, so replace any existing row explicitly —
-        # matches the app's 1-alert-per-product-per-user model.
-        cursor.execute(
-            "DELETE FROM price_alerts WHERE product_id = %s AND user_id = %s",
-            (body.product_id, uid),
-        )
-        cursor.execute(
-            """
-            INSERT INTO price_alerts
-                (product_id, user_id, user_email, target_price, product_title, currency, region, is_active, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, true, %s)
-            """,
-            (
-                body.product_id,
-                uid,
-                email,
-                body.target_price,
-                body.product_title,
-                "SEK",  # every product this app tracks is priced in SEK
-                body.region,
-                datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            ),
-        )
-        conn.commit()
-        return {"status": "ok"}
+        with db_cursor() as (conn, cursor):
+            # This table has no known unique constraint on (product_id,
+            # user_id) to rely on an upsert for, so replace any existing row
+            # explicitly — matches the app's 1-alert-per-product-per-user
+            # model.
+            cursor.execute(
+                "DELETE FROM price_alerts WHERE product_id = %s AND user_id = %s",
+                (body.product_id, uid),
+            )
+            cursor.execute(
+                """
+                INSERT INTO price_alerts
+                    (product_id, user_id, user_email, target_price, product_title, currency, region, is_active, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, true, %s)
+                """,
+                (
+                    body.product_id,
+                    uid,
+                    email,
+                    body.target_price,
+                    body.product_title,
+                    "SEK",  # every product this app tracks is priced in SEK
+                    body.region,
+                    datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                ),
+            )
+            conn.commit()
+            return {"status": "ok"}
     except Exception as e:
-        if conn:
-            conn.rollback()
         log.exception("create_alert failed for uid=%s product_id=%s", uid, body.product_id)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 @app.patch("/api/alerts/{product_id}")
@@ -136,32 +177,23 @@ def update_alert(product_id: str, body: UpdateAlertRequest, authorization: str =
     claims = verify_firebase_token(authorization)
     uid = claims["sub"]
 
-    conn = None
-    cursor = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        # Also re-arm the alert (is_active=true): editing implies the user
-        # wants to be notified again. Without this, an alert that already
-        # fired once (is_active flipped false by the scraper) would accept
-        # the new target price but never actually fire again, since the
-        # scraper only ever checks rows where is_active=true.
-        cursor.execute(
-            "UPDATE price_alerts SET target_price = %s, is_active = true WHERE product_id = %s AND user_id = %s",
-            (body.target_price, product_id, uid),
-        )
-        conn.commit()
-        return {"status": "ok"}
+        with db_cursor() as (conn, cursor):
+            # Also re-arm the alert (is_active=true): editing implies the
+            # user wants to be notified again. Without this, an alert that
+            # already fired once (is_active flipped false by the scraper)
+            # would accept the new target price but never actually fire
+            # again, since the scraper only ever checks rows where
+            # is_active=true.
+            cursor.execute(
+                "UPDATE price_alerts SET target_price = %s, is_active = true WHERE product_id = %s AND user_id = %s",
+                (body.target_price, product_id, uid),
+            )
+            conn.commit()
+            return {"status": "ok"}
     except Exception as e:
-        if conn:
-            conn.rollback()
         log.exception("update_alert failed for uid=%s product_id=%s", uid, product_id)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 @app.delete("/api/alerts/{product_id}")
@@ -169,27 +201,17 @@ def delete_alert(product_id: str, authorization: str = Header(None)):
     claims = verify_firebase_token(authorization)
     uid = claims["sub"]
 
-    conn = None
-    cursor = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "DELETE FROM price_alerts WHERE product_id = %s AND user_id = %s",
-            (product_id, uid),
-        )
-        conn.commit()
-        return {"status": "ok"}
+        with db_cursor() as (conn, cursor):
+            cursor.execute(
+                "DELETE FROM price_alerts WHERE product_id = %s AND user_id = %s",
+                (product_id, uid),
+            )
+            conn.commit()
+            return {"status": "ok"}
     except Exception as e:
-        if conn:
-            conn.rollback()
         log.exception("delete_alert failed for uid=%s product_id=%s", uid, product_id)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 @app.get("/api/alerts/fired")
@@ -201,32 +223,44 @@ def get_fired_alerts(authorization: str = Header(None)):
     claims = verify_firebase_token(authorization)
     uid = claims["sub"]
 
-    conn = None
-    cursor = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(
-            """
-            SELECT id, product_id, product_title, target_price
-            FROM price_alerts
-            WHERE user_id = %s AND is_active = false
-            """,
-            (uid,),
-        )
-        return {"items": cursor.fetchall()}
+        with db_cursor(dict_cursor=True) as (conn, cursor):
+            cursor.execute(
+                """
+                SELECT id, product_id, product_title, target_price
+                FROM price_alerts
+                WHERE user_id = %s AND is_active = false
+                """,
+                (uid,),
+            )
+            return {"items": cursor.fetchall()}
     except Exception as e:
         log.exception("get_fired_alerts failed for uid=%s", uid)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 @app.get("/")
 def read_root():
+    # Deliberately DB-independent — this is the process-liveness check
+    # (whatever Render currently polls at "/"). Use /api/health below for a
+    # real readiness check that verifies the DB is actually reachable.
     return {"message": "API is alive!"}
+
+
+@app.get("/api/health")
+def health_check():
+    """DB-aware readiness check — GET / only confirms the process is up,
+    which would still report "healthy" during a full DB outage (e.g. the
+    connection-pool/Supabase-limit exhaustion scenario this API is
+    vulnerable to). Point Render's health check at this path instead of "/"
+    if you want an outage to actually surface as unhealthy.
+    """
+    try:
+        with db_cursor() as (conn, cursor):
+            cursor.execute("SELECT 1")
+        return {"status": "ok", "database": "reachable"}
+    except Exception as e:
+        log.exception("Health check DB probe failed")
+        raise HTTPException(status_code=503, detail=f"Database unreachable: {type(e).__name__}")
 
 
 # In-memory per-IP cache — geolocation is a best-effort default-region guess,
@@ -300,72 +334,63 @@ def get_products(
     limit: int = Query(24, ge=1, le=200, description="Items per page"),
     sort: str = Query(None, description="price_asc | price_desc | newest; omit for the default best-deals order"),
 ):
-    conn = None
-    cursor = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        with db_cursor(dict_cursor=True) as (conn, cursor):
+            # Base query
+            query = "SELECT * FROM products"
+            params = []
 
-        # Base query
-        query = "SELECT * FROM products"
-        params = []
+            # price > 0 excludes gift-card/free-item rows (e.g. "Presentkort")
+            # that the Awin feed sometimes includes with a literal 0 price —
+            # without this they sort to the very top of every "biggest
+            # discount" ordering as a permanent, fake "100% off" deal, and to
+            # the top of "Price: Low to High" too.
+            conditions = ["price > 0"]
 
-        # price > 0 excludes gift-card/free-item rows (e.g. "Presentkort")
-        # that the Awin feed sometimes includes with a literal 0 price —
-        # without this they sort to the very top of every "biggest discount"
-        # ordering as a permanent, fake "100% off" deal, and to the top of
-        # "Price: Low to High" too.
-        conditions = ["price > 0"]
+            # Filter by region if requested (matches "all_se" or "all_no")
+            if region:
+                conditions.append("feed_region LIKE %s")
+                params.append(f"%{region.lower()}%")
 
-        # Filter by region if requested (matches "all_se" or "all_no")
-        if region:
-            conditions.append("feed_region LIKE %s")
-            params.append(f"%{region.lower()}%")
+            where_clause = " WHERE " + " AND ".join(conditions)
 
-        where_clause = " WHERE " + " AND ".join(conditions)
+            if sort in _SORT_ORDER_CLAUSES:
+                order_clause = f" ORDER BY {_SORT_ORDER_CLAUSES[sort]}"
+            else:
+                # Default: biggest percentage discounts first, then newest items
+                order_clause = """
+                    ORDER BY
+                    CASE
+                        WHEN retail_price > price THEN (retail_price - price) / retail_price
+                        ELSE 0
+                    END DESC,
+                    last_updated DESC
+                """
 
-        if sort in _SORT_ORDER_CLAUSES:
-            order_clause = f" ORDER BY {_SORT_ORDER_CLAUSES[sort]}"
-        else:
-            # Default: biggest percentage discounts first, then newest items
-            order_clause = """
-                ORDER BY
-                CASE
-                    WHEN retail_price > price THEN (retail_price - price) / retail_price
-                    ELSE 0
-                END DESC,
-                last_updated DESC
-            """
+            if page is None:
+                # Legacy shape (bare array): still used by features that need
+                # full-catalog visibility client-side (category/search
+                # filtering, the "Insane Deals" ribbon, Recently Viewed).
+                cursor.execute(query + where_clause + order_clause, params)
+                return cursor.fetchall()
 
-        if page is None:
-            # Legacy shape (bare array): still used by features that need
-            # full-catalog visibility client-side (category/search filtering,
-            # the "Insane Deals" ribbon, Recently Viewed).
-            cursor.execute(query + where_clause + order_clause, params)
-            return cursor.fetchall()
+            cursor.execute("SELECT COUNT(*) AS count FROM products" + where_clause, params)
+            total_count = cursor.fetchone()["count"]
 
-        cursor.execute("SELECT COUNT(*) AS count FROM products" + where_clause, params)
-        total_count = cursor.fetchone()["count"]
+            paged_query = query + where_clause + order_clause + " LIMIT %s OFFSET %s"
+            cursor.execute(paged_query, params + [limit, (page - 1) * limit])
+            rows = cursor.fetchall()
 
-        paged_query = query + where_clause + order_clause + " LIMIT %s OFFSET %s"
-        cursor.execute(paged_query, params + [limit, (page - 1) * limit])
-        rows = cursor.fetchall()
-
-        return {
-            "items": rows,
-            "total_count": total_count,
-            "page": page,
-            "limit": limit,
-            "total_pages": max(1, math.ceil(total_count / limit)),
-        }
+            return {
+                "items": rows,
+                "total_count": total_count,
+                "page": page,
+                "limit": limit,
+                "total_pages": max(1, math.ceil(total_count / limit)),
+            }
     except Exception as e:
         log.exception("get_products failed (region=%s page=%s sort=%s)", region, page, sort)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 def _region_filter(region: str | None, params: list) -> str:
@@ -387,108 +412,90 @@ def get_biggest_drops(
     discount-badge/strikethrough rendering can be reused as-is on the client;
     this never touches the real products.retail_price column.
     """
-    conn = None
-    cursor = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        with db_cursor(dict_cursor=True) as (conn, cursor):
+            params: list = []
+            where_region = _region_filter(region, params)
 
-        params: list = []
-        where_region = _region_filter(region, params)
-
-        query = f"""
-            SELECT
-                p.product_id,
-                p.feed_region,
-                p.title,
-                p.price,
-                ph.price AS retail_price,
-                p.tracking_url,
-                p.image_url,
-                p.currency,
-                p.last_updated
-            FROM products p
-            JOIN LATERAL (
-                SELECT price
-                FROM price_history
-                WHERE product_id = p.product_id
-                  AND recorded_at <= now() - interval '24 hours'
-                ORDER BY recorded_at DESC
-                LIMIT 1
-            ) ph ON true
-            WHERE ph.price > p.price AND p.price > 0
-            {where_region}
-            ORDER BY ((ph.price - p.price) / ph.price) DESC
-            LIMIT %s
-        """
-        params.append(limit)
-        cursor.execute(query, params)
-        return {"items": cursor.fetchall()}
+            query = f"""
+                SELECT
+                    p.product_id,
+                    p.feed_region,
+                    p.title,
+                    p.price,
+                    ph.price AS retail_price,
+                    p.tracking_url,
+                    p.image_url,
+                    p.currency,
+                    p.last_updated
+                FROM products p
+                JOIN LATERAL (
+                    SELECT price
+                    FROM price_history
+                    WHERE product_id = p.product_id
+                      AND recorded_at <= now() - interval '24 hours'
+                    ORDER BY recorded_at DESC
+                    LIMIT 1
+                ) ph ON true
+                WHERE ph.price > p.price AND p.price > 0
+                {where_region}
+                ORDER BY ((ph.price - p.price) / ph.price) DESC
+                LIMIT %s
+            """
+            params.append(limit)
+            cursor.execute(query, params)
+            return {"items": cursor.fetchall()}
     except Exception as e:
         log.exception("get_biggest_drops failed (region=%s)", region)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 @app.get("/api/stats")
 def get_stats(region: str = Query(None, description="Region to filter")):
     """Aggregate counts driving the feed's live-status banner."""
-    conn = None
-    cursor = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        with db_cursor(dict_cursor=True) as (conn, cursor):
+            drop_params: list = []
+            where_region = _region_filter(region, drop_params)
+            cursor.execute(
+                f"""
+                SELECT COUNT(*) AS count
+                FROM products p
+                JOIN LATERAL (
+                    SELECT price
+                    FROM price_history
+                    WHERE product_id = p.product_id
+                      AND recorded_at <= now() - interval '24 hours'
+                    ORDER BY recorded_at DESC
+                    LIMIT 1
+                ) ph ON true
+                WHERE ph.price > p.price AND p.price > 0
+                {where_region}
+                """,
+                drop_params,
+            )
+            price_drops_today = cursor.fetchone()["count"]
 
-        drop_params: list = []
-        where_region = _region_filter(region, drop_params)
-        cursor.execute(
-            f"""
-            SELECT COUNT(*) AS count
-            FROM products p
-            JOIN LATERAL (
-                SELECT price
-                FROM price_history
-                WHERE product_id = p.product_id
-                  AND recorded_at <= now() - interval '24 hours'
-                ORDER BY recorded_at DESC
-                LIMIT 1
-            ) ph ON true
-            WHERE ph.price > p.price AND p.price > 0
-            {where_region}
-            """,
-            drop_params,
-        )
-        price_drops_today = cursor.fetchone()["count"]
+            sync_params: list = []
+            where_region = _region_filter(region, sync_params)
+            cursor.execute(
+                f"""
+                SELECT COUNT(*) AS count
+                FROM products p
+                WHERE p.last_updated >= now() - interval '6 hours'
+                {where_region}
+                """,
+                sync_params,
+            )
+            updated_last_sync = cursor.fetchone()["count"]
 
-        sync_params: list = []
-        where_region = _region_filter(region, sync_params)
-        cursor.execute(
-            f"""
-            SELECT COUNT(*) AS count
-            FROM products p
-            WHERE p.last_updated >= now() - interval '6 hours'
-            {where_region}
-            """,
-            sync_params,
-        )
-        updated_last_sync = cursor.fetchone()["count"]
-
-        return {
-            "price_drops_today": price_drops_today,
-            "updated_last_sync": updated_last_sync,
-        }
+            return {
+                "price_drops_today": price_drops_today,
+                "updated_last_sync": updated_last_sync,
+            }
     except Exception as e:
         log.exception("get_stats failed (region=%s)", region)
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 # In-memory cache — exchangerate-api.com's free tier is capped at a modest

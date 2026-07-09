@@ -71,6 +71,14 @@ FIRESTORE_BATCH_SIZE = 500    # Firestore hard limit per batch commit
 # copy of the exchangerate-api.com key in this service too.
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://dealfinder-swr5.onrender.com")
 
+# NOTE: the fallback value here is the same key that used to be hardcoded
+# directly into all 18 STORES feed URLs below (and is therefore already in
+# git history — this change alone doesn't rotate it). To actually secure
+# this, get a fresh key from Awin's publisher dashboard, set it as an
+# AWIN_API_KEY secret in this workflow's environment, and this fallback
+# stops being used.
+AWIN_API_KEY = os.environ.get("AWIN_API_KEY", "4a61258494661ab34c07bf7f5ec68c59")
+
 MIN_DISCOUNT_PCT = float(os.environ.get("SCRAPER_MIN_DISCOUNT_PCT", "0"))
 
 # ── Store configuration schema ───────────────────────────────────────────────────
@@ -135,7 +143,7 @@ STORES: list[StoreConfig] = [
         name="Acer Sweden",
         currency="SEK",
         awin=AwinConfig(
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/62983/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/62983/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
             currency_filter="SEK",
             column_map={
             "id": "merchant_product_id",
@@ -155,7 +163,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/80731/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/80731/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -174,7 +182,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/111829/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/111829/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -193,7 +201,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/92875/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/92875/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -212,7 +220,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/109860/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/109860/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -231,7 +239,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/98123/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/98123/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -251,7 +259,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/110453/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/110453/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -271,7 +279,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/111947/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/111947/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -291,7 +299,7 @@ STORES: list[StoreConfig] = [
     currency="SEK",
     awin=AwinConfig(
         # Paste the specific feed URL you got from the Awin interface for this store
-        feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/112410/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+        feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/112410/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
         currency_filter="SEK",
         column_map={
             "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -312,7 +320,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/111985/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/111985/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -332,7 +340,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/109678/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/109678/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -351,7 +359,7 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/sv/fid/71335/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/71335/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -372,7 +380,7 @@ STORES: list[StoreConfig] = [
         currency="NOK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/109677/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/no/fid/109677/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="NOK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -391,7 +399,7 @@ STORES: list[StoreConfig] = [
         currency="NOK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/71347/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/no/fid/71347/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="NOK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -410,7 +418,7 @@ STORES: list[StoreConfig] = [
         currency="NOK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/115464/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/no/fid/115464/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="NOK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -429,7 +437,7 @@ STORES: list[StoreConfig] = [
         currency="NOK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/62985/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/no/fid/62985/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="NOK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -448,7 +456,7 @@ STORES: list[StoreConfig] = [
         currency="NOK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/99323/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/no/fid/99323/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
             currency_filter="NOK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
@@ -468,7 +476,7 @@ STORES: list[StoreConfig] = [
         name="Samsung NO",
         currency="NOK",
         awin=AwinConfig(
-            feed_url="https://productdata.awin.com/datafeed/download/apikey/4a61258494661ab34c07bf7f5ec68c59/language/no/fid/84515/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/no/fid/84515/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
             currency_filter="NOK",
             column_map={
             "id": "merchant_product_id",
@@ -775,13 +783,14 @@ def check_and_fire_price_alerts(supabase):
     # non-SEK product by the SEK/NOK exchange rate.
     sek_rates = _fetch_sek_rates()
     
+    server = None
     try:
         # Fetch the password from Google Secret Manager
         log.info("Fetching Gmail app password from Secret Manager...")
         secret_payload = access_secret_version(
             project_id="dealfinderpro-bc5be", secret_id="Scraper"
         )
-        
+
         sender_password = secret_payload.strip()
         if sender_password.startswith("SENDER_PASSWORD="):
             sender_password = sender_password[len("SENDER_PASSWORD="):].strip()
@@ -795,51 +804,65 @@ def check_and_fire_price_alerts(supabase):
         server.login(SENDER_EMAIL, sender_password)
 
         for alert in active_alerts:
-            product = product_map.get(str(alert['product_id']))
-            if product is None:
-                continue
-
-            current_price = float(product['price'])
-            product_currency = (product.get('currency') or 'SEK').upper()
-            if product_currency != 'SEK':
-                if sek_rates and product_currency in sek_rates:
-                    current_price = current_price / sek_rates[product_currency]
-                else:
-                    # No rate available — comparing raw NOK/EUR/etc. against a
-                    # SEK target would be worse than not checking at all, so
-                    # skip this one alert rather than risk a wrong-currency
-                    # false fire.
-                    log.warning(
-                        "Skipping alert %s: no exchange rate for %s -> SEK",
-                        alert['id'], product_currency,
-                    )
+            try:
+                product = product_map.get(str(alert['product_id']))
+                if product is None:
                     continue
 
-            if current_price <= float(alert['target_price']):
-                log.info("HIT! %s dropped to %s for %s", alert['product_title'], current_price, alert['user_email'])
-                
-                # Fire the email using the existing server connection
-                success = send_alert_email(
-                    server=server, 
-                    to_email=str(alert['user_email']),
-                    title=str(product['title']),
-                    url=str(product['tracking_url']),
-                    price=current_price,
-                    target=float(alert['target_price'])
-                )
-                
-                if success:
-                    alerts_to_deactivate.append(str(alert['id']))
+                current_price = float(product['price'])
+                product_currency = (product.get('currency') or 'SEK').upper()
+                if product_currency != 'SEK':
+                    if sek_rates and product_currency in sek_rates:
+                        current_price = current_price / sek_rates[product_currency]
+                    else:
+                        # No rate available — comparing raw NOK/EUR/etc.
+                        # against a SEK target would be worse than not
+                        # checking at all, so skip this one alert rather
+                        # than risk a wrong-currency false fire.
+                        log.warning(
+                            "Skipping alert %s: no exchange rate for %s -> SEK",
+                            alert['id'], product_currency,
+                        )
+                        continue
 
-        server.quit()
+                if current_price <= float(alert['target_price']):
+                    log.info("HIT! %s dropped to %s for %s", alert['product_title'], current_price, alert['user_email'])
 
-        # Deactivate all the alerts that were successfully fired
-        if alerts_to_deactivate:
-            supabase.table('price_alerts').update({'is_active': False}).in_('id', alerts_to_deactivate).execute()
-            log.info("Successfully deactivated %d alerts.", len(alerts_to_deactivate))
+                    # Fire the email using the existing server connection
+                    success = send_alert_email(
+                        server=server,
+                        to_email=str(alert['user_email']),
+                        title=str(product['title']),
+                        url=str(product['tracking_url']),
+                        price=current_price,
+                        target=float(alert['target_price'])
+                    )
+
+                    if success:
+                        alerts_to_deactivate.append(str(alert['id']))
+            except Exception as exc:
+                # One malformed/unexpected alert shouldn't abort the whole
+                # batch — log it and keep processing the rest.
+                log.error("Failed to process alert %s: %s", alert.get('id'), exc)
 
     except Exception as e:
-        log.error("Failed to process SMTP connections or emails: %s", e)
+        log.error("Failed to establish SMTP connection: %s", e)
+    finally:
+        # Always release the socket, even if something above raised —
+        # previously an exception mid-loop skipped server.quit() entirely,
+        # leaking the connection until GC/timeout.
+        if server is not None:
+            try:
+                server.quit()
+            except Exception:
+                pass
+
+    # Deactivate whatever fired successfully, regardless of what happened
+    # afterward — otherwise an error later in the run would leave already-
+    # emailed alerts active, and they'd fire (and email) again next run.
+    if alerts_to_deactivate:
+        supabase.table('price_alerts').update({'is_active': False}).in_('id', alerts_to_deactivate).execute()
+        log.info("Successfully deactivated %d alerts.", len(alerts_to_deactivate))
 
     return
 
