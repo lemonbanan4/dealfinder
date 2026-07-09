@@ -52,10 +52,10 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
+    return const Column(
       children: [
-        const Expanded(child: _AppShellMain()),
-        const CookieConsentBanner(),
+        Expanded(child: _AppShellMain()),
+        CookieConsentBanner(),
       ],
     );
   }

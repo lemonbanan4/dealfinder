@@ -119,7 +119,7 @@ class _SectionCard extends StatelessWidget {
                   Row(
                     children: [
                       if (section.isHighlighted) ...[
-                        Icon(
+                        const Icon(
                           Icons.info_outline_rounded,
                           size: 15,
                           color: GlassColors.sky400,

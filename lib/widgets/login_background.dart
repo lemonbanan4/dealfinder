@@ -5,10 +5,10 @@ class LoginBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return const Stack(
       fit: StackFit.expand,
       children: [
-        const DecoratedBox(
+        DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -22,17 +22,17 @@ class LoginBackground extends StatelessWidget {
         Positioned(
           top: -60,
           left: -80,
-          child: _Blob(color: const Color(0xFF006EFF), size: 280),
+          child: _Blob(color: Color(0xFF006EFF), size: 280),
         ),
         Positioned(
           bottom: -80,
           right: -60,
-          child: _Blob(color: const Color(0xFF0044AA), size: 220),
+          child: _Blob(color: Color(0xFF0044AA), size: 220),
         ),
         Positioned(
           top: 200,
           right: 40,
-          child: _Blob(color: const Color(0xFF00B4FF), size: 120),
+          child: _Blob(color: Color(0xFF00B4FF), size: 120),
         ),
       ],
     );

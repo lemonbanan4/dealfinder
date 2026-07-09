@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/api_client.dart';
 import '../domain/deal.dart';
 import '../presentation/feed_page.dart'
     show ProductSort, feedFiltersProvider, regionProvider;
@@ -72,16 +72,16 @@ Future<PagedDealsResult> pagedDeals(Ref ref) async {
   final timestamp = DateTime.now().millisecondsSinceEpoch;
 
   final sortParam = _sortParam(sort);
-  final uri = Uri.parse(
-    'https://dealfinder-swr5.onrender.com/api/products'
-    '?region=$region&page=$page&limit=$dealsPageSize&t=$timestamp'
-    '${sortParam != null ? '&sort=$sortParam' : ''}',
+  final response = await apiGet(
+    '/api/products',
+    queryParameters: {
+      'region': region,
+      'page': '$page',
+      'limit': '$dealsPageSize',
+      't': '$timestamp',
+      'sort': ?sortParam,
+    },
   );
-  final response = await http.get(uri).timeout(const Duration(seconds: 10));
-
-  if (response.statusCode != 200) {
-    throw Exception('Failed to load deals: ${response.statusCode}');
-  }
 
   final data = json.decode(response.body) as Map<String, dynamic>;
   final rawItems = data['items'];

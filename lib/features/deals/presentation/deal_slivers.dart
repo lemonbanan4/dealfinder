@@ -100,6 +100,9 @@ class DealsSliver extends ConsumerWidget {
                     color: Theme.of(context).colorScheme.error,
                   )
                 : const Icon(Icons.favorite_border),
+            tooltip: (favorites.value?.contains(deal.id) ?? false)
+                ? 'Remove favorite'
+                : 'Add favorite',
             onPressed: () => onFavoriteTap(deal),
           ),
         ],

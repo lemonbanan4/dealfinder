@@ -5,11 +5,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/constants.dart';
+import '../../../core/api_client.dart';
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
@@ -180,9 +179,10 @@ class Region extends _$Region {
   /// [build] stands.
   Future<String?> _fetchGeoRegion() async {
     try {
-      final uri = Uri.parse('${ApiUrls.apiUrl}/api/geo-region');
-      final response = await http.get(uri).timeout(const Duration(seconds: 4));
-      if (response.statusCode != 200) return null;
+      final response = await apiGet(
+        '/api/geo-region',
+        timeout: const Duration(seconds: 4),
+      );
       final data = json.decode(response.body) as Map<String, dynamic>;
       return data['region'] as String?;
     } catch (_) {
@@ -549,9 +549,9 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                     if (filters.searchQuery.isEmpty &&
                                         !filters.showFavoritesOnly)
                                       const TrendingDropsSliver(),
-                                    SliverToBoxAdapter(
+                                    const SliverToBoxAdapter(
                                       child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(
+                                        padding: EdgeInsets.fromLTRB(
                                           20,
                                           16,
                                           20,

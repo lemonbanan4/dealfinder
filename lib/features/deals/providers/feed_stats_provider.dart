@@ -1,10 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../core/constants.dart';
+import '../../../core/api_client.dart';
 import '../presentation/feed_page.dart' show regionProvider;
 
 part 'feed_stats_provider.g.dart';
@@ -26,12 +25,10 @@ class FeedStats {
 @riverpod
 Future<FeedStats> feedStats(Ref ref) async {
   final region = ref.watch(regionProvider);
-  final uri = Uri.parse('${ApiUrls.apiUrl}/api/stats?region=$region');
-  final response = await http.get(uri).timeout(const Duration(seconds: 10));
-
-  if (response.statusCode != 200) {
-    throw Exception('Failed to load feed stats: ${response.statusCode}');
-  }
+  final response = await apiGet(
+    '/api/stats',
+    queryParameters: {'region': region},
+  );
 
   final data = json.decode(response.body) as Map<String, dynamic>;
   return FeedStats(

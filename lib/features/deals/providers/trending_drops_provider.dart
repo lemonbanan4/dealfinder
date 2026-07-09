@@ -1,9 +1,8 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../core/constants.dart';
+import '../../../core/api_client.dart';
 import '../domain/deal.dart';
 import '../presentation/feed_page.dart' show regionProvider;
 
@@ -18,14 +17,10 @@ part 'trending_drops_provider.g.dart';
 @riverpod
 Future<List<Deal>> trendingDrops(Ref ref) async {
   final region = ref.watch(regionProvider);
-  final uri = Uri.parse(
-    '${ApiUrls.apiUrl}/api/deals/biggest-drops?region=$region&limit=3',
+  final response = await apiGet(
+    '/api/deals/biggest-drops',
+    queryParameters: {'region': region, 'limit': '3'},
   );
-  final response = await http.get(uri).timeout(const Duration(seconds: 10));
-
-  if (response.statusCode != 200) {
-    throw Exception('Failed to load biggest drops: ${response.statusCode}');
-  }
 
   final data = json.decode(response.body) as Map<String, dynamic>;
   final items = data['items'] as List<dynamic>;

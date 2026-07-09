@@ -64,4 +64,4 @@ final class TrendingDropsProvider
   }
 }
 
-String _$trendingDropsHash() => r'7ff85464f6523f6f45567ee2fb19e343adbed045';
+String _$trendingDropsHash() => r'c0c9d2c9eaec35f058312888e69af1363a6e7064';

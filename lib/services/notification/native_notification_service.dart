@@ -83,8 +83,8 @@ class PlatformNotificationService implements NotificationService {
       id,
       title,
       body,
-      NotificationDetails(
-        android: const AndroidNotificationDetails(
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
           _channelId,
           _channelName,
           importance: Importance.high,
@@ -92,12 +92,12 @@ class PlatformNotificationService implements NotificationService {
           icon: '@drawable/ic_notification',
           sound: RawResourceAndroidNotificationSound('notification_sound'),
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentAlert: true,
           presentSound: true,
           sound: 'notification_sound.wav',
         ),
-        macOS: const DarwinNotificationDetails(),
+        macOS: DarwinNotificationDetails(),
       ),
       payload: payload,
     );

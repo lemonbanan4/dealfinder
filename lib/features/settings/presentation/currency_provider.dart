@@ -1,8 +1,7 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../core/constants.dart';
+import '../../../core/api_client.dart';
 
 part 'currency_provider.g.dart';
 
@@ -43,29 +42,26 @@ class CurrencyConverter extends _$CurrencyConverter {
       // a Flutter web build ships every client-side string in plain text,
       // so a key embedded here would be trivially readable by anyone via
       // devtools on a public site.
-      final url = Uri.parse('${ApiUrls.apiUrl}/api/exchange-rates');
-      final response = await http.get(url);
+      final response = await apiGet('/api/exchange-rates');
+      final data = json.decode(response.body);
+      if (data['result'] == 'success') {
+        final ratesData = data['conversion_rates'] as Map<String, dynamic>;
+        final ratesMap = ratesData.map(
+          (k, v) => MapEntry(k, (v as num).toDouble()),
+        );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['result'] == 'success') {
-          final ratesData = data['conversion_rates'] as Map<String, dynamic>;
-          final ratesMap = ratesData.map(
-            (k, v) => MapEntry(k, (v as num).toDouble()),
-          );
-
-          final newRates = ExchangeRates(
-            baseCurrency: data['base_code'],
-            rates: ratesMap,
-            lastUpdated: DateTime.now(),
-          );
-          return newRates;
-        }
+        final newRates = ExchangeRates(
+          baseCurrency: data['base_code'],
+          rates: ratesMap,
+          lastUpdated: DateTime.now(),
+        );
+        return newRates;
       }
       // If fetching fails, return the old (stale) rates if they exist.
       return previousState;
     } catch (e) {
-      // On error, return old data to prevent the app from breaking.
+      // On error (including a timeout, now that apiGet always applies one),
+      // return old data to prevent the app from breaking.
       return previousState;
     }
   }

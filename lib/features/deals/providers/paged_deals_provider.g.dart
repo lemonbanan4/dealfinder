@@ -115,4 +115,4 @@ final class PagedDealsProvider
   }
 }
 
-String _$pagedDealsHash() => r'123577d8ced6502747827191622c1f67f5c749d2';
+String _$pagedDealsHash() => r'738c974d0cb6afc0c4d3520e3697fe386feb065c';

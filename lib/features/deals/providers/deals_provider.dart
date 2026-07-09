@@ -5,9 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart';
 
+import '../../../core/api_client.dart';
 import '../../../providers/repositories.dart';
 import '../domain/deal.dart';
 import '../presentation/feed_page.dart' show regionProvider;
@@ -30,25 +30,20 @@ class DealFeedNotifier extends _$DealFeedNotifier {
   Future<List<Deal>> _fetchFromApi(String region) async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final response = await http.get(
-        Uri.parse(
-          'https://dealfinder-swr5.onrender.com/api/products?region=$region&t=$timestamp',
-        ),
-      ).timeout(const Duration(seconds: 10));
+      final response = await apiGet(
+        '/api/products',
+        queryParameters: {'region': region, 't': '$timestamp'},
+      );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        final deals = data.map((json) => Deal.fromJson(json)).toList();
-        // Save to local cache
-        try {
-          await ref.read(dealRepositoryProvider).saveAll(deals);
-        } catch (e) {
-          log('Failed to save deals to Hive cache: $e');
-        }
-        return deals;
-      } else {
-        throw Exception('Failed to load deals: ${response.statusCode}');
+      final List<dynamic> data = json.decode(response.body);
+      final deals = data.map((json) => Deal.fromJson(json)).toList();
+      // Save to local cache
+      try {
+        await ref.read(dealRepositoryProvider).saveAll(deals);
+      } catch (e) {
+        log('Failed to save deals to Hive cache: $e');
       }
+      return deals;
     } catch (e, s) {
       log('Failed to fetch deals from API, attempting local cache fallback...', error: e, stackTrace: s);
       try {

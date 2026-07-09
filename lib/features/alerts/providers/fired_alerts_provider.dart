@@ -3,10 +3,9 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/constants.dart';
+import '../../../core/api_client.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'unread_alerts_provider.dart';
 
@@ -41,15 +40,10 @@ class FiredAlertsNotifier extends Notifier<void> {
 
   Future<Set<String>> _fetchFiredAlertIds() async {
     final idToken = await fb.FirebaseAuth.instance.currentUser?.getIdToken();
-    final response = await http.get(
-      Uri.parse('${ApiUrls.apiUrl}/api/alerts/fired'),
+    final response = await apiGet(
+      '/api/alerts/fired',
       headers: {'Authorization': 'Bearer $idToken'},
     );
-    if (response.statusCode >= 400) {
-      throw Exception(
-        'Failed to fetch fired alerts (${response.statusCode}): ${response.body}',
-      );
-    }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final items = body['items'] as List;
     return items.map((row) => row['id'].toString()).toSet();

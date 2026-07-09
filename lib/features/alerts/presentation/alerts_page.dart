@@ -22,10 +22,12 @@ Future<void> deleteBackendAlert(String productId) async {
   if (user == null) return;
   try {
     final idToken = await user.getIdToken();
-    final response = await http.delete(
-      Uri.parse('${ApiUrls.apiUrl}/api/alerts/$productId'),
-      headers: {'Authorization': 'Bearer $idToken'},
-    );
+    final response = await http
+        .delete(
+          Uri.parse('${ApiUrls.apiUrl}/api/alerts/$productId'),
+          headers: {'Authorization': 'Bearer $idToken'},
+        )
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode >= 400) {
       throw Exception(
         'Backend rejected the delete (${response.statusCode}): ${response.body}',
@@ -71,7 +73,7 @@ class AlertsPage extends ConsumerWidget {
             unselectedLabelColor: Theme.of(
               context,
             ).colorScheme.onSurfaceVariant,
-            tabs: [
+            tabs: const [
               Tab(text: 'Triggered'),
               Tab(text: 'Active Targets'),
             ],

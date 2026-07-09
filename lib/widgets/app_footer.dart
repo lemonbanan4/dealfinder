@@ -43,7 +43,7 @@ class AppFooter extends StatelessWidget {
           const SizedBox(height: 28),
           const _TrustBadgeRow(),
           const SizedBox(height: 36),
-          Divider(color: GlassColors.glowBorder, height: 1),
+          const Divider(color: GlassColors.glowBorder, height: 1),
           const SizedBox(height: 32),
           isWide
               ? Row(
@@ -65,7 +65,7 @@ class AppFooter extends StatelessWidget {
                   ],
                 ),
           const SizedBox(height: 32),
-          Divider(color: GlassColors.glowBorder, height: 1),
+          const Divider(color: GlassColors.glowBorder, height: 1),
           const SizedBox(height: 16),
           const _FooterBottomBar(),
         ],
@@ -115,11 +115,11 @@ class _TrustBadgeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
+    return const Wrap(
       alignment: WrapAlignment.center,
       spacing: 12,
       runSpacing: 12,
-      children: const [
+      children: [
         _TrustBadge(icon: Icons.lock_outline, label: 'Secure (HTTPS)'),
         _TrustBadge(icon: Icons.verified_user_outlined, label: 'Verified Affiliate Partner'),
         _TrustBadge(icon: Icons.privacy_tip_outlined, label: 'GDPR Compliant'),

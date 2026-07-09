@@ -58,6 +58,7 @@ class GlassSearchField extends StatelessWidget {
               if (controller.text.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.clear, color: Color(0xFF5A5A78)),
+                  tooltip: 'Clear search',
                   onPressed: () {
                     controller.clear();
                     onChanged('');
