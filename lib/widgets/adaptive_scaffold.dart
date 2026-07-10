@@ -120,8 +120,9 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
         backgroundColor: GlassColors.surface,
         indicatorColor: const Color(0xFF1E2035),
         destinations: [
-          for (final (i, (label, icon, selected))
-              in navDestinations(AppLocalizations.of(context)!).indexed)
+          for (final (i, (label, icon, selected)) in navDestinations(
+            AppLocalizations.of(context)!,
+          ).indexed)
             NavigationDestination(
               icon: i == 1 && unreadAlerts > 0
                   ? Badge(

@@ -78,8 +78,9 @@ Future<List<Deal>> recentDeals(Ref ref) async {
   final List<dynamic> data = json.decode(response.body);
   final dealMap = {
     for (final item in data)
-      (item as Map<String, dynamic>)['product_id'] as String:
-          Deal.fromJson(item),
+      (item as Map<String, dynamic>)['product_id'] as String: Deal.fromJson(
+        item,
+      ),
   };
   return recentIds.map((id) => dealMap[id]).whereType<Deal>().toList();
 }

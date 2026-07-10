@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../features/deals/domain/product_category.dart';
-import '../features/deals/presentation/glass_categories_menu.dart' show categoryLabel;
+import '../features/deals/presentation/glass_categories_menu.dart'
+    show categoryLabel;
 import '../features/legal/presentation/about_us_page.dart';
 import '../features/legal/presentation/privacy_policy_page.dart';
 import '../features/legal/presentation/terms_of_service_page.dart';
