@@ -9,6 +9,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/api_client.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
@@ -654,10 +655,12 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 
 /// Top-level nav destinations — shared by the top glass nav bar and the
 /// mobile bottom nav bar (adaptive_scaffold.dart). Settings lives behind the
-/// profile/auth icon instead of being a primary destination here.
-const navDestinations = <(String, IconData, IconData)>[
-  ('Feed', Icons.storefront_outlined, Icons.storefront),
-  ('Alerts', Icons.notifications_outlined, Icons.notifications),
+/// profile/auth icon instead of being a primary destination here. Index 1 is
+/// always Alerts (both call sites rely on this for the unread badge, rather
+/// than comparing the now-localized label text).
+List<(String, IconData, IconData)> navDestinations(AppLocalizations l10n) => [
+  (l10n.navFeed, Icons.storefront_outlined, Icons.storefront),
+  (l10n.navAlerts, Icons.notifications_outlined, Icons.notifications),
 ];
 
 class GlassTopNavBar extends ConsumerWidget {
@@ -677,6 +680,8 @@ class GlassTopNavBar extends ConsumerWidget {
     final searchController = ref.watch(searchControllerProvider);
     final searchFocusNode = ref.watch(searchFocusNodeProvider);
     final isFeedTab = selectedIndex == 0;
+    final l10n = AppLocalizations.of(context)!;
+    final destinations = navDestinations(l10n);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
@@ -691,15 +696,13 @@ class GlassTopNavBar extends ConsumerWidget {
               children: [
                 const AppLogo(iconSize: 28, fontSize: 21),
                 const SizedBox(width: 32),
-                for (int i = 0; i < navDestinations.length; i++)
+                for (int i = 0; i < destinations.length; i++)
                   _TopNavItem(
-                    label: navDestinations[i].$1,
-                    icon: navDestinations[i].$2,
-                    selectedIcon: navDestinations[i].$3,
+                    label: destinations[i].$1,
+                    icon: destinations[i].$2,
+                    selectedIcon: destinations[i].$3,
                     selected: selectedIndex == i,
-                    badgeCount: navDestinations[i].$1 == 'Alerts'
-                        ? unreadAlerts
-                        : 0,
+                    badgeCount: i == 1 ? unreadAlerts : 0,
                     onTap: () => onDestinationSelected(i),
                   ),
                 const SizedBox(width: 4),

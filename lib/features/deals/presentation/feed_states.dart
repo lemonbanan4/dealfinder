@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class EmptyState extends StatelessWidget {
   const EmptyState({super.key, required this.onRefresh});
   final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -18,18 +21,18 @@ class EmptyState extends StatelessWidget {
                 const Icon(Icons.storefront_outlined, size: 64),
                 const SizedBox(height: 16),
                 Text(
-                  'No deals found',
+                  l10n.noDealsFound,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text('Check back later or tap refresh.'),
+                Text(l10n.checkBackLater),
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   onPressed: onRefresh,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh now'),
+                  label: Text(l10n.refreshNow),
                 ),
               ],
             ),
@@ -51,6 +54,7 @@ class SearchEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 300),
@@ -76,18 +80,18 @@ class SearchEmptyState extends StatelessWidget {
                     const SizedBox(height: 16),
                     Text(
                       query.isNotEmpty
-                          ? 'No results for "$query"'
-                          : 'No deals match your filters',
+                          ? l10n.noResultsFor(query)
+                          : l10n.noDealsMatchFilters,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Try checking for typos or removing some filters.',
+                    Text(
+                      l10n.tryCheckingTypos,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Color(0xFF8A8AA0),
                       ), // Kept for specific design choice
                     ),
@@ -95,7 +99,7 @@ class SearchEmptyState extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: onClear,
                       icon: const Icon(Icons.clear),
-                      label: const Text('Clear filters'),
+                      label: Text(l10n.clearFilters),
                       style: FilledButton.styleFrom(
                         backgroundColor: Theme.of(
                           context,
@@ -138,7 +142,7 @@ class ErrorState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(AppLocalizations.of(context)!.retry),
             ),
           ],
         ),

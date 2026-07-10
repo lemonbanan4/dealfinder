@@ -9,10 +9,24 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'widgets/adaptive_scaffold.dart';
 import 'features/settings/providers/theme_provider.dart';
+import 'features/deals/presentation/feed_page.dart' show regionProvider;
 import 'services/notification/fcm_service.dart';
 import 'features/settings/providers/cookie_consent_provider.dart';
 import 'services/analytics_service.dart';
 import 'theme/glass_colors.dart';
+import 'l10n/app_localizations.dart';
+
+/// Maps the existing region signal (see `Region` in feed_page.dart — IP
+/// geolocation, falling back to browser locale, with an explicit user
+/// choice in Settings always winning) to a UI display language, so the
+/// whole app — not just deal data — reads as Swedish/Norwegian rather than
+/// defaulting to English. No separate language picker: region already
+/// covers this, and having two independent controls that could disagree
+/// (Swedish region + English UI) would be confusing.
+Locale _localeForRegion(String region) => switch (region) {
+  'no' => const Locale('nb'),
+  _ => const Locale('sv'),
+};
 
 // Inter for body/label text, Space Grotesk for anything headline/title/
 // display-level — matches the reference design's font pairing. Built once
@@ -80,6 +94,7 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
   @override
   Widget build(BuildContext context) {
     final appTheme = ref.watch(themeProvider);
+    final region = ref.watch(regionProvider);
 
     // Listen to cookie consent changes to enable/disable analytics.
     // This is a safe way to handle side effects in response to provider changes.
@@ -108,6 +123,9 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
       title: 'PrisPuls',
       scrollBehavior: _AppScrollBehavior(),
       navigatorKey: FCMService.navigatorKey,
+      locale: _localeForRegion(region),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       themeMode: themeMode,
       theme: ThemeData(
         pageTransitionsTheme: const PageTransitionsTheme(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/glass_colors.dart';
 
 /// The "Liquid Glass" search box, shared by the app-level top nav bar
@@ -22,6 +23,7 @@ class GlassSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -45,12 +47,12 @@ class GlassSearchField extends StatelessWidget {
                   focusNode: focusNode,
                   style: const TextStyle(color: Colors.white, fontSize: 15),
                   cursorColor: const Color(0xFF00B4FF),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     isDense: true,
                     border: InputBorder.none,
-                    hintText: 'Search products or brands...',
-                    hintStyle: TextStyle(color: Color(0xFF5A5A78)),
-                    contentPadding: EdgeInsets.symmetric(vertical: 14),
+                    hintText: l10n.searchHint,
+                    hintStyle: const TextStyle(color: Color(0xFF5A5A78)),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onChanged: onChanged,
                 ),
@@ -58,7 +60,7 @@ class GlassSearchField extends StatelessWidget {
               if (controller.text.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.clear, color: Color(0xFF5A5A78)),
-                  tooltip: 'Clear search',
+                  tooltip: l10n.clearSearch,
                   onPressed: () {
                     controller.clear();
                     onChanged('');

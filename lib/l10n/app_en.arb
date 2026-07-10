@@ -1,0 +1,111 @@
+{
+  "@@locale": "en",
+
+  "navFeed": "Feed",
+  "navAlerts": "Alerts",
+
+  "searchHint": "Search products or brands...",
+  "clearSearch": "Clear search",
+
+  "categoriesButton": "Categories",
+  "allCategories": "All Categories",
+  "groupElectronics": "Electronics & Tech",
+  "groupLifestyle": "Lifestyle & Everyday",
+  "catSmartphones": "Smartphones",
+  "catTablets": "Tablets",
+  "catWearables": "Wearables",
+  "catLaptopsPc": "Laptops/PC",
+  "catMonitors": "Monitors",
+  "catTVs": "TVs",
+  "catAudio": "Audio",
+  "catGamingAccessories": "Gaming Accessories",
+  "catAccessories": "Accessories",
+  "catHomeElectronics": "Home Electronics",
+  "catFashionClothing": "Fashion & Clothing",
+  "catBeautyHealth": "Beauty & Health",
+  "catHomeGarden": "Home & Garden",
+  "catSportsOutdoors": "Sports & Outdoors",
+  "catToysKids": "Toys & Kids",
+  "catGroceriesFood": "Groceries & Food",
+  "catAutomotive": "Automotive",
+  "catBooksMedia": "Books & Media",
+  "catPets": "Pets",
+  "catTravelLuggage": "Travel & Luggage",
+
+  "liveHeroHeadline": "Live Market Price Tracker",
+  "liveDealsTracked": "🔥 {count}+ deals tracked right now",
+  "@liveDealsTracked": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "liveDealsSynced": "🔥 New deals synced continuously",
+  "livePriceDrops": "📉 Found {count} price drops today",
+  "@livePriceDrops": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "liveMonitoringActive": "⚡ Live price monitoring active",
+
+  "recentlyViewed": "Recently Viewed",
+  "clearAll": "Clear All",
+  "clearHistoryTitle": "Clear History",
+  "clearHistoryConfirm": "Clear all recently viewed items?",
+  "cancel": "Cancel",
+  "clear": "Clear",
+  "biggestPriceDrops": "Biggest Price Drops",
+  "last24h": "Last 24h",
+  "insaneDeals": "Insane Deals",
+  "minDiscountBadge": "≥ {percent}% off",
+  "@minDiscountBadge": {
+    "placeholders": { "percent": { "type": "int" } }
+  },
+  "refreshDealsTooltip": "Refresh Deals",
+
+  "sortTooltip": "Sort deals",
+  "sortButtonLabel": "Sort: {label}",
+  "@sortButtonLabel": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "sortBestDeals": "Best Deals",
+  "sortPriceLowHigh": "Price: Low to High",
+  "sortPriceHighLow": "Price: High to Low",
+  "sortNewest": "Newest",
+
+  "prevPage": "Previous page",
+  "nextPage": "Next page",
+  "lastPage": "Last",
+  "goToPage": "Go to page (1-{total})",
+  "@goToPage": {
+    "placeholders": { "total": { "type": "int" } }
+  },
+
+  "noDealsFound": "No deals found",
+  "checkBackLater": "Check back later or tap refresh.",
+  "refreshNow": "Refresh now",
+  "noResultsFor": "No results for \"{query}\"",
+  "@noResultsFor": {
+    "placeholders": { "query": { "type": "String" } }
+  },
+  "noDealsMatchFilters": "No deals match your filters",
+  "tryCheckingTypos": "Try checking for typos or removing some filters.",
+  "clearFilters": "Clear filters",
+  "retry": "Retry",
+
+  "footerTagline": "Scandinavia's smartest way to compare prices.",
+  "trustSecure": "Secure (HTTPS)",
+  "trustVerified": "Verified Affiliate Partner",
+  "trustGdpr": "GDPR Compliant",
+  "trustLiveUpdates": "Live Price Updates",
+  "trustSweden": "Sweden",
+  "trustNorway": "Norway",
+  "footerShop": "Shop",
+  "footerInformation": "Information",
+  "footerSupport": "Support",
+  "footerAboutUs": "About Us",
+  "footerPrivacyPolicy": "Privacy Policy",
+  "footerTermsOfService": "Terms of Service",
+  "footerContactUs": "Contact Us",
+  "footerAffiliateDisclosure": "Affiliate Disclosure",
+  "footerCopyright": "© {year} PrisPuls. All rights reserved.",
+  "@footerCopyright": {
+    "placeholders": { "year": { "type": "int" } }
+  }
+}

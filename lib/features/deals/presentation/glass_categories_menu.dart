@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/glass_colors.dart';
 import '../domain/product_category.dart';
 import 'feed_page.dart';
@@ -31,14 +32,46 @@ const Map<String, IconData> _categoryIcons = {
   'Travel & Luggage': Icons.luggage,
 };
 
+/// Resolves a [dealCategories] identifier (also the filter value compared
+/// against `feedFiltersProvider.category` and sent to `updateCategory` — see
+/// `product_category.dart`) to its localized display text. Public so
+/// `app_footer.dart`'s Shop column — which lists the same categories — can
+/// reuse it instead of showing the raw English identifier.
+String categoryLabel(AppLocalizations l10n, String category) =>
+    switch (category) {
+      'All' => l10n.allCategories,
+      'Smartphones' => l10n.catSmartphones,
+      'Tablets' => l10n.catTablets,
+      'Wearables' => l10n.catWearables,
+      'Laptops/PC' => l10n.catLaptopsPc,
+      'Monitors' => l10n.catMonitors,
+      'TVs' => l10n.catTVs,
+      'Audio' => l10n.catAudio,
+      'Gaming Accessories' => l10n.catGamingAccessories,
+      'Accessories' => l10n.catAccessories,
+      'Home Electronics' => l10n.catHomeElectronics,
+      'Fashion & Clothing' => l10n.catFashionClothing,
+      'Beauty & Health' => l10n.catBeautyHealth,
+      'Home & Garden' => l10n.catHomeGarden,
+      'Sports & Outdoors' => l10n.catSportsOutdoors,
+      'Toys & Kids' => l10n.catToysKids,
+      'Groceries & Food' => l10n.catGroceriesFood,
+      'Automotive' => l10n.catAutomotive,
+      'Books & Media' => l10n.catBooksMedia,
+      'Pets' => l10n.catPets,
+      'Travel & Luggage' => l10n.catTravelLuggage,
+      _ => category,
+    };
+
 /// Groups [dealCategories] (excluding 'All', which gets its own link) into
 /// the two real sections the catalog is actually split across today — see
 /// `product_category.dart`'s own note that it's electronics-heavy with a
 /// broader general-marketplace taxonomy layered on top. Mirrors that same
 /// split rather than inventing a deeper taxonomy the data can't back up.
-const List<(String, IconData, List<String>)> _categoryGroups = [
+/// Title text is resolved separately via [AppLocalizations] (see
+/// [_CategoryColumn]), not stored here, since group titles are localized.
+const List<(IconData, List<String>)> _categoryGroups = [
   (
-    'Electronics & Tech',
     Icons.bolt,
     [
       'Smartphones',
@@ -54,7 +87,6 @@ const List<(String, IconData, List<String>)> _categoryGroups = [
     ],
   ),
   (
-    'Lifestyle & Everyday',
     Icons.home_outlined,
     [
       'Fashion & Clothing',
@@ -106,9 +138,10 @@ class _GlassCategoriesMenuState extends ConsumerState<GlassCategoriesMenu> {
   @override
   Widget build(BuildContext context) {
     final filters = ref.watch(feedFiltersProvider);
+    final l10n = AppLocalizations.of(context)!;
     final activeLabel = filters.category == 'All'
-        ? 'Categories'
-        : filters.category;
+        ? l10n.categoriesButton
+        : categoryLabel(l10n, filters.category);
     final isWide = MediaQuery.sizeOf(context).width >= 720;
 
     return MenuAnchor(
@@ -173,6 +206,8 @@ class _MegaMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final groupTitles = [l10n.groupElectronics, l10n.groupLifestyle];
     return SizedBox(
       width: 560,
       child: Column(
@@ -180,7 +215,7 @@ class _MegaMenu extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _CategoryRow(
-            label: 'All Categories',
+            label: l10n.allCategories,
             icon: Icons.apps,
             selected: activeCategory == 'All',
             onTap: () => onSelect('All'),
@@ -201,6 +236,7 @@ class _MegaMenu extends StatelessWidget {
                     ),
                   Expanded(
                     child: _CategoryColumn(
+                      title: groupTitles[i],
                       group: _categoryGroups[i],
                       activeCategory: activeCategory,
                       onSelect: onSelect,
@@ -218,18 +254,21 @@ class _MegaMenu extends StatelessWidget {
 
 class _CategoryColumn extends StatelessWidget {
   const _CategoryColumn({
+    required this.title,
     required this.group,
     required this.activeCategory,
     required this.onSelect,
   });
 
-  final (String, IconData, List<String>) group;
+  final String title;
+  final (IconData, List<String>) group;
   final String activeCategory;
   final ValueChanged<String> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    final (title, icon, categories) = group;
+    final l10n = AppLocalizations.of(context)!;
+    final (icon, categories) = group;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: Column(
@@ -255,7 +294,7 @@ class _CategoryColumn extends StatelessWidget {
           ),
           for (final category in categories)
             _CategoryRow(
-              label: category,
+              label: categoryLabel(l10n, category),
               icon: _categoryIcons[category],
               selected: activeCategory == category,
               onTap: () => onSelect(category),
@@ -318,6 +357,7 @@ class _CompactMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       width: 240,
       height: 420,
@@ -327,7 +367,7 @@ class _CompactMenu extends StatelessWidget {
         children: [
           for (final cat in dealCategories)
             _CategoryRow(
-              label: cat,
+              label: categoryLabel(l10n, cat),
               icon: cat == 'All' ? Icons.apps : _categoryIcons[cat],
               selected: activeCategory == cat,
               onTap: () => onSelect(cat),

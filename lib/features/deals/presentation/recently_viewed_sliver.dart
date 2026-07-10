@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../widgets/deal_card.dart';
 import '../../../widgets/glass_dialog.dart';
 import '../providers/recently_viewed_provider.dart';
@@ -23,18 +24,19 @@ class _RecentlyViewedHeader extends ConsumerWidget {
   const _RecentlyViewedHeader();
 
   Future<void> _clearRecents(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showGlassDialog<bool>(
       context: context,
-      title: const Text('Clear History'),
-      content: const Text('Clear all recently viewed items?'),
+      title: Text(l10n.clearHistoryTitle),
+      content: Text(l10n.clearHistoryConfirm),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
-          child: const Text('Clear'),
+          child: Text(l10n.clear),
         ),
       ],
     );
@@ -45,6 +47,7 @@ class _RecentlyViewedHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Row(
@@ -52,7 +55,7 @@ class _RecentlyViewedHeader extends ConsumerWidget {
           const Icon(Icons.history, color: Color(0xFF8A8AA0), size: 18),
           const SizedBox(width: 6),
           Text(
-            'Recently Viewed',
+            l10n.recentlyViewed,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 14,
@@ -66,9 +69,9 @@ class _RecentlyViewedHeader extends ConsumerWidget {
               foregroundColor: const Color(0xFF8A8AA0),
               padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
-            child: const Text(
-              'Clear All',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            child: Text(
+              l10n.clearAll,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
           ),
         ],

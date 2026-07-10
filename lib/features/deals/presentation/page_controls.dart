@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/glass_colors.dart';
 
 /// Prev / numbered-page / Next controls for the deal grid, plus a
@@ -22,6 +23,7 @@ class PageControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (totalPages <= 1) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24),
@@ -36,7 +38,7 @@ class PageControls extends StatelessWidget {
             children: [
               _NavButton(
                 icon: Icons.chevron_left,
-                tooltip: 'Previous page',
+                tooltip: l10n.prevPage,
                 onPressed: currentPage > 1
                     ? () => onPageChanged(currentPage - 1)
                     : null,
@@ -55,7 +57,7 @@ class PageControls extends StatelessWidget {
                   ),
               _NavButton(
                 icon: Icons.chevron_right,
-                tooltip: 'Next page',
+                tooltip: l10n.nextPage,
                 onPressed: currentPage < totalPages
                     ? () => onPageChanged(currentPage + 1)
                     : null,
@@ -63,7 +65,7 @@ class PageControls extends StatelessWidget {
               if (currentPage < totalPages) ...[
                 const SizedBox(width: 4),
                 _TextNavButton(
-                  label: 'Last',
+                  label: l10n.lastPage,
                   onPressed: () => onPageChanged(totalPages),
                 ),
               ],
@@ -235,7 +237,7 @@ class _JumpToPageFieldState extends State<_JumpToPageField> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Go to page (1-${widget.totalPages})',
+          AppLocalizations.of(context)!.goToPage(widget.totalPages),
           style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
         const SizedBox(width: 8),

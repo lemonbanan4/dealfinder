@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/glass_card.dart';
 import '../providers/feed_stats_provider.dart';
@@ -38,15 +39,16 @@ class _LiveStatusBannerState extends ConsumerState<LiveStatusBanner> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final totalCount = ref.watch(pagedDealsProvider).value?.totalCount;
     final priceDropsToday = ref.watch(feedStatsProvider).value?.priceDropsToday;
     final messages = [
       totalCount != null && totalCount > 0
-          ? '🔥 $totalCount+ deals tracked right now'
-          : '🔥 New deals synced continuously',
+          ? l10n.liveDealsTracked(totalCount)
+          : l10n.liveDealsSynced,
       if (priceDropsToday != null && priceDropsToday > 0)
-        '📉 Found $priceDropsToday price drops today',
-      '⚡ Live price monitoring active',
+        l10n.livePriceDrops(priceDropsToday),
+      l10n.liveMonitoringActive,
     ];
     final message = messages[_messageIndex % messages.length];
 
@@ -96,6 +98,7 @@ class BannerGlowBackdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       height: 168,
       child: Stack(
@@ -117,7 +120,7 @@ class BannerGlowBackdrop extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Live Market Price Tracker',
+                l10n.liveHeroHeadline,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   color: GlassColors.textHeading,

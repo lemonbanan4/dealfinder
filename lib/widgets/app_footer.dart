@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../features/deals/domain/product_category.dart';
+import '../features/deals/presentation/glass_categories_menu.dart' show categoryLabel;
 import '../features/legal/presentation/about_us_page.dart';
 import '../features/legal/presentation/privacy_policy_page.dart';
 import '../features/legal/presentation/terms_of_service_page.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/glass_colors.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -28,6 +30,7 @@ class AppFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.sizeOf(context).width >= 720;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       width: double.infinity,
@@ -49,19 +52,19 @@ class AppFooter extends StatelessWidget {
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: _shopColumn(onShopCategoryTap)),
-                    Expanded(child: _informationColumn(context)),
-                    Expanded(child: _supportColumn(context)),
+                    Expanded(child: _shopColumn(l10n, onShopCategoryTap)),
+                    Expanded(child: _informationColumn(context, l10n)),
+                    Expanded(child: _supportColumn(context, l10n)),
                   ],
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _shopColumn(onShopCategoryTap),
+                    _shopColumn(l10n, onShopCategoryTap),
                     const SizedBox(height: 28),
-                    _informationColumn(context),
+                    _informationColumn(context, l10n),
                     const SizedBox(height: 28),
-                    _supportColumn(context),
+                    _supportColumn(context, l10n),
                   ],
                 ),
           const SizedBox(height: 32),
@@ -98,9 +101,9 @@ class _FooterBrand extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        const Text(
-          "Scandinavia's smartest way to compare prices.",
-          style: TextStyle(color: _kMuted, fontSize: 13),
+        Text(
+          AppLocalizations.of(context)!.footerTagline,
+          style: const TextStyle(color: _kMuted, fontSize: 13),
           textAlign: TextAlign.center,
         ),
       ],
@@ -115,20 +118,21 @@ class _TrustBadgeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Wrap(
+    final l10n = AppLocalizations.of(context)!;
+    return Wrap(
       alignment: WrapAlignment.center,
       spacing: 12,
       runSpacing: 12,
       children: [
-        _TrustBadge(icon: Icons.lock_outline, label: 'Secure (HTTPS)'),
+        _TrustBadge(icon: Icons.lock_outline, label: l10n.trustSecure),
         _TrustBadge(
           icon: Icons.verified_user_outlined,
-          label: 'Verified Affiliate Partner',
+          label: l10n.trustVerified,
         ),
-        _TrustBadge(icon: Icons.privacy_tip_outlined, label: 'GDPR Compliant'),
-        _TrustBadge(icon: Icons.bolt_outlined, label: 'Live Price Updates'),
-        _TrustBadge(emoji: '🇸🇪', label: 'Sweden'),
-        _TrustBadge(emoji: '🇳🇴', label: 'Norway'),
+        _TrustBadge(icon: Icons.privacy_tip_outlined, label: l10n.trustGdpr),
+        _TrustBadge(icon: Icons.bolt_outlined, label: l10n.trustLiveUpdates),
+        _TrustBadge(emoji: '🇸🇪', label: l10n.trustSweden),
+        _TrustBadge(emoji: '🇳🇴', label: l10n.trustNorway),
       ],
     );
   }
@@ -202,49 +206,49 @@ class _FooterColumn extends StatelessWidget {
   }
 }
 
-Widget _shopColumn(ValueChanged<String>? onTap) {
+Widget _shopColumn(AppLocalizations l10n, ValueChanged<String>? onTap) {
   return _FooterColumn(
-    title: 'Shop',
+    title: l10n.footerShop,
     children: [
       for (final category in dealCategories.where((c) => c != 'All'))
         _FooterLink(
-          label: category,
+          label: categoryLabel(l10n, category),
           onTap: onTap == null ? null : () => onTap(category),
         ),
     ],
   );
 }
 
-Widget _informationColumn(BuildContext context) {
+Widget _informationColumn(BuildContext context, AppLocalizations l10n) {
   return _FooterColumn(
-    title: 'Information',
+    title: l10n.footerInformation,
     children: [
       _FooterLink(
-        label: 'About Us',
+        label: l10n.footerAboutUs,
         onTap: () => _push(context, const AboutUsPage()),
       ),
       _FooterLink(
-        label: 'Privacy Policy',
+        label: l10n.footerPrivacyPolicy,
         onTap: () => _push(context, const PrivacyPolicyPage()),
       ),
       _FooterLink(
-        label: 'Terms of Service',
+        label: l10n.footerTermsOfService,
         onTap: () => _push(context, const TermsOfServicePage()),
       ),
     ],
   );
 }
 
-Widget _supportColumn(BuildContext context) {
+Widget _supportColumn(BuildContext context, AppLocalizations l10n) {
   return _FooterColumn(
-    title: 'Support',
+    title: l10n.footerSupport,
     children: [
       _FooterLink(
-        label: 'Contact Us',
+        label: l10n.footerContactUs,
         onTap: () => launchUrl(Uri.parse('mailto:support@prispuls.com')),
       ),
       _FooterLink(
-        label: 'Affiliate Disclosure',
+        label: l10n.footerAffiliateDisclosure,
         onTap: () => _push(context, const AboutUsPage()),
       ),
     ],
@@ -295,7 +299,7 @@ class _FooterBottomBar extends StatelessWidget {
       runSpacing: 4,
       children: [
         Text(
-          '© ${DateTime.now().year} PrisPuls. All rights reserved.',
+          AppLocalizations.of(context)!.footerCopyright(DateTime.now().year),
           style: const TextStyle(
             color: _kMuted,
             fontSize: 11,

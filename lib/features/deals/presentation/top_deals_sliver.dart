@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../widgets/deal_card.dart';
 import '../providers/deals_provider.dart';
 import 'horizontal_deal_sliver.dart';
@@ -26,6 +27,7 @@ class _TopDealsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 4, 0),
       child: Row(
@@ -36,9 +38,9 @@ class _TopDealsHeader extends StatelessWidget {
             size: 18,
           ),
           const SizedBox(width: 6),
-          const Text(
-            'Insane Deals',
-            style: TextStyle(
+          Text(
+            l10n.insaneDeals,
+            style: const TextStyle(
               color: Color(0xFFFFFFFF),
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -51,9 +53,9 @@ class _TopDealsHeader extends StatelessWidget {
               color: const Color(0xFF00E676).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: const Text(
-              '≥ 25% off',
-              style: TextStyle(
+            child: Text(
+              l10n.minDiscountBadge(25),
+              style: const TextStyle(
                 color: Color(0xFF00E676),
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
@@ -66,7 +68,7 @@ class _TopDealsHeader extends StatelessWidget {
             icon: const Icon(Icons.refresh),
             iconSize: 20,
             color: const Color(0xFF8A8AA0),
-            tooltip: 'Refresh Deals',
+            tooltip: l10n.refreshDealsTooltip,
           ),
         ],
       ),

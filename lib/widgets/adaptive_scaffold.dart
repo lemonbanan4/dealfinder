@@ -11,6 +11,7 @@ import '../features/settings/providers/cookie_consent_provider.dart';
 import 'cookie_consent_banner.dart';
 import '../features/alerts/providers/fired_alerts_provider.dart';
 import '../features/alerts/providers/unread_alerts_provider.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/glass_colors.dart';
 
 part 'adaptive_scaffold.g.dart';
@@ -119,15 +120,16 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
         backgroundColor: GlassColors.surface,
         indicatorColor: const Color(0xFF1E2035),
         destinations: [
-          for (final (label, icon, selected) in navDestinations)
+          for (final (i, (label, icon, selected))
+              in navDestinations(AppLocalizations.of(context)!).indexed)
             NavigationDestination(
-              icon: label == 'Alerts' && unreadAlerts > 0
+              icon: i == 1 && unreadAlerts > 0
                   ? Badge(
                       label: Text(unreadAlerts.toString()),
                       child: Icon(icon),
                     )
                   : Icon(icon),
-              selectedIcon: label == 'Alerts' && unreadAlerts > 0
+              selectedIcon: i == 1 && unreadAlerts > 0
                   ? Badge(
                       label: Text(unreadAlerts.toString()),
                       child: Icon(selected),
