@@ -400,6 +400,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get continueWithGoogle => 'Fortsätt med Google';
 
   @override
+  String get continueWithApple => 'Fortsätt med Apple';
+
+  @override
   String get noAccountSignUp => 'Har du inget konto? Registrera dig';
 
   @override

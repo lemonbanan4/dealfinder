@@ -85,6 +85,9 @@ class Auth extends _$Auth {
   Future<void> signInWithGoogle() async =>
       _runAuthMethod(ref.read(authRepositoryProvider).signInWithGoogle);
 
+  Future<void> signInWithApple() async =>
+      _runAuthMethod(ref.read(authRepositoryProvider).signInWithApple);
+
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await ref.read(authRepositoryProvider).sendPasswordResetEmail(email);

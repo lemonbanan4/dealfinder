@@ -398,6 +398,9 @@ class AppLocalizationsNb extends AppLocalizations {
   String get continueWithGoogle => 'Fortsett med Google';
 
   @override
+  String get continueWithApple => 'Fortsett med Apple';
+
+  @override
   String get noAccountSignUp => 'Har du ikke en konto? Registrer deg';
 
   @override

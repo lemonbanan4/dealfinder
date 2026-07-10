@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -135,6 +136,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isGoogleLoading = false;
+  bool _isAppleLoading = false;
 
   @override
   void dispose() {
@@ -151,6 +153,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       // it reacts to authProvider regardless of which sign-in path triggered it.
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() => _isAppleLoading = true);
+    try {
+      await ref.read(authProvider.notifier).signInWithApple();
+    } finally {
+      if (mounted) setState(() => _isAppleLoading = false);
     }
   }
 
@@ -373,6 +384,43 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
               ),
+              if (kIsWeb) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _isAppleLoading ? null : _signInWithApple,
+                  icon: _isAppleLoading
+                      ? SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: isDark ? GlassColors.glowBorderHover : null,
+                          ),
+                        )
+                      : Icon(
+                          Icons.apple,
+                          size: 20,
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                  label: Text(
+                    _isAppleLoading ? l10n.signingIn : l10n.continueWithApple,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: isDark ? GlassColors.background : null,
+                    foregroundColor: isDark
+                        ? Colors.white
+                        : theme.colorScheme.onSurface,
+                    side: BorderSide(
+                      color: isDark
+                          ? GlassColors.glowBorder
+                          : theme.colorScheme.outlineVariant,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               TextButton(
                 onPressed: notifier.toggleMode,

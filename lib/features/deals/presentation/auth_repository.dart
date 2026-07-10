@@ -92,6 +92,36 @@ class AuthRepository {
     final credential = fb.GoogleAuthProvider.credential(idToken: idToken);
     await _firebaseAuth.signInWithCredential(credential);
   }
+
+  /// Signs in with Apple — web only, via Firebase's built-in OAuth popup
+  /// flow (same mechanism as [signInWithGoogle]'s web branch). Deliberately
+  /// doesn't use the native `sign_in_with_apple` package: this app only
+  /// ships to web (see CLAUDE.md's Commands — `flutter build web`/`firebase
+  /// deploy`, no App Store pipeline), and that package's web implementation
+  /// is itself just a wrapper around the same Apple JS SDK popup Firebase
+  /// already drives directly, so pulling it in would only add unused native
+  /// (iOS/Android) code and WASM-incompatible JS interop to the web bundle
+  /// for zero benefit. If this app ever ships to iOS, native Apple Sign-In
+  /// there requires that package (Apple's App Store guidelines mandate the
+  /// native flow, not a web popup) — add it back specifically for that.
+  Future<void> signInWithApple() async {
+    assert(kIsWeb, 'signInWithApple is web-only — see the doc comment.');
+    final provider = fb.OAuthProvider('apple.com')
+      ..addScope('email')
+      ..addScope('name');
+    try {
+      await _firebaseAuth.signInWithPopup(provider);
+    } on fb.FirebaseAuthException catch (e) {
+      if (e.code == 'popup-blocked') {
+        await _firebaseAuth.signInWithRedirect(provider);
+      } else if (e.code == 'popup-closed-by-user' ||
+          e.code == 'cancelled-popup-request') {
+        return;
+      } else {
+        rethrow;
+      }
+    }
+  }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

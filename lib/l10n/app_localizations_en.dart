@@ -398,6 +398,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get continueWithGoogle => 'Continue with Google';
 
   @override
+  String get continueWithApple => 'Continue with Apple';
+
+  @override
   String get noAccountSignUp => 'Don\'t have an account? Sign Up';
 
   @override

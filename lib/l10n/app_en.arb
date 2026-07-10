@@ -179,6 +179,7 @@
   "orDivider": "OR",
   "signingIn": "Signing in…",
   "continueWithGoogle": "Continue with Google",
+  "continueWithApple": "Continue with Apple",
   "noAccountSignUp": "Don't have an account? Sign Up",
   "haveAccountLogin": "Already have an account? Login",
   "unexpectedError": "An unexpected error occurred.",

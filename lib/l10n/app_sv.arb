@@ -123,6 +123,7 @@
   "orDivider": "ELLER",
   "signingIn": "Loggar in…",
   "continueWithGoogle": "Fortsätt med Google",
+  "continueWithApple": "Fortsätt med Apple",
   "noAccountSignUp": "Har du inget konto? Registrera dig",
   "haveAccountLogin": "Har du redan ett konto? Logga in",
   "unexpectedError": "Ett oväntat fel uppstod.",
