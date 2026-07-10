@@ -5,15 +5,41 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'widgets/adaptive_scaffold.dart';
+import 'features/deals/presentation/brand_landing_page.dart';
 import 'features/deals/presentation/feed_page.dart' show regionProvider;
 import 'services/notification/fcm_service.dart';
 import 'features/settings/providers/cookie_consent_provider.dart';
 import 'services/analytics_service.dart';
 import 'theme/glass_colors.dart';
 import 'l10n/app_localizations.dart';
+
+/// Top-level routes. `/` is the existing AppShell (Feed/Alerts tabs,
+/// Settings/Login/Legal all still reached via imperative Navigator.push
+/// from within it — unchanged, go_router coexists fine with that for
+/// navigation that doesn't need its own URL). `/brands/:slug` is the only
+/// other real route today: SEO landing pages (see BrandLandingPage) —
+/// the whole reason this app needed real path-based routing at all, since
+/// a Firebase Hosting rewrite rule (or a search crawler) can only ever see
+/// the request path, never Flutter's previous in-memory-only navigation.
+final _router = GoRouter(
+  navigatorKey: FCMService.navigatorKey,
+  observers: [
+    if (AnalyticsService().isEnabled)
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+  ],
+  routes: [
+    GoRoute(path: '/', builder: (context, state) => const AppShell()),
+    GoRoute(
+      path: '/brands/:slug',
+      builder: (context, state) =>
+          BrandLandingPage(slug: state.pathParameters['slug']!),
+    ),
+  ],
+);
 
 /// Maps the existing region signal (see `Region` in feed_page.dart — IP
 /// geolocation, falling back to browser locale, with an explicit user
@@ -108,10 +134,10 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
       });
     }
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'PrisPuls',
       scrollBehavior: _AppScrollBehavior(),
-      navigatorKey: FCMService.navigatorKey,
+      routerConfig: _router,
       locale: _localeForRegion(region),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -143,11 +169,6 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
         ),
         useMaterial3: true,
       ),
-      navigatorObservers: [
-        if (AnalyticsService().isEnabled)
-          FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
-      ],
-      home: const AppShell(),
     );
   }
 }

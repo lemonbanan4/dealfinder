@@ -8,11 +8,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/constants.dart';
+import 'core/web/url_strategy.dart';
 import 'firebase_options.dart';
 
 void main() async {
   // Ensure that Flutter bindings are initialized.
   WidgetsFlutterBinding.ensureInitialized();
+  // Real paths (prispuls.com/brands/dyson-sweden) instead of hash routing
+  // (prispuls.com/#/brands/dyson-sweden) — required for brand landing pages
+  // to be crawlable/linkable at all, since a URL fragment is never sent to
+  // the server, so neither a search crawler nor a Firebase Hosting rewrite
+  // rule can ever see it.
+  if (kIsWeb) configurePathUrlStrategy();
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 

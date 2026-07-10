@@ -1,8 +1,199 @@
+import html
+import json
+import re
+import time
+
+import requests
 from firebase_functions import https_fn
 from firebase_admin import initialize_app, firestore, messaging, auth
 
 # Initialize the Firebase Admin SDK
 initialize_app()
+
+# ─── Brand landing page prerendering ────────────────────────────────────────
+#
+# This app is a Flutter Web SPA rendered via CanvasKit (paints to a <canvas>
+# element, not real DOM text), so search crawlers can't read its content the
+# normal way. This function implements "dynamic rendering": Firebase Hosting
+# rewrites /brands/** here (see firebase.json); a request from a known bot
+# gets real, crawlable static HTML (with actual deal content + JSON-LD)
+# rendered server-side, while a real visitor gets passed through to the
+# normal Flutter app shell, which then renders BrandLandingPage client-side
+# exactly like any other in-app navigation.
+#
+# Mirrors lib/features/deals/domain/brand_landing.dart — kept in sync
+# manually (Python backend and Dart frontend can't share a single source of
+# truth here) since it's a small, stable list.
+BRAND_PAGES = {
+    "dyson-sweden": {"brand": "Dyson", "region": "Sweden", "store": "dyson_se"},
+    "dyson-norway": {"brand": "Dyson", "region": "Norway", "store": "dyson_no"},
+    "samsung-sweden": {"brand": "Samsung", "region": "Sweden", "store": "samsung_se"},
+    "samsung-norway": {"brand": "Samsung", "region": "Norway", "store": "samsung_no"},
+    "acer-sweden": {"brand": "Acer", "region": "Sweden", "store": "acer_se"},
+    "acer-norway": {"brand": "Acer", "region": "Norway", "store": "acer_no"},
+    "sharkninja-sweden": {"brand": "SharkNinja", "region": "Sweden", "store": "sharkninja_se"},
+    "sharkninja-norway": {"brand": "SharkNinja", "region": "Norway", "store": "sharkninja_no"},
+}
+
+API_BASE = "https://dealfinder-swr5.onrender.com"
+SITE_BASE = "https://prispuls.com"
+
+_BOT_UA_RE = re.compile(
+    r"(googlebot|bingbot|yandex|baiduspider|duckduckbot|slurp|"
+    r"facebookexternalhit|facebookcatalog|twitterbot|linkedinbot|"
+    r"discordbot|telegrambot|whatsapp|applebot|slackbot|"
+    r"semrushbot|ahrefsbot|pinterest)",
+    re.IGNORECASE,
+)
+
+# Cached across warm invocations of the same function instance — avoids
+# re-fetching the (large, rarely-changing) Flutter app shell on every human
+# request to a /brands/* URL. 10 minutes comfortably covers "a deploy just
+# went out" without ever serving something too stale.
+_index_html_cache: dict[str, object] = {"html": None, "fetched_at": 0.0}
+_INDEX_CACHE_TTL_SECONDS = 600
+
+
+def _fetch_index_html() -> str:
+    cached = _index_html_cache["html"]
+    age = time.time() - _index_html_cache["fetched_at"]
+    if cached and age < _INDEX_CACHE_TTL_SECONDS:
+        return cached
+    resp = requests.get(f"{SITE_BASE}/index.html", timeout=8)
+    resp.raise_for_status()
+    _index_html_cache["html"] = resp.text
+    _index_html_cache["fetched_at"] = time.time()
+    return resp.text
+
+
+def _fetch_brand_deals(store: str) -> list[dict]:
+    resp = requests.get(
+        f"{API_BASE}/api/deals/by-store",
+        params={"store": store, "limit": 24},
+        timeout=8,
+    )
+    resp.raise_for_status()
+    return resp.json().get("items", [])
+
+
+def _render_brand_html(slug: str, page: dict, deals: list[dict]) -> str:
+    brand, region = page["brand"], page["region"]
+    title = f"Best Deals on {brand} in {region} | PrisPuls"
+    description = (
+        f"Compare live prices on {brand} products in {region}. "
+        f"PrisPuls tracks {len(deals)} {brand} deals across retailers so you "
+        f"always see the best price first."
+        if deals
+        else f"PrisPuls tracks {brand} prices in {region} across retailers."
+    )
+    canonical = f"{SITE_BASE}/brands/{slug}"
+
+    list_items_html = []
+    structured_items = []
+    for i, d in enumerate(deals, start=1):
+        product_title = html.escape(d.get("title") or brand)
+        price = d.get("price")
+        currency = html.escape(d.get("currency") or "")
+        url = html.escape(d.get("tracking_url") or canonical, quote=True)
+        image = d.get("image_url")
+        price_text = f"{price:.0f} {currency}" if price else ""
+        list_items_html.append(
+            f'<li><a href="{url}" rel="nofollow sponsored">{product_title}</a>'
+            + (f" — {html.escape(price_text)}" if price_text else "")
+            + "</li>"
+        )
+        structured_items.append(
+            {
+                "@type": "ListItem",
+                "position": i,
+                "item": {
+                    "@type": "Product",
+                    "name": d.get("title") or brand,
+                    "image": image,
+                    "url": d.get("tracking_url"),
+                    "offers": {
+                        "@type": "Offer",
+                        "price": price,
+                        "priceCurrency": currency,
+                        "url": d.get("tracking_url"),
+                    },
+                },
+            }
+        )
+
+    structured_data = json.dumps(
+        {
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            "name": title,
+            "description": description,
+            "itemListElement": structured_items,
+        }
+    # Defends against a scraped title/URL that happens to contain a literal
+    # "</script>", which would otherwise break out of the script tag below.
+    ).replace("</script>", "<\\/script>")
+
+    deals_html = (
+        "<ul>" + "".join(list_items_html) + "</ul>"
+        if deals
+        else "<p>No live deals right now — check back soon.</p>"
+    )
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{html.escape(title)}</title>
+<meta name="description" content="{html.escape(description)}">
+<link rel="canonical" href="{canonical}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{canonical}">
+<meta property="og:title" content="{html.escape(title)}">
+<meta property="og:description" content="{html.escape(description)}">
+<script type="application/ld+json">{structured_data}</script>
+</head>
+<body>
+<h1>{html.escape(title)}</h1>
+<p>{html.escape(description)}</p>
+{deals_html}
+<p><a href="{SITE_BASE}/">Browse all deals on PrisPuls</a></p>
+</body>
+</html>"""
+
+
+@https_fn.on_request(region="europe-north1")
+def prerender_brand_page(req: https_fn.Request) -> https_fn.Response:
+    """Firebase Hosting rewrites /brands/** here (see firebase.json). Real
+    visitors get passed through to the normal Flutter app shell; known
+    search/social crawlers get a real static HTML snapshot with actual deal
+    content, since the Flutter app itself renders via CanvasKit (a canvas,
+    not crawlable DOM text) and can't be indexed directly.
+    """
+    slug = req.path.rstrip("/").rsplit("/", 1)[-1]
+    page = BRAND_PAGES.get(slug)
+
+    if page is None:
+        return https_fn.Response("Not found", status=404)
+
+    user_agent = req.headers.get("User-Agent", "")
+    if not _BOT_UA_RE.search(user_agent):
+        try:
+            return https_fn.Response(_fetch_index_html(), content_type="text/html")
+        except requests.RequestException:
+            # Fall back to a redirect to the app root rather than a hard
+            # error — worse UX (loses the deep link) but never a dead end.
+            return https_fn.Response(
+                "", status=302, headers={"Location": SITE_BASE + "/"}
+            )
+
+    try:
+        deals = _fetch_brand_deals(page["store"])
+    except requests.RequestException:
+        deals = []
+
+    return https_fn.Response(
+        _render_brand_html(slug, page, deals), content_type="text/html"
+    )
 
 @https_fn.on_call(region="europe-north1")
 def send_price_alert(req: https_fn.CallableRequest) -> any:
@@ -70,7 +261,6 @@ def delete_account(req: https_fn.CallableRequest) -> any:
 
     # 2. Delete the user's alert configs (subcollections must be deleted manually)
     configs_ref = db.collection("users").document(uid).collection("alert_configs")
-    docs = list(configs_ref.stream())
     for doc in configs_ref.stream():
         doc.reference.delete()
         

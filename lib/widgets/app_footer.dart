@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../features/deals/domain/brand_landing.dart';
 import '../features/deals/domain/product_category.dart';
 import '../features/deals/presentation/glass_categories_menu.dart'
     show categoryLabel;
@@ -76,6 +78,10 @@ class AppFooter extends StatelessWidget {
                   ],
                 ),
           const SizedBox(height: 32),
+          const Divider(color: GlassColors.glowBorder, height: 1),
+          const SizedBox(height: 24),
+          const _BrandLinksRow(),
+          const SizedBox(height: 24),
           const Divider(color: GlassColors.glowBorder, height: 1),
           const SizedBox(height: 16),
           const _FooterBottomBar(),
@@ -313,6 +319,33 @@ class _FooterLink extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── Brand landing page links ───────────────────────────────────────────────
+//
+// A real, visible, always-rendered path to each brand landing page — not
+// just an entry in sitemap.xml. A sitemap tells a crawler a URL exists;
+// actual inbound links (especially from a high-traffic page like the
+// homepage/footer, present on every load) are what get a page discovered,
+// crawled promptly, and treated as non-orphaned in the first place.
+class _BrandLinksRow extends StatelessWidget {
+  const _BrandLinksRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 16,
+      runSpacing: 8,
+      children: [
+        for (final landing in brandLandings)
+          _FooterLink(
+            label: '${landing.brandName} ${landing.regionName}',
+            onTap: () => context.go('/brands/${landing.slug}'),
+          ),
+      ],
     );
   }
 }
