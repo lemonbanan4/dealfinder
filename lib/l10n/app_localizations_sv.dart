@@ -310,22 +310,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get regionLabel => 'Region';
 
   @override
-  String get themeLabel => 'Tema';
-
-  @override
   String get currencyLabel => 'Valuta';
-
-  @override
-  String get themeSystem => 'System';
-
-  @override
-  String get themeLight => 'Ljust';
-
-  @override
-  String get themeDark => 'Mörkt';
-
-  @override
-  String get themeAmoled => 'Amoled';
 
   @override
   String get dataPrivacySection => 'Data & Integritet';
@@ -400,7 +385,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get continueWithGoogle => 'Fortsätt med Google';
 
   @override
-  String get continueWithApple => 'Fortsätt med Apple';
+  String get signInWithApple => 'Logga in med Apple';
 
   @override
   String get noAccountSignUp => 'Har du inget konto? Registrera dig';

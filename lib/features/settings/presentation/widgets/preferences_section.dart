@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../deals/presentation/feed_page.dart' show regionProvider;
 import '../../providers/settings_provider.dart';
-import '../../providers/theme_provider.dart';
 import 'section_label.dart';
 import 'segmented_switch.dart';
 import 'setting_divider.dart';
@@ -20,8 +19,6 @@ class PreferencesSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);
     final settingsNotifier = ref.read(appSettingsProvider.notifier);
-    final theme = ref.watch(themeProvider);
-    final themeNotifier = ref.read(themeProvider.notifier);
     final region = ref.watch(regionProvider);
     final regionNotifier = ref.read(regionProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
@@ -40,21 +37,6 @@ class PreferencesSection extends ConsumerWidget {
                   selected: region,
                   onSelect: (r) => regionNotifier.setRegion(r),
                   segments: const {'se': '🇸🇪 SE', 'no': '🇳🇴 NO'},
-                ),
-              ),
-              const SettingDivider(),
-              SettingRow(
-                icon: Icons.color_lens_outlined,
-                label: l10n.themeLabel,
-                trailing: SegmentedSwitch<AppTheme>(
-                  selected: theme,
-                  onSelect: (t) => themeNotifier.updateTheme(t),
-                  segments: {
-                    AppTheme.system: l10n.themeSystem,
-                    AppTheme.light: l10n.themeLight,
-                    AppTheme.dark: l10n.themeDark,
-                    AppTheme.amoled: l10n.themeAmoled,
-                  },
                 ),
               ),
               const SettingDivider(),

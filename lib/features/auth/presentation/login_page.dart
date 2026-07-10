@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../../theme/glass_colors.dart';
 import '../../deals/presentation/user.dart' as domain;
 import '../providers/auth_provider.dart';
 
@@ -219,7 +219,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final state = ref.watch(loginProvider);
     final notifier = ref.read(loginProvider.notifier);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
 
     ref.listen<LoginState>(loginProvider, (previous, next) {
@@ -354,71 +353,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ],
               ),
               const SizedBox(height: 24),
-              OutlinedButton.icon(
+              _GoogleSignInButton(
+                loading: _isGoogleLoading,
+                label: _isGoogleLoading
+                    ? l10n.signingIn
+                    : l10n.continueWithGoogle,
                 onPressed: _isGoogleLoading ? null : _signInWithGoogle,
-                icon: _isGoogleLoading
-                    ? SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: isDark ? GlassColors.glowBorderHover : null,
-                        ),
-                      )
-                    : Image.asset('assets/images/google_logo.png', height: 20),
-                label: Text(
-                  _isGoogleLoading ? l10n.signingIn : l10n.continueWithGoogle,
-                ),
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: isDark ? GlassColors.background : null,
-                  foregroundColor: isDark
-                      ? Colors.white
-                      : theme.colorScheme.onSurface,
-                  side: BorderSide(
-                    color: isDark
-                        ? GlassColors.glowBorder
-                        : theme.colorScheme.outlineVariant,
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
               ),
               if (kIsWeb) ...[
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
+                _AppleSignInButton(
+                  loading: _isAppleLoading,
+                  label: _isAppleLoading
+                      ? l10n.signingIn
+                      : l10n.signInWithApple,
                   onPressed: _isAppleLoading ? null : _signInWithApple,
-                  icon: _isAppleLoading
-                      ? SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: isDark ? GlassColors.glowBorderHover : null,
-                          ),
-                        )
-                      : Icon(
-                          Icons.apple,
-                          size: 20,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
-                  label: Text(
-                    _isAppleLoading ? l10n.signingIn : l10n.continueWithApple,
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: isDark ? GlassColors.background : null,
-                    foregroundColor: isDark
-                        ? Colors.white
-                        : theme.colorScheme.onSurface,
-                    side: BorderSide(
-                      color: isDark
-                          ? GlassColors.glowBorder
-                          : theme.colorScheme.outlineVariant,
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                 ),
               ],
               const SizedBox(height: 16),
@@ -431,6 +380,105 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Google's official dark "Sign in with Google" button spec (background
+/// #131314, border #8E918F, text #E3E3E3, the real 4-color "G" mark) —
+/// fixed regardless of the app's own theme, same as any third-party
+/// brand button. Deliberately not built from this app's OutlinedButton/
+/// GlassColors conventions, which is what made the old version of this
+/// button (and the broken asset it pointed at — see google_logo.svg) not
+/// actually read as "the Google button" users expect.
+class _GoogleSignInButton extends StatelessWidget {
+  const _GoogleSignInButton({
+    required this.loading,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final bool loading;
+  final String label;
+  final VoidCallback? onPressed;
+
+  static const _fill = Color(0xFF131314);
+  static const _border = Color(0xFF8E918F);
+  static const _text = Color(0xFFE3E3E3);
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: loading
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: _text),
+            )
+          : SvgPicture.asset(
+              'assets/images/google_logo.svg',
+              height: 18,
+              width: 18,
+            ),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: _text,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        backgroundColor: _fill,
+        side: const BorderSide(color: _border),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+}
+
+/// Apple's official black "Sign in with Apple" button spec (solid black
+/// fill, no border, white glyph + text) — same "fixed regardless of app
+/// theme" reasoning as [_GoogleSignInButton].
+class _AppleSignInButton extends StatelessWidget {
+  const _AppleSignInButton({
+    required this.loading,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final bool loading;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: loading
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.apple, size: 20, color: Colors.white),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        backgroundColor: Colors.black,
+        side: BorderSide.none,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

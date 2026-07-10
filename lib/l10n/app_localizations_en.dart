@@ -308,22 +308,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get regionLabel => 'Region';
 
   @override
-  String get themeLabel => 'Theme';
-
-  @override
   String get currencyLabel => 'Currency';
-
-  @override
-  String get themeSystem => 'System';
-
-  @override
-  String get themeLight => 'Light';
-
-  @override
-  String get themeDark => 'Dark';
-
-  @override
-  String get themeAmoled => 'Amoled';
 
   @override
   String get dataPrivacySection => 'Data & Privacy';
@@ -398,7 +383,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get continueWithGoogle => 'Continue with Google';
 
   @override
-  String get continueWithApple => 'Continue with Apple';
+  String get signInWithApple => 'Sign in with Apple';
 
   @override
   String get noAccountSignUp => 'Don\'t have an account? Sign Up';

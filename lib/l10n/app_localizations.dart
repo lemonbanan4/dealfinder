@@ -664,41 +664,11 @@ abstract class AppLocalizations {
   /// **'Region'**
   String get regionLabel;
 
-  /// No description provided for @themeLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Theme'**
-  String get themeLabel;
-
   /// No description provided for @currencyLabel.
   ///
   /// In en, this message translates to:
   /// **'Currency'**
   String get currencyLabel;
-
-  /// No description provided for @themeSystem.
-  ///
-  /// In en, this message translates to:
-  /// **'System'**
-  String get themeSystem;
-
-  /// No description provided for @themeLight.
-  ///
-  /// In en, this message translates to:
-  /// **'Light'**
-  String get themeLight;
-
-  /// No description provided for @themeDark.
-  ///
-  /// In en, this message translates to:
-  /// **'Dark'**
-  String get themeDark;
-
-  /// No description provided for @themeAmoled.
-  ///
-  /// In en, this message translates to:
-  /// **'Amoled'**
-  String get themeAmoled;
 
   /// No description provided for @dataPrivacySection.
   ///
@@ -838,11 +808,11 @@ abstract class AppLocalizations {
   /// **'Continue with Google'**
   String get continueWithGoogle;
 
-  /// No description provided for @continueWithApple.
+  /// No description provided for @signInWithApple.
   ///
   /// In en, this message translates to:
-  /// **'Continue with Apple'**
-  String get continueWithApple;
+  /// **'Sign in with Apple'**
+  String get signInWithApple;
 
   /// No description provided for @noAccountSignUp.
   ///

@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'widgets/adaptive_scaffold.dart';
-import 'features/settings/providers/theme_provider.dart';
 import 'features/deals/presentation/feed_page.dart' show regionProvider;
 import 'services/notification/fcm_service.dart';
 import 'features/settings/providers/cookie_consent_provider.dart';
@@ -93,7 +92,6 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = ref.watch(themeProvider);
     final region = ref.watch(regionProvider);
 
     // Listen to cookie consent changes to enable/disable analytics.
@@ -110,15 +108,6 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
       });
     }
 
-    final themeMode = switch (appTheme) {
-      AppTheme.light => ThemeMode.light,
-      AppTheme.dark => ThemeMode.dark,
-      AppTheme.amoled => ThemeMode.dark,
-      AppTheme.system => ThemeMode.system,
-    };
-
-    final isAmoled = appTheme == AppTheme.amoled;
-
     return MaterialApp(
       title: 'PrisPuls',
       scrollBehavior: _AppScrollBehavior(),
@@ -126,18 +115,14 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
       locale: _localeForRegion(region),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      themeMode: themeMode,
-      theme: ThemeData(
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {TargetPlatform.android: CupertinoPageTransitionsBuilder()},
-        ),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: GlassColors.blue500,
-          brightness: Brightness.light,
-        ),
-        textTheme: _appTextTheme,
-        useMaterial3: true,
-      ),
+      // Dark-mode only by design (see CLAUDE.md's Design System) — the
+      // whole Liquid Glass aesthetic (GlassColors, backdrop blur, navy
+      // translucent fills) is built for a dark backdrop only, so there's
+      // no light ThemeData to switch to and no user-facing theme picker
+      // (it used to exist in Settings; removed for overflowing its row and
+      // for offering variants — Light/Amoled — this app was never actually
+      // designed to support).
+      themeMode: ThemeMode.dark,
       darkTheme: ThemeData(
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {TargetPlatform.android: CupertinoPageTransitionsBuilder()},
@@ -151,9 +136,7 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
               surfaceContainer: GlassColors.surface,
               outlineVariant: GlassColors.glowBorder,
             ),
-        scaffoldBackgroundColor: isAmoled
-            ? Colors.black
-            : GlassColors.background,
+        scaffoldBackgroundColor: GlassColors.background,
         textTheme: _appTextTheme.apply(
           bodyColor: GlassColors.textBody,
           displayColor: GlassColors.textHeading,
