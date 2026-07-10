@@ -432,7 +432,11 @@ def _region_filter(region: str | None, params: list) -> str:
 def get_biggest_drops(
     request: Request,
     region: str = Query(None, description="Region to filter"),
-    limit: int = Query(3, ge=1, le=20),
+    # Default caller wants top-3 for the homepage shelf; a client filtering
+    # further by category (a client-only title heuristic, no DB column for
+    # it — see product_category.dart) needs a bigger candidate pool to filter
+    # down from, hence the raised cap.
+    limit: int = Query(3, ge=1, le=100),
 ):
     """Products whose price has dropped versus a price_history snapshot from
     >=24h ago, biggest drop first. The historical price is returned under

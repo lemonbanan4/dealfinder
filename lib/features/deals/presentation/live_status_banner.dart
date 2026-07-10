@@ -86,10 +86,13 @@ class _LiveStatusBannerState extends ConsumerState<LiveStatusBanner> {
 /// "spotlight" effect (reference: screenshots/blue_black.png) rather than a
 /// flat background, so the live-status banner reads as the focal point of
 /// this part of the page instead of just another pill on a plain backdrop.
-/// Also frames the "Live Market Price Tracker" hero headline sitting above
-/// [child], so the headline reads as part of the same glowing spotlight
-/// rather than a separate page-header block. Self-contained (fixed height,
-/// no overflow) so it drops into the feed's sliver flow like any other box.
+/// Self-contained (fixed height, no overflow) so it drops into the feed's
+/// sliver flow like any other box.
+///
+/// Used to also frame a "Live Market Price Tracker" hero headline above
+/// [child] — removed for now (kept the `liveHeroHeadline` l10n strings
+/// around in case it comes back) since it read as redundant on top of the
+/// pill's own cycling status text.
 class BannerGlowBackdrop extends StatelessWidget {
   const BannerGlowBackdrop({super.key, required this.child});
 
@@ -97,16 +100,14 @@ class BannerGlowBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
-      height: 168,
+      height: 96,
       child: Stack(
         alignment: Alignment.center,
         children: [
           Container(
             width: 640,
-            height: 168,
+            height: 96,
             decoration: const BoxDecoration(
               gradient: RadialGradient(
                 colors: [
@@ -116,22 +117,7 @@ class BannerGlowBackdrop extends StatelessWidget {
               ),
             ),
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                l10n.liveHeroHeadline,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: GlassColors.textHeading,
-                  fontWeight: FontWeight.w700,
-                  shadows: GlassColors.neonTextBlue,
-                ),
-              ),
-              const SizedBox(height: 14),
-              child,
-            ],
-          ),
+          child,
         ],
       ),
     );
