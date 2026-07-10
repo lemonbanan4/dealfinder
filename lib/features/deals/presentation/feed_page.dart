@@ -490,14 +490,15 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                           controller: _scrollController,
                           slivers: [
                             // ---- Live status banner: a slim, centered
-                            // glass pill floating directly on the page's
-                            // background gradient — extra top inset here
-                            // is the "breathing room" gap between the
-                            // header/nav bar and the feed. ----
+                            // glass pill (plus the "Live Market Price
+                            // Tracker" hero headline above it) floating
+                            // directly on the page's background gradient —
+                            // top inset here is deliberately tight, just
+                            // enough breathing room under the nav bar. ----
                             SliverPadding(
                               padding: EdgeInsets.fromLTRB(
                                 _heroHorizontalPadding(context),
-                                32,
+                                16,
                                 _heroHorizontalPadding(context),
                                 0,
                               ),
@@ -523,7 +524,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                 sliver: const SliverMainAxisGroup(
                                   slivers: [
                                     SliverToBoxAdapter(
-                                      child: SizedBox(height: 20),
+                                      child: SizedBox(height: 8),
                                     ),
                                     RecentlyViewedSliver(),
                                   ],

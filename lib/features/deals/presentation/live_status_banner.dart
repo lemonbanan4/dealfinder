@@ -84,8 +84,10 @@ class _LiveStatusBannerState extends ConsumerState<LiveStatusBanner> {
 /// "spotlight" effect (reference: screenshots/blue_black.png) rather than a
 /// flat background, so the live-status banner reads as the focal point of
 /// this part of the page instead of just another pill on a plain backdrop.
-/// Self-contained (fixed height, no overflow) so it drops into the feed's
-/// sliver flow like any other box.
+/// Also frames the "Live Market Price Tracker" hero headline sitting above
+/// [child], so the headline reads as part of the same glowing spotlight
+/// rather than a separate page-header block. Self-contained (fixed height,
+/// no overflow) so it drops into the feed's sliver flow like any other box.
 class BannerGlowBackdrop extends StatelessWidget {
   const BannerGlowBackdrop({super.key, required this.child});
 
@@ -93,14 +95,15 @@ class BannerGlowBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SizedBox(
-      height: 220,
+      height: 168,
       child: Stack(
         alignment: Alignment.center,
         children: [
           Container(
             width: 640,
-            height: 220,
+            height: 168,
             decoration: const BoxDecoration(
               gradient: RadialGradient(
                 colors: [
@@ -110,7 +113,22 @@ class BannerGlowBackdrop extends StatelessWidget {
               ),
             ),
           ),
-          child,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Live Market Price Tracker',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: GlassColors.textHeading,
+                  fontWeight: FontWeight.w700,
+                  shadows: GlassColors.neonTextBlue,
+                ),
+              ),
+              const SizedBox(height: 14),
+              child,
+            ],
+          ),
         ],
       ),
     );
