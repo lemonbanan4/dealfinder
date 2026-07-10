@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../theme/glass_colors.dart';
 import '../../deals/presentation/user.dart' as domain;
 import '../providers/auth_provider.dart';
 
@@ -314,7 +315,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
               const SizedBox(height: 24),
-              ElevatedButton(
+              _GradientAuthButton(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [GlassColors.blue500, GlassColors.indigo600],
+                ),
+                glowColor: GlassColors.sky400,
                 onPressed: state.loading
                     ? null
                     : () => notifier.submit(
@@ -322,15 +329,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         _emailController.text.trim(),
                         _passwordController.text.trim(),
                       ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
                 child: state.loading
                     ? const SizedBox.square(
-                        dimension: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : Text(state.isLogin ? l10n.loginTitle : l10n.signUpTitle),
+                    : Text(
+                        state.isLogin ? l10n.loginTitle : l10n.signUpTitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
               ),
               const SizedBox(height: 24),
               Row(
@@ -385,13 +399,66 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 }
 
-/// Google's official dark "Sign in with Google" button spec (background
-/// #131314, border #8E918F, text #E3E3E3, the real 4-color "G" mark) —
-/// fixed regardless of the app's own theme, same as any third-party
-/// brand button. Deliberately not built from this app's OutlinedButton/
-/// GlassColors conventions, which is what made the old version of this
-/// button (and the broken asset it pointed at — see google_logo.svg) not
-/// actually read as "the Google button" users expect.
+/// Shared shape/chrome for every gradient CTA on this page (the email/
+/// password submit button, Google, Apple) — a glass-glow pill matching
+/// this app's own button language (see GlassCard's hover glow), with the
+/// gradient/glow color and inner content left to the caller so each
+/// button can carry its own distinct identity rather than all three
+/// looking like the same button in different colors.
+class _GradientAuthButton extends StatelessWidget {
+  const _GradientAuthButton({
+    required this.gradient,
+    required this.glowColor,
+    required this.onPressed,
+    required this.child,
+  });
+
+  final Gradient gradient;
+  final Color glowColor;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    return AnimatedOpacity(
+      opacity: enabled ? 1 : 0.6,
+      duration: const Duration(milliseconds: 150),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: glowColor.withValues(alpha: 0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: glowColor.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onPressed,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Center(child: child),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Sign in with Google" — a blue-to-green diagonal gradient drawn from
+/// Google's own brand blue/green (rather than the flat #131314 "official
+/// dark button" fill), so it reads as unmistakably Google while still
+/// looking distinct from the plain black Apple button next to it. The "G"
+/// mark sits on a small white chip for legibility against the gradient —
+/// Google's own multi-surface button assets use the same trick.
 class _GoogleSignInButton extends StatelessWidget {
   const _GoogleSignInButton({
     required this.loading,
@@ -403,45 +470,59 @@ class _GoogleSignInButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
 
-  static const _fill = Color(0xFF131314);
-  static const _border = Color(0xFF8E918F);
-  static const _text = Color(0xFFE3E3E3);
-
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: loading
-          ? const SizedBox.square(
-              dimension: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: _text),
-            )
-          : SvgPicture.asset(
-              'assets/images/google_logo.svg',
-              height: 18,
-              width: 18,
-            ),
-      label: Text(
-        label,
-        style: const TextStyle(
-          color: _text,
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
+    return _GradientAuthButton(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF4285F4), Color(0xFF34A853)],
       ),
-      style: OutlinedButton.styleFrom(
-        backgroundColor: _fill,
-        side: const BorderSide(color: _border),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      glowColor: const Color(0xFF4285F4),
+      onPressed: onPressed,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          loading
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: SvgPicture.asset(
+                    'assets/images/google_logo.svg',
+                    height: 16,
+                    width: 16,
+                  ),
+                ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Apple's official black "Sign in with Apple" button spec (solid black
-/// fill, no border, white glyph + text) — same "fixed regardless of app
-/// theme" reasoning as [_GoogleSignInButton].
+/// "Sign in with Apple" — a charcoal-to-black diagonal gradient rather
+/// than a flat fill, so it reads with some depth (fitting this app's
+/// Liquid Glass surfaces) while staying true to Apple's black-button
+/// guideline (no color, white glyph/text, no border of its own — the
+/// shared white-ish glow from [_GradientAuthButton] stands in for one).
 class _AppleSignInButton extends StatelessWidget {
   const _AppleSignInButton({
     required this.loading,
@@ -455,30 +536,36 @@ class _AppleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: loading
-          ? const SizedBox.square(
-              dimension: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : const Icon(Icons.apple, size: 20, color: Colors.white),
-      label: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
+    return _GradientAuthButton(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF3A3A3C), Color(0xFF000000)],
       ),
-      style: OutlinedButton.styleFrom(
-        backgroundColor: Colors.black,
-        side: BorderSide.none,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      glowColor: Colors.white,
+      onPressed: onPressed,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          loading
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.apple, size: 20, color: Colors.white),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
