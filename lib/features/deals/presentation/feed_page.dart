@@ -18,7 +18,13 @@ import '../../../widgets/glass_container.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../newsletter/presentation/newsletter_signup_section.dart';
-import '../../settings/presentation/settings_page.dart';
+// Deferred: Settings (+ its Account/Preferences/Data & Privacy/Danger Zone
+// subtree, cloud_functions, and the legal pages it links to) is a full-page
+// navigation behind an icon tap, not part of the initial feed render — no
+// reason to ship its code in the critical-path bundle everyone downloads
+// before first paint. See https://flutter.dev/to/deferred-loading.
+import '../../settings/presentation/settings_page.dart'
+    deferred as settings_lib;
 import '../../settings/presentation/shimmer_grid.dart';
 import '../domain/deal.dart';
 import '../providers/filtered_deals_provider.dart';
@@ -974,14 +980,22 @@ class _TopNavAuthIcon extends ConsumerWidget {
           user != null ? Icons.account_circle : Icons.person_outline,
           color: Colors.white,
         ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  user != null ? const SettingsPage() : const LoginPage(),
-            ),
-          );
+        onPressed: () async {
+          if (user != null) {
+            await settings_lib.loadLibrary();
+            if (!context.mounted) return;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => settings_lib.SettingsPage(),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          }
         },
       ),
       loading: () => const SizedBox(width: 48),

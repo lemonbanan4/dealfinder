@@ -4,9 +4,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../features/deals/domain/product_category.dart';
 import '../features/deals/presentation/glass_categories_menu.dart'
     show categoryLabel;
-import '../features/legal/presentation/about_us_page.dart';
-import '../features/legal/presentation/privacy_policy_page.dart';
-import '../features/legal/presentation/terms_of_service_page.dart';
+// Deferred: these are full-page navigations from a footer link on every
+// homepage load, but their content is only ever needed if that link is
+// actually tapped — no reason to ship 3 static text pages in the
+// critical-path bundle just because the *link* to them is always visible.
+import '../features/legal/presentation/about_us_page.dart'
+    deferred as about_lib;
+import '../features/legal/presentation/privacy_policy_page.dart'
+    deferred as privacy_lib;
+import '../features/legal/presentation/terms_of_service_page.dart'
+    deferred as terms_lib;
 import '../l10n/app_localizations.dart';
 import '../theme/glass_colors.dart';
 
@@ -226,15 +233,23 @@ Widget _informationColumn(BuildContext context, AppLocalizations l10n) {
     children: [
       _FooterLink(
         label: l10n.footerAboutUs,
-        onTap: () => _push(context, const AboutUsPage()),
+        onTap: () => _pushAboutUs(context),
       ),
       _FooterLink(
         label: l10n.footerPrivacyPolicy,
-        onTap: () => _push(context, const PrivacyPolicyPage()),
+        onTap: () => _pushDeferred(
+          context,
+          privacy_lib.loadLibrary,
+          () => privacy_lib.PrivacyPolicyPage(),
+        ),
       ),
       _FooterLink(
         label: l10n.footerTermsOfService,
-        onTap: () => _push(context, const TermsOfServicePage()),
+        onTap: () => _pushDeferred(
+          context,
+          terms_lib.loadLibrary,
+          () => terms_lib.TermsOfServicePage(),
+        ),
       ),
     ],
   );
@@ -250,16 +265,31 @@ Widget _supportColumn(BuildContext context, AppLocalizations l10n) {
       ),
       _FooterLink(
         label: l10n.footerAffiliateDisclosure,
-        onTap: () => _push(context, const AboutUsPage()),
+        onTap: () => _pushAboutUs(context),
       ),
     ],
   );
 }
 
-void _push(BuildContext context, Widget page) {
+Future<void> _pushAboutUs(BuildContext context) => _pushDeferred(
+  context,
+  about_lib.loadLibrary,
+  () => about_lib.AboutUsPage(),
+);
+
+/// Awaits the deferred library's chunk download, then pushes the page it
+/// contains. [loadLibrary] is idempotent/cached by Dart after the first
+/// call, so repeat navigations don't re-download anything.
+Future<void> _pushDeferred(
+  BuildContext context,
+  Future<void> Function() loadLibrary,
+  Widget Function() buildPage,
+) async {
+  await loadLibrary();
+  if (!context.mounted) return;
   Navigator.of(
     context,
-  ).push<void>(MaterialPageRoute<void>(builder: (_) => page));
+  ).push<void>(MaterialPageRoute<void>(builder: (_) => buildPage()));
 }
 
 class _FooterLink extends StatelessWidget {

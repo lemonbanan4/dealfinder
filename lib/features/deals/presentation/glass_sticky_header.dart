@@ -5,7 +5,9 @@ import '../../../widgets/app_logo.dart';
 import '../../../widgets/glass_container.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../settings/presentation/settings_page.dart';
+// Deferred — see the identical import in feed_page.dart for why.
+import '../../settings/presentation/settings_page.dart'
+    deferred as settings_lib;
 import 'feed_page.dart';
 import 'glass_categories_menu.dart';
 import 'glass_search_field.dart';
@@ -79,14 +81,22 @@ class _AuthIcon extends ConsumerWidget {
           user != null ? Icons.account_circle : Icons.person_outline,
           color: Colors.white,
         ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  user != null ? const SettingsPage() : const LoginPage(),
-            ),
-          );
+        onPressed: () async {
+          if (user != null) {
+            await settings_lib.loadLibrary();
+            if (!context.mounted) return;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => settings_lib.SettingsPage(),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          }
         },
       ),
       loading: () => const SizedBox(width: 48),
