@@ -519,6 +519,43 @@ def get_top_discounts(
         raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
 
 
+@app.get("/api/deals/by-store")
+@limiter.limit("30/minute")
+def get_deals_by_store(
+    request: Request,
+    store: str = Query(..., description="Exact feed_region value, e.g. 'dyson_se'"),
+    limit: int = Query(24, ge=1, le=100),
+):
+    """Products from one exact feed_region (a single scraper store feed —
+    see StoreConfig in scraper/scraper.py), biggest discount first. Backs
+    per-brand landing pages (e.g. "Best Deals on Dyson in Sweden"): unlike
+    the client-side title/feed_region substring search used for the
+    homepage's "Utvalda Brands" tiles, this is an exact match against a
+    single real store feed, so it only ever surfaces pages for brands that
+    actually have dedicated tracked inventory.
+    """
+    try:
+        with db_cursor(dict_cursor=True) as (conn, cursor):
+            cursor.execute(
+                """
+                SELECT * FROM products
+                WHERE feed_region = %s AND price > 0
+                ORDER BY
+                    CASE
+                        WHEN retail_price > price THEN (retail_price - price) / retail_price
+                        ELSE 0
+                    END DESC,
+                    last_updated DESC
+                LIMIT %s
+                """,
+                (store, limit),
+            )
+            return {"items": cursor.fetchall()}
+    except Exception:
+        log.exception("get_deals_by_store failed (store=%s)", store)
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
+
+
 @app.get("/api/stats")
 @limiter.limit("30/minute")
 def get_stats(request: Request, region: str = Query(None, description="Region to filter")):
