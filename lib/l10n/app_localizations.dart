@@ -567,6 +567,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'© {year} PrisPuls. All rights reserved.'**
   String footerCopyright(int year);
+
+  /// No description provided for @accountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountSection;
+
+  /// No description provided for @noEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'No email'**
+  String get noEmail;
+
+  /// No description provided for @defaultUserName.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get defaultUserName;
+
+  /// No description provided for @editNameTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Name'**
+  String get editNameTooltip;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePassword;
+
+  /// No description provided for @couldNotLoadProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load profile'**
+  String get couldNotLoadProfile;
+
+  /// No description provided for @fullNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name'**
+  String get fullNameLabel;
+
+  /// No description provided for @nameCannotBeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Name cannot be empty'**
+  String get nameCannotBeEmpty;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @failedToUpdateName.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update name: {error}'**
+  String failedToUpdateName(String error);
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
+  String get newPasswordLabel;
+
+  /// No description provided for @passwordMinLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get passwordMinLength;
+
+  /// No description provided for @passwordUpdatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password updated successfully!'**
+  String get passwordUpdatedSuccess;
+
+  /// No description provided for @failedToUpdatePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update password.'**
+  String get failedToUpdatePassword;
+
+  /// No description provided for @preferencesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get preferencesSection;
+
+  /// No description provided for @regionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Region'**
+  String get regionLabel;
+
+  /// No description provided for @themeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get themeLabel;
+
+  /// No description provided for @currencyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get currencyLabel;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get themeSystem;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themeLight;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themeDark;
+
+  /// No description provided for @themeAmoled.
+  ///
+  /// In en, this message translates to:
+  /// **'Amoled'**
+  String get themeAmoled;
+
+  /// No description provided for @dataPrivacySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Data & Privacy'**
+  String get dataPrivacySection;
+
+  /// No description provided for @clearRecentlyViewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear recently viewed'**
+  String get clearRecentlyViewed;
+
+  /// No description provided for @dangerZoneSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger Zone'**
+  String get dangerZoneSection;
+
+  /// No description provided for @signOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out'**
+  String get signOut;
+
+  /// No description provided for @signOutConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to sign out?'**
+  String get signOutConfirm;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently delete your account? This action cannot be undone.'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @failedToDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete account. Please try again.'**
+  String get failedToDeleteAccount;
+
+  /// No description provided for @loginTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get loginTitle;
+
+  /// No description provided for @signUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get signUpTitle;
+
+  /// No description provided for @emailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get emailLabel;
+
+  /// No description provided for @pleaseEnterEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter an email'**
+  String get pleaseEnterEmail;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordLabel;
+
+  /// No description provided for @pleaseEnterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a password'**
+  String get pleaseEnterPassword;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password?'**
+  String get forgotPassword;
+
+  /// No description provided for @resetPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPasswordTitle;
+
+  /// No description provided for @enterYourEmailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email address'**
+  String get enterYourEmailAddress;
+
+  /// No description provided for @sendLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Link'**
+  String get sendLink;
+
+  /// No description provided for @resetLinkSentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account exists, a password reset link has been sent.'**
+  String get resetLinkSentMessage;
+
+  /// No description provided for @orDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'OR'**
+  String get orDivider;
+
+  /// No description provided for @signingIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in…'**
+  String get signingIn;
+
+  /// No description provided for @continueWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get continueWithGoogle;
+
+  /// No description provided for @noAccountSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? Sign Up'**
+  String get noAccountSignUp;
+
+  /// No description provided for @haveAccountLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? Login'**
+  String get haveAccountLogin;
+
+  /// No description provided for @unexpectedError.
+  ///
+  /// In en, this message translates to:
+  /// **'An unexpected error occurred.'**
+  String get unexpectedError;
+
+  /// No description provided for @pleaseEnterValidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email.'**
+  String get pleaseEnterValidEmail;
+
+  /// No description provided for @newsletterThanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks! You\'re on the list.'**
+  String get newsletterThanks;
+
+  /// No description provided for @newsletterAlreadySignedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'That email is already signed up.'**
+  String get newsletterAlreadySignedUp;
+
+  /// No description provided for @newsletterSomethingWentWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get newsletterSomethingWentWrong;
+
+  /// No description provided for @newsletterHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Get the deals first'**
+  String get newsletterHeadline;
+
+  /// No description provided for @newsletterSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up for our newsletter and get the best deals straight to your inbox.'**
+  String get newsletterSubtitle;
+
+  /// No description provided for @emailAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address'**
+  String get emailAddressHint;
+
+  /// No description provided for @register.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get register;
+
+  /// No description provided for @aboutWhoWeAreHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Who We Are'**
+  String get aboutWhoWeAreHeading;
+
+  /// No description provided for @aboutWhoWeAreBody.
+  ///
+  /// In en, this message translates to:
+  /// **'PrisPuls is a Scandinavian price-comparison and deal-discovery service built to help consumers find the best prices on electronics, home goods, fashion, and more — all in one place.\n\nOur platform aggregates offers from hundreds of retailers, refreshed multiple times a day, so you always have the most current pricing at your fingertips.'**
+  String get aboutWhoWeAreBody;
+
+  /// No description provided for @aboutMissionHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Our Mission'**
+  String get aboutMissionHeading;
+
+  /// No description provided for @aboutMissionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We believe every consumer deserves to make informed purchasing decisions without spending hours comparing prices across dozens of websites. PrisPuls does that work for you — so you can buy smarter, save more, and spend your time on what matters.'**
+  String get aboutMissionBody;
+
+  /// No description provided for @aboutAffiliateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'PrisPuls participates in various affiliate marketing programs, which means we may get paid commissions on editorially chosen products purchased through our links to retailer sites.\n\nWhen you click on a product link and complete a purchase, PrisPuls may earn a small commission from the retailer at no additional cost to you. These commissions help us maintain and continuously improve our service.\n\nOur editorial decisions — including which products and deals we feature — are made independently of any affiliate relationship. We are committed to providing honest, unbiased pricing information regardless of whether a commercial relationship exists with a given retailer.'**
+  String get aboutAffiliateBody;
+
+  /// No description provided for @aboutTeamHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Our Team'**
+  String get aboutTeamHeading;
+
+  /// No description provided for @aboutTeamBody.
+  ///
+  /// In en, this message translates to:
+  /// **'PrisPuls is built and maintained by a small, passionate team dedicated to consumer transparency and fair pricing. We are headquartered in Norway and serve users across the Nordic region.'**
+  String get aboutTeamBody;
+
+  /// No description provided for @aboutContactBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Have a question, found an incorrect price, or want to partner with us?\n\nEmail: support@prispuls.com\nWebsite: www.prispuls.com\n\nWe typically respond within two business days.'**
+  String get aboutContactBody;
 }
 
 class _AppLocalizationsDelegate

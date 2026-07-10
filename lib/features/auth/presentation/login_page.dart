@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../theme/glass_colors.dart';
 import '../../deals/presentation/user.dart' as domain;
 import '../providers/auth_provider.dart';
@@ -9,6 +10,15 @@ import '../providers/auth_provider.dart';
 final loginProvider = NotifierProvider<LoginNotifier, LoginState>(
   () => LoginNotifier(FirebaseAuth.instance),
 );
+
+/// [LoginNotifier] has no [BuildContext] to resolve [AppLocalizations]
+/// through, so its two internal fallback errors (as opposed to Firebase's
+/// own [FirebaseAuthException.message], which is already localized text
+/// from Firebase and passed through as-is) are these sentinels — the
+/// widget's `ref.listen` (which does have context) swaps them for real
+/// localized text before display.
+const unexpectedErrorSentinel = '__unexpected_error__';
+const invalidEmailSentinel = '__invalid_email__';
 
 @immutable
 class LoginState {
@@ -86,10 +96,7 @@ class LoginNotifier extends Notifier<LoginState> {
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
     } catch (e) {
-      state = state.copyWith(
-        loading: false,
-        error: 'An unexpected error occurred.',
-      );
+      state = state.copyWith(loading: false, error: unexpectedErrorSentinel);
     } finally {
       // In AutoDisposeNotifier, we can safely update loading if ref is still active
       try {
@@ -100,7 +107,7 @@ class LoginNotifier extends Notifier<LoginState> {
 
   Future<void> resetPassword(String email) async {
     if (email.isEmpty || !email.contains('@')) {
-      state = state.copyWith(error: 'Please enter a valid email.');
+      state = state.copyWith(error: invalidEmailSentinel);
       return;
     }
     state = state.copyWith(loading: true, clearError: true);
@@ -110,9 +117,7 @@ class LoginNotifier extends Notifier<LoginState> {
     } catch (e) {
       state = state.copyWith(
         loading: false,
-        error: e is FirebaseAuthException
-            ? e.message
-            : 'An unexpected error occurred.',
+        error: e is FirebaseAuthException ? e.message : unexpectedErrorSentinel,
       );
     }
   }
@@ -152,24 +157,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   void _showForgotPasswordDialog() {
     final notifier = ref.read(loginProvider.notifier);
     final emailDialogController = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Reset Password'),
+          title: Text(l10n.resetPasswordTitle),
           content: TextField(
             controller: emailDialogController,
             autofocus: true,
             keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              hintText: 'Enter your email address',
+            decoration: InputDecoration(
+              labelText: l10n.emailLabel,
+              hintText: l10n.enterYourEmailAddress,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
@@ -181,17 +187,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'If an account exists, a password reset link has been sent.',
-                        ),
+                      SnackBar(
+                        content: Text(l10n.resetLinkSentMessage),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   }
                 }
               },
-              child: const Text('Send Link'),
+              child: Text(l10n.sendLink),
             ),
           ],
         );
@@ -205,12 +209,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final notifier = ref.read(loginProvider.notifier);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     ref.listen<LoginState>(loginProvider, (previous, next) {
       if (next.error != null) {
+        final message = switch (next.error!) {
+          unexpectedErrorSentinel => l10n.unexpectedError,
+          invalidEmailSentinel => l10n.pleaseEnterValidEmail,
+          final e => e,
+        };
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.error!),
+            content: Text(message),
             backgroundColor: theme.colorScheme.error,
           ),
         );
@@ -242,7 +252,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: Text(state.isLogin ? 'Login' : 'Sign Up')),
+      appBar: AppBar(
+        title: Text(state.isLogin ? l10n.loginTitle : l10n.signUpTitle),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Form(
@@ -252,17 +264,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             children: [
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: l10n.emailLabel),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) =>
-                    (value?.isEmpty ?? true) ? 'Please enter an email' : null,
+                    (value?.isEmpty ?? true) ? l10n.pleaseEnterEmail : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
                 obscureText: state.obscurePass,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: l10n.passwordLabel,
                   suffixIcon: IconButton(
                     icon: Icon(
                       state.obscurePass
@@ -274,10 +286,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 validator: (value) {
                   if (value?.isEmpty ?? true) {
-                    return 'Please enter a password';
+                    return l10n.pleaseEnterPassword;
                   }
                   if (value!.length < 6) {
-                    return 'Password must be at least 6 characters';
+                    return l10n.passwordMinLength;
                   }
                   return null;
                 },
@@ -288,7 +300,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _showForgotPasswordDialog,
-                    child: const Text('Forgot Password?'),
+                    child: Text(l10n.forgotPassword),
                   ),
                 ),
               const SizedBox(height: 24),
@@ -308,7 +320,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         dimension: 24,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(state.isLogin ? 'Login' : 'Sign Up'),
+                    : Text(state.isLogin ? l10n.loginTitle : l10n.signUpTitle),
               ),
               const SizedBox(height: 24),
               Row(
@@ -319,7 +331,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Text(
-                      'OR',
+                      l10n.orDivider,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -343,7 +355,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       )
                     : Image.asset('assets/images/google_logo.png', height: 20),
                 label: Text(
-                  _isGoogleLoading ? 'Signing in…' : 'Continue with Google',
+                  _isGoogleLoading ? l10n.signingIn : l10n.continueWithGoogle,
                 ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: isDark ? GlassColors.background : null,
@@ -365,9 +377,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               TextButton(
                 onPressed: notifier.toggleMode,
                 child: Text(
-                  state.isLogin
-                      ? 'Don\'t have an account? Sign Up'
-                      : 'Already have an account? Login',
+                  state.isLogin ? l10n.noAccountSignUp : l10n.haveAccountLogin,
                 ),
               ),
             ],

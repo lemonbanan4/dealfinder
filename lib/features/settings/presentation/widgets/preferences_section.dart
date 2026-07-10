@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../deals/presentation/feed_page.dart' show regionProvider;
 import '../../providers/settings_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -23,17 +24,18 @@ class PreferencesSection extends ConsumerWidget {
     final themeNotifier = ref.read(themeProvider.notifier);
     final region = ref.watch(regionProvider);
     final regionNotifier = ref.read(regionProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionLabel('Preferences'),
+        SectionLabel(l10n.preferencesSection),
         SettingsCard(
           child: Column(
             children: [
               SettingRow(
                 icon: Icons.public,
-                label: 'Region',
+                label: l10n.regionLabel,
                 trailing: SegmentedSwitch<String>(
                   selected: region,
                   onSelect: (r) => regionNotifier.setRegion(r),
@@ -43,22 +45,22 @@ class PreferencesSection extends ConsumerWidget {
               const SettingDivider(),
               SettingRow(
                 icon: Icons.color_lens_outlined,
-                label: 'Theme',
+                label: l10n.themeLabel,
                 trailing: SegmentedSwitch<AppTheme>(
                   selected: theme,
                   onSelect: (t) => themeNotifier.updateTheme(t),
-                  segments: const {
-                    AppTheme.system: 'System',
-                    AppTheme.light: 'Light',
-                    AppTheme.dark: 'Dark',
-                    AppTheme.amoled: 'Amoled',
+                  segments: {
+                    AppTheme.system: l10n.themeSystem,
+                    AppTheme.light: l10n.themeLight,
+                    AppTheme.dark: l10n.themeDark,
+                    AppTheme.amoled: l10n.themeAmoled,
                   },
                 ),
               ),
               const SettingDivider(),
               SettingRow(
                 icon: Icons.paid_outlined,
-                label: 'Currency',
+                label: l10n.currencyLabel,
                 trailing: SegmentedSwitch<String>(
                   selected: settings.displayCurrency,
                   onSelect: (c) => settingsNotifier.setDisplayCurrency(c),

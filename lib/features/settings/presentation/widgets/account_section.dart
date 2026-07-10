@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../auth/providers/auth_provider.dart';
 import 'settings_card.dart';
 import 'section_label.dart';
@@ -22,6 +23,7 @@ class AccountSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return authState.when(
       data: (user) {
@@ -29,8 +31,8 @@ class AccountSection extends ConsumerWidget {
           return const SizedBox.shrink();
         }
 
-        final email = user.email ?? 'No email';
-        final name = user.displayName ?? 'User';
+        final email = user.email ?? l10n.noEmail;
+        final name = user.displayName ?? l10n.defaultUserName;
         final avatarUrl = user.photoURL;
         final initials = name.isNotEmpty
             ? name.substring(0, 1).toUpperCase()
@@ -43,7 +45,7 @@ class AccountSection extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionLabel('Account'),
+            SectionLabel(l10n.accountSection),
             SettingsCard(
               child: Column(
                 children: [
@@ -92,7 +94,7 @@ class AccountSection extends ConsumerWidget {
                           context: context,
                           builder: (_) => _EditNameDialog(currentName: name),
                         ),
-                        tooltip: 'Edit Name',
+                        tooltip: l10n.editNameTooltip,
                         color: theme.colorScheme.onSurfaceVariant,
                         iconSize: 20,
                       ),
@@ -106,7 +108,7 @@ class AccountSection extends ConsumerWidget {
                         icon: const Icon(Icons.lock_outline, size: 18),
                         onPressed: () =>
                             _showChangePasswordDialog(context, ref),
-                        label: const Text('Change Password'),
+                        label: Text(l10n.changePassword),
                       ),
                     ),
                   ],
@@ -130,7 +132,7 @@ class AccountSection extends ConsumerWidget {
       ),
       error: (error, stack) => ListTile(
         leading: const Icon(Icons.error),
-        title: const Text('Could not load profile'),
+        title: Text(l10n.couldNotLoadProfile),
         subtitle: Text(error.toString()),
       ),
     );
@@ -174,7 +176,9 @@ class _EditNameDialogState extends ConsumerState<_EditNameDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update name: ${e.toString()}'),
+            content: Text(
+              AppLocalizations.of(context)!.failedToUpdateName(e.toString()),
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -188,17 +192,18 @@ class _EditNameDialogState extends ConsumerState<_EditNameDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Edit Name'),
+      title: Text(l10n.editNameTooltip),
       content: Form(
         key: _formKey,
         child: TextFormField(
           controller: _nameController,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Full Name'),
+          decoration: InputDecoration(labelText: l10n.fullNameLabel),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Name cannot be empty';
+              return l10n.nameCannotBeEmpty;
             }
             return null;
           },
@@ -207,7 +212,7 @@ class _EditNameDialogState extends ConsumerState<_EditNameDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: _isLoading ? null : _updateName,
@@ -216,7 +221,7 @@ class _EditNameDialogState extends ConsumerState<_EditNameDialog> {
                   dimension: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n.save),
         ),
       ],
     );
@@ -258,8 +263,8 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password updated successfully!'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.passwordUpdatedSuccess),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -268,7 +273,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.message ?? 'Failed to update password.'),
+            content: Text(
+              e.message ?? AppLocalizations.of(context)!.failedToUpdatePassword,
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -282,18 +289,19 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Change Password'),
+      title: Text(l10n.changePassword),
       content: Form(
         key: _formKey,
         child: TextFormField(
           controller: _passwordController,
           autofocus: true,
           obscureText: true,
-          decoration: const InputDecoration(labelText: 'New Password'),
+          decoration: InputDecoration(labelText: l10n.newPasswordLabel),
           validator: (value) {
             if (value == null || value.length < 6) {
-              return 'Password must be at least 6 characters';
+              return l10n.passwordMinLength;
             }
             return null;
           },
@@ -302,7 +310,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: _isLoading ? null : _updatePassword,
@@ -311,7 +319,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                   dimension: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n.save),
         ),
       ],
     );

@@ -1,12 +1,9 @@
 {
   "@@locale": "en",
-
   "navFeed": "Feed",
   "navAlerts": "Alerts",
-
   "searchHint": "Search products or brands...",
   "clearSearch": "Clear search",
-
   "categoriesButton": "Categories",
   "allCategories": "All Categories",
   "groupElectronics": "Electronics & Tech",
@@ -31,19 +28,25 @@
   "catBooksMedia": "Books & Media",
   "catPets": "Pets",
   "catTravelLuggage": "Travel & Luggage",
-
   "liveHeroHeadline": "Live Market Price Tracker",
   "liveDealsTracked": "🔥 {count}+ deals tracked right now",
   "@liveDealsTracked": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "liveDealsSynced": "🔥 New deals synced continuously",
   "livePriceDrops": "📉 Found {count} price drops today",
   "@livePriceDrops": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "liveMonitoringActive": "⚡ Live price monitoring active",
-
   "recentlyViewed": "Recently Viewed",
   "clearAll": "Clear All",
   "clearHistoryTitle": "Clear History",
@@ -55,40 +58,52 @@
   "insaneDeals": "Insane Deals",
   "minDiscountBadge": "≥ {percent}% off",
   "@minDiscountBadge": {
-    "placeholders": { "percent": { "type": "int" } }
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
   },
   "refreshDealsTooltip": "Refresh Deals",
-
   "sortTooltip": "Sort deals",
   "sortButtonLabel": "Sort: {label}",
   "@sortButtonLabel": {
-    "placeholders": { "label": { "type": "String" } }
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
   },
   "sortBestDeals": "Best Deals",
   "sortPriceLowHigh": "Price: Low to High",
   "sortPriceHighLow": "Price: High to Low",
   "sortNewest": "Newest",
-
   "prevPage": "Previous page",
   "nextPage": "Next page",
   "lastPage": "Last",
   "goToPage": "Go to page (1-{total})",
   "@goToPage": {
-    "placeholders": { "total": { "type": "int" } }
+    "placeholders": {
+      "total": {
+        "type": "int"
+      }
+    }
   },
-
   "noDealsFound": "No deals found",
   "checkBackLater": "Check back later or tap refresh.",
   "refreshNow": "Refresh now",
   "noResultsFor": "No results for \"{query}\"",
   "@noResultsFor": {
-    "placeholders": { "query": { "type": "String" } }
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
   },
   "noDealsMatchFilters": "No deals match your filters",
   "tryCheckingTypos": "Try checking for typos or removing some filters.",
   "clearFilters": "Clear filters",
   "retry": "Retry",
-
   "footerTagline": "Scandinavia's smartest way to compare prices.",
   "trustSecure": "Secure (HTTPS)",
   "trustVerified": "Verified Affiliate Partner",
@@ -106,6 +121,81 @@
   "footerAffiliateDisclosure": "Affiliate Disclosure",
   "footerCopyright": "© {year} PrisPuls. All rights reserved.",
   "@footerCopyright": {
-    "placeholders": { "year": { "type": "int" } }
-  }
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "accountSection": "Account",
+  "noEmail": "No email",
+  "defaultUserName": "User",
+  "editNameTooltip": "Edit Name",
+  "changePassword": "Change Password",
+  "couldNotLoadProfile": "Could not load profile",
+  "fullNameLabel": "Full Name",
+  "nameCannotBeEmpty": "Name cannot be empty",
+  "save": "Save",
+  "failedToUpdateName": "Failed to update name: {error}",
+  "@failedToUpdateName": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "newPasswordLabel": "New Password",
+  "passwordMinLength": "Password must be at least 6 characters",
+  "passwordUpdatedSuccess": "Password updated successfully!",
+  "failedToUpdatePassword": "Failed to update password.",
+  "preferencesSection": "Preferences",
+  "regionLabel": "Region",
+  "themeLabel": "Theme",
+  "currencyLabel": "Currency",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeAmoled": "Amoled",
+  "dataPrivacySection": "Data & Privacy",
+  "clearRecentlyViewed": "Clear recently viewed",
+  "dangerZoneSection": "Danger Zone",
+  "signOut": "Sign Out",
+  "signOutConfirm": "Are you sure you want to sign out?",
+  "deleteAccount": "Delete Account",
+  "deleteAccountConfirm": "Are you sure you want to permanently delete your account? This action cannot be undone.",
+  "delete": "Delete",
+  "failedToDeleteAccount": "Failed to delete account. Please try again.",
+  "loginTitle": "Login",
+  "signUpTitle": "Sign Up",
+  "emailLabel": "Email",
+  "pleaseEnterEmail": "Please enter an email",
+  "passwordLabel": "Password",
+  "pleaseEnterPassword": "Please enter a password",
+  "forgotPassword": "Forgot Password?",
+  "resetPasswordTitle": "Reset Password",
+  "enterYourEmailAddress": "Enter your email address",
+  "sendLink": "Send Link",
+  "resetLinkSentMessage": "If an account exists, a password reset link has been sent.",
+  "orDivider": "OR",
+  "signingIn": "Signing in…",
+  "continueWithGoogle": "Continue with Google",
+  "noAccountSignUp": "Don't have an account? Sign Up",
+  "haveAccountLogin": "Already have an account? Login",
+  "unexpectedError": "An unexpected error occurred.",
+  "pleaseEnterValidEmail": "Please enter a valid email.",
+  "newsletterThanks": "Thanks! You're on the list.",
+  "newsletterAlreadySignedUp": "That email is already signed up.",
+  "newsletterSomethingWentWrong": "Something went wrong. Please try again.",
+  "newsletterHeadline": "Get the deals first",
+  "newsletterSubtitle": "Sign up for our newsletter and get the best deals straight to your inbox.",
+  "emailAddressHint": "Email address",
+  "register": "Register",
+  "aboutWhoWeAreHeading": "Who We Are",
+  "aboutWhoWeAreBody": "PrisPuls is a Scandinavian price-comparison and deal-discovery service built to help consumers find the best prices on electronics, home goods, fashion, and more — all in one place.\n\nOur platform aggregates offers from hundreds of retailers, refreshed multiple times a day, so you always have the most current pricing at your fingertips.",
+  "aboutMissionHeading": "Our Mission",
+  "aboutMissionBody": "We believe every consumer deserves to make informed purchasing decisions without spending hours comparing prices across dozens of websites. PrisPuls does that work for you — so you can buy smarter, save more, and spend your time on what matters.",
+  "aboutAffiliateBody": "PrisPuls participates in various affiliate marketing programs, which means we may get paid commissions on editorially chosen products purchased through our links to retailer sites.\n\nWhen you click on a product link and complete a purchase, PrisPuls may earn a small commission from the retailer at no additional cost to you. These commissions help us maintain and continuously improve our service.\n\nOur editorial decisions — including which products and deals we feature — are made independently of any affiliate relationship. We are committed to providing honest, unbiased pricing information regardless of whether a commercial relationship exists with a given retailer.",
+  "aboutTeamHeading": "Our Team",
+  "aboutTeamBody": "PrisPuls is built and maintained by a small, passionate team dedicated to consumer transparency and fair pricing. We are headquartered in Norway and serve users across the Nordic region.",
+  "aboutContactBody": "Have a question, found an incorrect price, or want to partner with us?\n\nEmail: support@prispuls.com\nWebsite: www.prispuls.com\n\nWe typically respond within two business days."
 }

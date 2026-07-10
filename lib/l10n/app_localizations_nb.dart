@@ -257,4 +257,207 @@ class AppLocalizationsNb extends AppLocalizations {
   String footerCopyright(int year) {
     return '© $year PrisPuls. Alle rettigheter forbeholdt.';
   }
+
+  @override
+  String get accountSection => 'Konto';
+
+  @override
+  String get noEmail => 'Ingen e-post';
+
+  @override
+  String get defaultUserName => 'Bruker';
+
+  @override
+  String get editNameTooltip => 'Rediger navn';
+
+  @override
+  String get changePassword => 'Endre passord';
+
+  @override
+  String get couldNotLoadProfile => 'Kunne ikke laste inn profilen';
+
+  @override
+  String get fullNameLabel => 'Fullt navn';
+
+  @override
+  String get nameCannotBeEmpty => 'Navnet kan ikke være tomt';
+
+  @override
+  String get save => 'Lagre';
+
+  @override
+  String failedToUpdateName(String error) {
+    return 'Kunne ikke oppdatere navnet: $error';
+  }
+
+  @override
+  String get newPasswordLabel => 'Nytt passord';
+
+  @override
+  String get passwordMinLength => 'Passordet må være minst 6 tegn';
+
+  @override
+  String get passwordUpdatedSuccess => 'Passordet er oppdatert!';
+
+  @override
+  String get failedToUpdatePassword => 'Kunne ikke oppdatere passordet.';
+
+  @override
+  String get preferencesSection => 'Innstillinger';
+
+  @override
+  String get regionLabel => 'Region';
+
+  @override
+  String get themeLabel => 'Tema';
+
+  @override
+  String get currencyLabel => 'Valuta';
+
+  @override
+  String get themeSystem => 'System';
+
+  @override
+  String get themeLight => 'Lyst';
+
+  @override
+  String get themeDark => 'Mørkt';
+
+  @override
+  String get themeAmoled => 'Amoled';
+
+  @override
+  String get dataPrivacySection => 'Data & Personvern';
+
+  @override
+  String get clearRecentlyViewed => 'Fjern nylig sett';
+
+  @override
+  String get dangerZoneSection => 'Faresone';
+
+  @override
+  String get signOut => 'Logg ut';
+
+  @override
+  String get signOutConfirm => 'Er du sikker på at du vil logge ut?';
+
+  @override
+  String get deleteAccount => 'Slett konto';
+
+  @override
+  String get deleteAccountConfirm =>
+      'Er du sikker på at du vil slette kontoen din permanent? Dette kan ikke angres.';
+
+  @override
+  String get delete => 'Slett';
+
+  @override
+  String get failedToDeleteAccount => 'Kunne ikke slette kontoen. Prøv igjen.';
+
+  @override
+  String get loginTitle => 'Logg inn';
+
+  @override
+  String get signUpTitle => 'Registrer deg';
+
+  @override
+  String get emailLabel => 'E-post';
+
+  @override
+  String get pleaseEnterEmail => 'Oppgi en e-postadresse';
+
+  @override
+  String get passwordLabel => 'Passord';
+
+  @override
+  String get pleaseEnterPassword => 'Oppgi et passord';
+
+  @override
+  String get forgotPassword => 'Glemt passord?';
+
+  @override
+  String get resetPasswordTitle => 'Tilbakestill passord';
+
+  @override
+  String get enterYourEmailAddress => 'Oppgi e-postadressen din';
+
+  @override
+  String get sendLink => 'Send lenke';
+
+  @override
+  String get resetLinkSentMessage =>
+      'Hvis en konto finnes, er en lenke for tilbakestilling av passord sendt.';
+
+  @override
+  String get orDivider => 'ELLER';
+
+  @override
+  String get signingIn => 'Logger inn…';
+
+  @override
+  String get continueWithGoogle => 'Fortsett med Google';
+
+  @override
+  String get noAccountSignUp => 'Har du ikke en konto? Registrer deg';
+
+  @override
+  String get haveAccountLogin => 'Har du allerede en konto? Logg inn';
+
+  @override
+  String get unexpectedError => 'En uventet feil oppstod.';
+
+  @override
+  String get pleaseEnterValidEmail => 'Oppgi en gyldig e-postadresse.';
+
+  @override
+  String get newsletterThanks => 'Takk! Du er nå på listen.';
+
+  @override
+  String get newsletterAlreadySignedUp =>
+      'Den e-postadressen er allerede registrert.';
+
+  @override
+  String get newsletterSomethingWentWrong => 'Noe gikk galt. Prøv igjen.';
+
+  @override
+  String get newsletterHeadline => 'Få tilbudene først';
+
+  @override
+  String get newsletterSubtitle =>
+      'Meld deg på nyhetsbrevet vårt og få de beste tilbudene rett i innboksen.';
+
+  @override
+  String get emailAddressHint => 'E-postadresse';
+
+  @override
+  String get register => 'Registrer';
+
+  @override
+  String get aboutWhoWeAreHeading => 'Hvem vi er';
+
+  @override
+  String get aboutWhoWeAreBody =>
+      'PrisPuls er en skandinavisk tjeneste for prissammenligning og tilbud, bygget for å hjelpe forbrukere med å finne de beste prisene på elektronikk, hjemmeartikler, mote og mer — alt på ett sted.\n\nPlattformen vår samler tilbud fra hundrevis av forhandlere, oppdatert flere ganger daglig, slik at du alltid har de mest oppdaterte prisene lett tilgjengelig.';
+
+  @override
+  String get aboutMissionHeading => 'Vårt oppdrag';
+
+  @override
+  String get aboutMissionBody =>
+      'Vi mener at alle forbrukere fortjener å kunne ta informerte kjøpsbeslutninger uten å bruke timevis på å sammenligne priser på dusinvis av nettsteder. PrisPuls gjør den jobben for deg — slik at du kan handle smartere, spare mer og bruke tiden din på det som betyr noe.';
+
+  @override
+  String get aboutAffiliateBody =>
+      'PrisPuls deltar i ulike affiliateprogrammer, noe som betyr at vi kan motta provisjon på redaksjonelt utvalgte produkter kjøpt gjennom våre lenker til forhandleres nettsteder.\n\nNår du klikker på en produktlenke og gjennomfører et kjøp, kan PrisPuls motta en liten provisjon fra forhandleren, uten ekstra kostnad for deg. Disse provisjonene hjelper oss å vedlikeholde og kontinuerlig forbedre tjenesten.\n\nVåre redaksjonelle beslutninger — inkludert hvilke produkter og tilbud vi fremhever — tas uavhengig av eventuelle affiliate-relasjoner. Vi er forpliktet til å gi ærlig og upartisk prisinformasjon, uavhengig av om det foreligger et kommersielt forhold til en gitt forhandler.';
+
+  @override
+  String get aboutTeamHeading => 'Vårt team';
+
+  @override
+  String get aboutTeamBody =>
+      'PrisPuls bygges og driftes av et lite, engasjert team dedikert til forbrukertransparens og rettferdige priser. Vi har hovedkontor i Norge og betjener brukere i hele Norden.';
+
+  @override
+  String get aboutContactBody =>
+      'Har du et spørsmål, funnet en feil pris, eller ønsker å samarbeide med oss?\n\nE-post: support@prispuls.com\nNettside: www.prispuls.com\n\nVi svarer vanligvis innen to virkedager.';
 }

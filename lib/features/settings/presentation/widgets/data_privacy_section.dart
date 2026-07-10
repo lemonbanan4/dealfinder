@@ -5,6 +5,7 @@ import '../../../deals/providers/recently_viewed_provider.dart';
 import '../../../legal/presentation/about_us_page.dart';
 import '../../../legal/presentation/privacy_policy_page.dart';
 import '../../../legal/presentation/terms_of_service_page.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../widgets/glass_dialog.dart';
 import 'section_label.dart';
 import 'setting_divider.dart';
@@ -15,18 +16,19 @@ class DataPrivacySection extends ConsumerWidget {
   const DataPrivacySection({super.key});
 
   Future<void> _clearRecents(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showGlassDialog<bool>(
       context: context,
-      title: const Text('Clear History'),
-      content: const Text('Clear all recently viewed items?'),
+      title: Text(l10n.clearHistoryTitle),
+      content: Text(l10n.clearHistoryConfirm),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
-          child: const Text('Clear'),
+          child: Text(l10n.clear),
         ),
       ],
     );
@@ -37,22 +39,23 @@ class DataPrivacySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionLabel('Data & Privacy'),
+        SectionLabel(l10n.dataPrivacySection),
         SettingsCard(
           child: Column(
             children: [
               TappableSettingRow(
                 icon: Icons.history_toggle_off,
-                label: 'Clear recently viewed',
+                label: l10n.clearRecentlyViewed,
                 onTap: () => _clearRecents(context, ref),
               ),
               const SettingDivider(),
               TappableSettingRow(
                 icon: Icons.privacy_tip_outlined,
-                label: 'Privacy Policy',
+                label: l10n.footerPrivacyPolicy,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
@@ -61,7 +64,7 @@ class DataPrivacySection extends ConsumerWidget {
               const SettingDivider(),
               TappableSettingRow(
                 icon: Icons.description_outlined,
-                label: 'Terms of Service',
+                label: l10n.footerTermsOfService,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
@@ -70,7 +73,7 @@ class DataPrivacySection extends ConsumerWidget {
               const SettingDivider(),
               TappableSettingRow(
                 icon: Icons.info_outline,
-                label: 'About Us',
+                label: l10n.footerAboutUs,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AboutUsPage()),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../widgets/glass_card.dart';
 import '../../auth/providers/validators.dart';
 import '../data/newsletter_repository.dart';
@@ -33,6 +34,7 @@ class _NewsletterSignupSectionState
   Future<void> _submit() async {
     FocusManager.instance.primaryFocus?.unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    final l10n = AppLocalizations.of(context)!;
 
     setState(() => _isSubmitting = true);
     try {
@@ -41,16 +43,16 @@ class _NewsletterSignupSectionState
           .subscribe(_emailController.text.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Thanks! You\'re on the list.'),
-            backgroundColor: Color(0xFF00E676),
+          SnackBar(
+            content: Text(l10n.newsletterThanks),
+            backgroundColor: const Color(0xFF00E676),
           ),
         );
         _emailController.clear();
       }
     } on PostgrestException catch (e) {
       final message = e.code == '23505'
-          ? 'That email is already signed up.'
+          ? l10n.newsletterAlreadySignedUp
           : e.message;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -63,9 +65,9 @@ class _NewsletterSignupSectionState
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Something went wrong. Please try again.'),
-            backgroundColor: Color(0xFFFF4757),
+          SnackBar(
+            content: Text(l10n.newsletterSomethingWentWrong),
+            backgroundColor: const Color(0xFFFF4757),
           ),
         );
       }
@@ -79,6 +81,7 @@ class _NewsletterSignupSectionState
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isWide = MediaQuery.sizeOf(context).width >= 560;
+    final l10n = AppLocalizations.of(context)!;
 
     final formContent = Form(
       key: _formKey,
@@ -86,7 +89,7 @@ class _NewsletterSignupSectionState
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'Get the deals first',
+            l10n.newsletterHeadline,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark
@@ -97,7 +100,7 @@ class _NewsletterSignupSectionState
           ),
           const SizedBox(height: 8),
           Text(
-            'Sign up for our newsletter and get the best deals straight to your inbox.',
+            l10n.newsletterSubtitle,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isDark
                   ? Colors.white70
@@ -181,7 +184,7 @@ class _EmailField extends StatelessWidget {
             : null,
       ),
       decoration: InputDecoration(
-        hintText: 'Email address',
+        hintText: AppLocalizations.of(context)!.emailAddressHint,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -219,7 +222,7 @@ class _SubmitButton extends StatelessWidget {
                 color: Colors.white,
               ),
             )
-          : const Text('Register'),
+          : Text(AppLocalizations.of(context)!.register),
     );
   }
 }

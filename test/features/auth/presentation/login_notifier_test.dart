@@ -172,7 +172,7 @@ void main() {
         await notifier.resetPassword('invalid-email');
 
         final state = container.read(loginProvider);
-        expect(state.error, 'Please enter a valid email.');
+        expect(state.error, invalidEmailSentinel);
         expect(state.loading, false);
         verifyNever(
           () => mockAuth.sendPasswordResetEmail(email: any(named: 'email')),
@@ -220,7 +220,7 @@ void main() {
         final state = container.read(loginProvider);
         expect(state.loading, false);
         expect(state.resetEmailSent, false);
-        expect(state.error, 'An unexpected error occurred.');
+        expect(state.error, unexpectedErrorSentinel);
       });
     });
   });

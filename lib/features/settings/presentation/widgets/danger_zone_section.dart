@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../deals/presentation/feed_page.dart' show feedFiltersProvider;
 import '../../../deals/providers/recently_viewed_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../widgets/glass_dialog.dart';
 import 'section_label.dart';
 import 'setting_divider.dart';
@@ -15,18 +16,19 @@ class DangerZoneSection extends ConsumerWidget {
   const DangerZoneSection({super.key});
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showGlassDialog<bool>(
       context: context,
-      title: const Text('Sign Out'),
-      content: const Text('Are you sure you want to sign out?'),
+      title: Text(l10n.signOut),
+      content: Text(l10n.signOutConfirm),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
-          child: const Text('Sign Out'),
+          child: Text(l10n.signOut),
         ),
       ],
     );
@@ -35,23 +37,22 @@ class DangerZoneSection extends ConsumerWidget {
   }
 
   Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showGlassDialog<bool>(
       context: context,
-      title: const Text('Delete Account'),
-      content: const Text(
-        'Are you sure you want to permanently delete your account? This action cannot be undone.',
-      ),
+      title: Text(l10n.deleteAccount),
+      content: Text(l10n.deleteAccountConfirm),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
           style: TextButton.styleFrom(
             foregroundColor: Theme.of(context).colorScheme.error,
           ),
-          child: const Text('Delete'),
+          child: Text(l10n.delete),
         ),
       ],
     );
@@ -80,8 +81,8 @@ class DangerZoneSection extends ConsumerWidget {
       if (context.mounted) {
         Navigator.pop(context); // Dismiss loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to delete account. Please try again.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.failedToDeleteAccount),
             backgroundColor: Colors.red,
           ),
         );
@@ -100,24 +101,25 @@ class DangerZoneSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
-        const SectionLabel('Danger Zone'),
+        SectionLabel(l10n.dangerZoneSection),
         SettingsCard(
           child: Column(
             children: [
               TappableSettingRow(
                 icon: Icons.logout,
-                label: 'Sign Out',
+                label: l10n.signOut,
                 isDestructive: true,
                 onTap: () => _signOut(context, ref),
               ),
               const SettingDivider(),
               TappableSettingRow(
                 icon: Icons.delete_forever,
-                label: 'Delete Account',
+                label: l10n.deleteAccount,
                 isDestructive: true,
                 onTap: () => _deleteAccount(context, ref),
               ),
