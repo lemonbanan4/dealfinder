@@ -1,4 +1,9 @@
 /* Flutter web loading spinner – extracted from index.html for CSP compliance */
+html, body {
+  background-color: #0A0F1E; /* GlassColors.background — avoids a white
+  flash before the dark-only Flutter app takes over painting */
+}
+
 .loading {
   display: flex;
   justify-content: center;
@@ -12,8 +17,8 @@
 }
 
 .loader {
-  border: 8px solid #f3f3f3; /* Light grey */
-  border-top: 8px solid #0175C2; /* Blue from manifest */
+  border: 8px solid rgba(255, 255, 255, 0.15);
+  border-top: 8px solid #38BDF8; /* GlassColors.sky400 — the app's own neon-glow accent */
   border-radius: 50%;
   width: 60px;
   height: 60px;
