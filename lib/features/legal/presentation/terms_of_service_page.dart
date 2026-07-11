@@ -139,7 +139,7 @@ class TermsOfServicePage extends StatelessWidget {
               'Questions about these Terms? Contact us:\n\n'
               'PrisPuls AS\n'
               'Email: legal@prispuls.com\n'
-              'Website: www.prispuls.com',
+              'Website: prispuls.com',
         ),
       ],
     );

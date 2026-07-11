@@ -3,13 +3,13 @@
   "@type": "WebPage",
   "name": "Sign up for Superdeals | PrisPuls",
   "description": "Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox.",
-  "url": "https://www.prispuls.com",
+  "url": "https://prispuls.com",
   "publisher": {
     "@type": "Organization",
     "name": "PrisPuls",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://www.prispuls.com/icons/Icon-512.png"
+      "url": "https://prispuls.com/icons/Icon-512.png"
     }
   }
 }

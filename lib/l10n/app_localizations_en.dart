@@ -447,5 +447,5 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutContactBody =>
-      'Have a question, found an incorrect price, or want to partner with us?\n\nEmail: support@prispuls.com\nWebsite: www.prispuls.com\n\nWe typically respond within two business days.';
+      'Have a question, found an incorrect price, or want to partner with us?\n\nEmail: support@prispuls.com\nWebsite: prispuls.com\n\nWe typically respond within two business days.';
 }

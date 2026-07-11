@@ -449,5 +449,5 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get aboutContactBody =>
-      'Har du en fråga, hittat ett felaktigt pris eller vill samarbeta med oss?\n\nE-post: support@prispuls.com\nWebbplats: www.prispuls.com\n\nVi svarar vanligtvis inom två arbetsdagar.';
+      'Har du en fråga, hittat ett felaktigt pris eller vill samarbeta med oss?\n\nE-post: support@prispuls.com\nWebbplats: prispuls.com\n\nVi svarar vanligtvis inom två arbetsdagar.';
 }

@@ -150,7 +150,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               'PrisPuls AS\n'
               'Norway\n'
               'Email: privacy@prispuls.com\n'
-              'Website: www.prispuls.com\n'
+              'Website: prispuls.com\n'
               'You also have the right to lodge a complaint with your local '
               'supervisory authority. In Norway, this is Datatilsynet '
               '(www.datatilsynet.no).',
