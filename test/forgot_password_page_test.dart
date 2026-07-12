@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:dealfinder_pro/features/auth/presentation/forgot_password_page.dart';
 import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
-import 'package:dealfinder_pro/features/deals/presentation/user.dart';
+import 'package:dealfinder_pro/features/auth/domain/user.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

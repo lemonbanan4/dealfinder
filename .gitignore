@@ -43,6 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+
+# Firebase CLI's local deploy cache — machine-specific, not source
+.firebase/
 
 # Claude Code session data
 .claude/

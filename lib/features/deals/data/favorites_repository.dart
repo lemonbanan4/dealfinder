@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dealfinder_pro/features/deals/presentation/user.dart';
+import 'package:dealfinder_pro/features/auth/domain/user.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

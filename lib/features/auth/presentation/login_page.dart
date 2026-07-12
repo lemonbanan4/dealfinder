@@ -6,7 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../theme/glass_colors.dart';
-import '../../deals/presentation/user.dart' as domain;
+import '../domain/user.dart' as domain;
 import '../providers/auth_provider.dart';
 
 final loginProvider = NotifierProvider<LoginNotifier, LoginState>(

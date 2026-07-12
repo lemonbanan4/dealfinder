@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../deals/data/favorites_repository.dart';
-import '../../deals/presentation/auth_repository.dart';
-import '../../deals/presentation/user.dart';
+import '../data/auth_repository.dart';
+import '../domain/user.dart';
 import '../../deals/providers/favorites_provider.dart';
 
 part 'auth_provider.g.dart';

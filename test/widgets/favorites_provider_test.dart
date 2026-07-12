@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:dealfinder_pro/features/auth/providers/auth_provider.dart';
 import 'package:dealfinder_pro/features/deals/data/favorites_repository.dart';
-import 'package:dealfinder_pro/features/deals/presentation/user.dart';
+import 'package:dealfinder_pro/features/auth/domain/user.dart';
 import 'package:dealfinder_pro/features/deals/providers/favorites_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
