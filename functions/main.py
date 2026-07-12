@@ -33,10 +33,53 @@ BRAND_PAGES = {
     "acer-norway": {"brand": "Acer", "region": "Norway", "store": "acer_no"},
     "sharkninja-sweden": {"brand": "SharkNinja", "region": "Sweden", "store": "sharkninja_se"},
     "sharkninja-norway": {"brand": "SharkNinja", "region": "Norway", "store": "sharkninja_no"},
+    "diamond-smile-sweden": {"brand": "Diamond Smile", "region": "Sweden", "store": "diamondsmile_se"},
+    "babubas-sweden": {"brand": "Babubas", "region": "Sweden", "store": "babubas_se"},
+    "deluxe-home-art-shop-sweden": {"brand": "Deluxe Home Art Shop", "region": "Sweden", "store": "deluxehomeartshop_se"},
+    "bazta-sweden": {"brand": "Bazta", "region": "Sweden", "store": "Bazta_se"},
+    "perfumeza-sweden": {"brand": "Perfumeza", "region": "Sweden", "store": "perfumeza_se"},
+    "plusshop-sweden": {"brand": "PlusShop", "region": "Sweden", "store": "plusshop_se"},
+    "byvoks-norway": {"brand": "Byvoks", "region": "Norway", "store": "byvoks_no"},
+    # navimow_se deliberately excluded — see the matching comment in
+    # lib/features/deals/domain/brand_landing.dart.
 }
 
 API_BASE = "https://dealfinder-swr5.onrender.com"
 SITE_BASE = "https://prispuls.com"
+
+# `products.feed_region` (== StoreConfig.id in scraper.py, e.g. "dyson_se")
+# is the only per-product store identifier the API returns — the actual
+# display name (StoreConfig.name, "Dyson Sweden") is computed in scraper.py
+# but never persisted. Mirrors lib/features/deals/domain/store_display_names.dart
+# — kept in sync manually with STORES in scraper/scraper.py, same as
+# BRAND_PAGES above.
+STORE_DISPLAY_NAMES = {
+    "acer_se": "Acer Sweden",
+    "samsung_se": "Samsung Sweden",
+    "navimow_se": "Navimow Sweden",
+    "diamondsmile_se": "Diamond Smile Sweden",
+    "babubas_se": "Babubas Sweden",
+    "sharkninja_se": "SharkNinja Sweden",
+    "deluxehomeartshop_se": "Deluxe Home Art Shop Sweden",
+    "Bazta_se": "Bazta Sweden",
+    "perfumeza_se": "Perfumeza Sweden",
+    "plusshop_se": "PlusShop Sweden",
+    "dyson_se": "Dyson Sweden",
+    "dyson_no": "Dyson Norway",
+    "sharkninja_no": "SharkNinja Norway",
+    "acer_no": "Acer Norway",
+    "byvoks_no": "Byvoks Norway",
+    "samsung_no": "Samsung Norway",
+}
+
+
+def _store_display_name(feed_region: str) -> str:
+    known = STORE_DISPLAY_NAMES.get(feed_region)
+    if known:
+        return known
+    without_suffix = re.sub(r"_(se|no)$", "", feed_region, flags=re.IGNORECASE)
+    words = [w for w in re.split(r"[_-]", without_suffix) if w]
+    return " ".join(w[:1].upper() + w[1:] for w in words) if words else feed_region
 
 _BOT_UA_RE = re.compile(
     r"(googlebot|bingbot|yandex|baiduspider|duckduckbot|slurp|"
@@ -194,6 +237,139 @@ def prerender_brand_page(req: https_fn.Request) -> https_fn.Response:
     return https_fn.Response(
         _render_brand_html(slug, page, deals), content_type="text/html"
     )
+
+def _fetch_product(product_id: str) -> dict | None:
+    resp = requests.get(
+        f"{API_BASE}/api/products", params={"ids": product_id}, timeout=8
+    )
+    resp.raise_for_status()
+    items = resp.json()
+    return items[0] if items else None
+
+
+def _render_product_html(product: dict) -> str:
+    """Keep this copy formula in sync with DealDetailsPage._syncProductMeta
+    in Dart (lib/features/deals/presentation/deal_details_page.dart) — same
+    locale-by-currency logic, same canonical URL shape, same Product
+    JSON-LD — so a crawler's static snapshot and a real visitor's
+    client-rendered page describe the same product identically.
+    """
+    product_id = product.get("product_id", "")
+    title_text = product.get("title") or "Deal"
+    source = _store_display_name(product.get("feed_region") or "Unknown")
+    price = product.get("price")
+    currency = (product.get("currency") or "SEK").upper()
+    tracking_url = product.get("tracking_url") or f"{SITE_BASE}/"
+    image = product.get("image_url")
+    retail_price = product.get("retail_price")
+
+    is_norwegian = currency == "NOK"
+    price_text = f"{price:.0f}" if isinstance(price, (int, float)) else ""
+    title = (
+        f"{title_text} – {price_text} {currency} | PrisPuls"
+        if price_text
+        else f"{title_text} | PrisPuls"
+    )
+
+    if is_norwegian:
+        description = (
+            f"Sammenlign prisen på {title_text} hos {source} og andre "
+            f"nettbutikker. PrisPuls sporer prishistorikken slik at du "
+            f"alltid vet om dette faktisk er et godt tilbud."
+        )
+    else:
+        description = (
+            f"Jämför priset på {title_text} hos {source} och andra "
+            f"nätbutiker. PrisPuls spårar prishistoriken så du alltid vet "
+            f"om det här verkligen är ett bra pris."
+        )
+
+    canonical = f"{SITE_BASE}/products/{product_id}"
+
+    structured_data = json.dumps(
+        {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": title_text,
+            **({"image": [image]} if image else {}),
+            "brand": {"@type": "Brand", "name": source},
+            "offers": {
+                "@type": "Offer",
+                "url": tracking_url,
+                "priceCurrency": currency,
+                "price": price_text or "0",
+                "availability": "https://schema.org/InStock",
+                "seller": {"@type": "Organization", "name": source},
+            },
+        }
+    # Defends against a scraped title/URL that happens to contain a literal
+    # "</script>", which would otherwise break out of the script tag below.
+    ).replace("</script>", "<\\/script>")
+
+    original_price_html = (
+        f"<p><s>{retail_price:.0f} {html.escape(currency)}</s></p>"
+        if isinstance(retail_price, (int, float)) and retail_price > (price or 0)
+        else ""
+    )
+
+    return f"""<!DOCTYPE html>
+<html lang="{'nb' if is_norwegian else 'sv'}">
+<head>
+<meta charset="UTF-8">
+<title>{html.escape(title)}</title>
+<meta name="description" content="{html.escape(description)}">
+<link rel="canonical" href="{canonical}">
+<link rel="alternate" hreflang="sv-SE" href="{canonical}">
+<link rel="alternate" hreflang="nb-NO" href="{canonical}">
+<link rel="alternate" hreflang="x-default" href="{canonical}">
+<meta property="og:type" content="product">
+<meta property="og:url" content="{canonical}">
+<meta property="og:title" content="{html.escape(title)}">
+<meta property="og:description" content="{html.escape(description)}">
+<meta property="product:price:amount" content="{price_text or '0'}">
+<meta property="product:price:currency" content="{html.escape(currency)}">
+<script type="application/ld+json">{structured_data}</script>
+</head>
+<body>
+<h1>{html.escape(title_text)}</h1>
+<p>{html.escape(description)}</p>
+<p>{price_text} {html.escape(currency)}</p>
+{original_price_html}
+<p><a href="{html.escape(tracking_url, quote=True)}" rel="nofollow sponsored">View deal at {html.escape(source)}</a></p>
+<p><a href="{SITE_BASE}/">Browse all deals on PrisPuls</a></p>
+</body>
+</html>"""
+
+
+@https_fn.on_request(region="europe-north1")
+def prerender_product_page(req: https_fn.Request) -> https_fn.Response:
+    """Firebase Hosting rewrites /products/** here (see firebase.json) —
+    same dynamic-rendering pattern as prerender_brand_page (see its
+    docstring), for individual product pages instead of per-brand catalogs.
+    """
+    product_id = req.path.rstrip("/").rsplit("/", 1)[-1]
+
+    user_agent = req.headers.get("User-Agent", "")
+    if not _BOT_UA_RE.search(user_agent):
+        try:
+            return https_fn.Response(_fetch_index_html(), content_type="text/html")
+        except requests.RequestException:
+            return https_fn.Response(
+                "", status=302, headers={"Location": SITE_BASE + "/"}
+            )
+
+    try:
+        product = _fetch_product(product_id)
+    except requests.RequestException:
+        product = None
+
+    if product is None:
+        return https_fn.Response("Not found", status=404)
+
+    return https_fn.Response(
+        _render_product_html(product), content_type="text/html"
+    )
+
 
 @https_fn.on_call(region="europe-north1")
 def send_price_alert(req: https_fn.CallableRequest) -> any:

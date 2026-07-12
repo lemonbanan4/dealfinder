@@ -109,6 +109,13 @@
         }
       },
       {
+        "source": "/products/**",
+        "function": {
+          "functionId": "prerender_product_page",
+          "region": "europe-north1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
