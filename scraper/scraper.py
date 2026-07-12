@@ -695,6 +695,24 @@ def send_alert_email(
         log.error("Failed to send email to %s: %s", to_email, e)
         return False
 
+def _normalize_gmail_password(raw: str) -> str:
+    """
+    Strips whitespace and, for legacy payloads copied straight out of an
+    old .env-style file into Secret Manager, a literal 'SENDER_PASSWORD='
+    prefix and surrounding quotes. Applied to both the GMAIL_APP_PASSWORD
+    env var and the Secret Manager fallback so copying the raw stored
+    payload verbatim into either source behaves identically.
+    """
+    password = raw.strip()
+    if password.startswith("SENDER_PASSWORD="):
+        password = password[len("SENDER_PASSWORD="):].strip()
+    if password.startswith('"') and password.endswith('"'):
+        password = password[1:-1]
+    elif password.startswith("'") and password.endswith("'"):
+        password = password[1:-1]
+    return password
+
+
 def _fetch_sek_rates() -> Optional[Dict[str, float]]:
     """Conversion rates keyed by currency code, base SEK (rates[X] = how many
     units of X equal 1 SEK) — via api.py's /api/exchange-rates proxy, so this
@@ -763,20 +781,13 @@ def check_and_fire_price_alerts(supabase):
         env_password = os.environ.get("GMAIL_APP_PASSWORD")
         if env_password:
             log.info("Using Gmail app password from GMAIL_APP_PASSWORD env var.")
-            sender_password = env_password.strip()
+            sender_password = _normalize_gmail_password(env_password)
         else:
             log.info("Fetching Gmail app password from Secret Manager...")
             secret_payload = access_secret_version(
                 project_id="dealfinderpro-bc5be", secret_id="Scraper"
             )
-
-            sender_password = secret_payload.strip()
-            if sender_password.startswith("SENDER_PASSWORD="):
-                sender_password = sender_password[len("SENDER_PASSWORD="):].strip()
-            if sender_password.startswith('"') and sender_password.endswith('"'):
-                sender_password = sender_password[1:-1]
-            elif sender_password.startswith("'") and sender_password.endswith("'"):
-                sender_password = sender_password[1:-1]
+            sender_password = _normalize_gmail_password(secret_payload)
 
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
