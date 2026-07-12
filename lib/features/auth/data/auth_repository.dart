@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google;
 
-import '../presentation/user.dart';
+import '../domain/user.dart';
 
 /// An authentication repository that interacts with Firebase Authentication.
 ///
