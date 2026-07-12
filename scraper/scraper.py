@@ -1090,10 +1090,54 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
 
 # ── Firestore writer ──────────────────────────────────────────────────────────────
 
+def _diff_price_history(cur, deals: list[dict]) -> list[dict]:
+    """
+    Compares each deal's current feed price against the most recently
+    recorded `price_history` entry for that product (before this run's own
+    write), so a "price dropped" signal reflects an actual decrease rather
+    than just the fact that a price_history row was written — a row gets
+    written on every scrape run regardless of whether the price moved, so
+    without this diff there was no way to tell a real drop from a re-scrape
+    of an unchanged price.
+
+    Returns the subset of `deals` whose current price is strictly lower than
+    their last recorded price_history price, each annotated with
+    previous_price/drop_pct.
+    """
+    product_ids = [deal["id"] for deal in deals]
+    if not product_ids:
+        return []
+
+    cur.execute(
+        """
+        SELECT DISTINCT ON (product_id) product_id, price
+        FROM price_history
+        WHERE product_id = ANY(%s)
+        ORDER BY product_id, recorded_at DESC
+        """,
+        (product_ids,),
+    )
+    last_prices = {row[0]: float(row[1]) for row in cur.fetchall()}
+
+    drops = []
+    for deal in deals:
+        last_price = last_prices.get(deal["id"])
+        current_price = deal["currentPrice"]
+        if last_price is not None and current_price < last_price:
+            drops.append({
+                "id": deal["id"],
+                "title": deal["title"],
+                "previous_price": last_price,
+                "current_price": current_price,
+                "drop_pct": _discount_pct(last_price, current_price),
+            })
+    return drops
+
+
 def write_deals(deals: list[dict], store_id: str) -> int:
     conn = get_db_connection()
     cur = conn.cursor()
-    
+
     upsert_query = """
     INSERT INTO products (
         product_id, feed_region, title, brand, price, 
@@ -1140,6 +1184,19 @@ def write_deals(deals: list[dict], store_id: str) -> int:
     ]
 
     try:
+        price_drops = _diff_price_history(cur, deals)
+        if price_drops:
+            log.info(
+                "[%s] %d confirmed price drop(s) this run: %s",
+                store_id,
+                len(price_drops),
+                ", ".join(
+                    f"{d['title'][:40]!r} {d['previous_price']:.2f} -> "
+                    f"{d['current_price']:.2f} (-{d['drop_pct']:.1f}%)"
+                    for d in price_drops[:5]
+                ),
+            )
+
         execute_values(cur, upsert_query, product_values)
         execute_values(cur, price_history_query, history_values)
         conn.commit()
