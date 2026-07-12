@@ -21,8 +21,9 @@ class ProductPage extends ConsumerWidget {
     final dealAsync = ref.watch(dealByIdProvider(id));
 
     return dealAsync.when(
-      data: (deal) =>
-          deal == null ? _ProductNotFoundView(id: id) : DealDetailsPage(deal: deal),
+      data: (deal) => deal == null
+          ? _ProductNotFoundView(id: id)
+          : DealDetailsPage(deal: deal),
       loading: () => const Scaffold(
         backgroundColor: GlassColors.background,
         body: Center(child: CircularProgressIndicator()),

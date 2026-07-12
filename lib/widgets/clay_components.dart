@@ -52,7 +52,9 @@ class _ClayContainerState extends State<ClayContainer> {
       padding: widget.padding,
       decoration: BoxDecoration(
         color: pressed
-            ? (widget.pressedFillColor ?? widget.fillColor ?? ClayColors.clayFill)
+            ? (widget.pressedFillColor ??
+                  widget.fillColor ??
+                  ClayColors.clayFill)
             : (widget.fillColor ?? ClayColors.clayFill),
         borderRadius: radius,
         boxShadow: pressed
@@ -68,10 +70,7 @@ class _ClayContainerState extends State<ClayContainer> {
         onTapUp: (_) => _setPressed(false),
         onTapCancel: () => _setPressed(false),
         onTap: widget.onTap,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: content,
-        ),
+        child: MouseRegion(cursor: SystemMouseCursors.click, child: content),
       );
     }
 

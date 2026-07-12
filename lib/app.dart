@@ -42,8 +42,7 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/products/:id',
-      builder: (context, state) =>
-          ProductPage(id: state.pathParameters['id']!),
+      builder: (context, state) => ProductPage(id: state.pathParameters['id']!),
     ),
   ],
 );
