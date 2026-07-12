@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/deals/domain/deal.dart';
+import '../features/deals/domain/store_display_names.dart';
 import '../features/deals/presentation/price_alert_bottom_sheet.dart';
 import '../features/deals/providers/favorites_provider.dart';
 import '../features/settings/presentation/currency_provider.dart';
@@ -97,7 +98,10 @@ class DealCard extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Text(deal.source, style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  storeDisplayName(deal.source),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const Spacer(),
                 PriceSparkline(productId: deal.id, height: 24),
                 const SizedBox(height: 2),
@@ -255,7 +259,7 @@ class _GridCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  deal.source,
+                  storeDisplayName(deal.source),
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: Colors.white54),

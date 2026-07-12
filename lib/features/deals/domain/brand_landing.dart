@@ -72,9 +72,71 @@ const brandLandings = <BrandLanding>[
     regionName: 'Norway',
     storeFeed: 'sharkninja_no',
   ),
+  BrandLanding(
+    slug: 'diamond-smile-sweden',
+    brandName: 'Diamond Smile',
+    regionName: 'Sweden',
+    storeFeed: 'diamondsmile_se',
+  ),
+  BrandLanding(
+    slug: 'babubas-sweden',
+    brandName: 'Babubas',
+    regionName: 'Sweden',
+    storeFeed: 'babubas_se',
+  ),
+  BrandLanding(
+    slug: 'deluxe-home-art-shop-sweden',
+    brandName: 'Deluxe Home Art Shop',
+    regionName: 'Sweden',
+    storeFeed: 'deluxehomeartshop_se',
+  ),
+  BrandLanding(
+    slug: 'bazta-sweden',
+    brandName: 'Bazta',
+    regionName: 'Sweden',
+    storeFeed: 'Bazta_se',
+  ),
+  BrandLanding(
+    slug: 'perfumeza-sweden',
+    brandName: 'Perfumeza',
+    regionName: 'Sweden',
+    storeFeed: 'perfumeza_se',
+  ),
+  BrandLanding(
+    slug: 'plusshop-sweden',
+    brandName: 'PlusShop',
+    regionName: 'Sweden',
+    storeFeed: 'plusshop_se',
+  ),
+  BrandLanding(
+    slug: 'byvoks-norway',
+    brandName: 'Byvoks',
+    regionName: 'Norway',
+    storeFeed: 'byvoks_no',
+  ),
+  // navimow_se is deliberately excluded: confirmed zero live products via
+  // /api/deals/by-store as of 2026-07-12 — the same "landing page pointing
+  // at a dead feed" trap the removed JBL tile hit (see the class doc
+  // comment above). Add it back once/if the feed has real inventory again.
 ];
 
 /// O(1) slug -> config lookup for the router.
 final Map<String, BrandLanding> brandLandingsBySlug = {
   for (final b in brandLandings) b.slug: b,
 };
+
+/// Finds a [BrandLanding] by brand name (case-insensitive) and region code
+/// ('se'/'no', matching `regionProvider`'s values in feed_page.dart) — used
+/// to send a brand-tile tap straight to its SEO landing page when one
+/// exists for the shopper's current region, rather than just filtering the
+/// feed in place.
+BrandLanding? brandLandingFor(String brandName, String regionCode) {
+  final regionName = regionCode.toLowerCase() == 'no' ? 'Norway' : 'Sweden';
+  for (final landing in brandLandings) {
+    if (landing.brandName.toLowerCase() == brandName.toLowerCase() &&
+        landing.regionName == regionName) {
+      return landing;
+    }
+  }
+  return null;
+}

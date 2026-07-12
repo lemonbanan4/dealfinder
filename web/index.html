@@ -43,16 +43,22 @@
       cdn.simpleicons.org is here because flutter_svg's network loader fetches SVG brand
       logos via a real HTTP client call (unlike raster network images, which the engine
       loads through an <img>-element path covered by img-src instead).
-    - Google Sign-In (script-src apis.google.com, frame-src *.firebaseapp.com): Firebase's
-      popup-based signInWithPopup loads Google's gapi client (apis.google.com/js/api.js) and
-      uses a same-project firebaseapp.com auth-helper iframe for the popup<->app postMessage
-      relay. Without both of these, signInWithPopup fails silently and every Google sign-in
-      falls back to a full-page signInWithRedirect (worse UX, and was going unnoticed since the
-      redirect fallback happened to still work).
+    - Google Sign-In (script-src apis.google.com/accounts.google.com, frame-src
+      *.firebaseapp.com): Firebase's popup-based signInWithPopup loads Google's gapi client
+      (apis.google.com/js/api.js) and uses a same-project firebaseapp.com auth-helper iframe for
+      the popup<->app postMessage relay. Without both of these, signInWithPopup fails silently
+      and every Google sign-in falls back to a full-page signInWithRedirect (worse UX, and was
+      going unnoticed since the redirect fallback happened to still work). accounts.google.com is
+      here separately for the google_sign_in plugin's own Google Identity Services script
+      (accounts.google.com/gsi/client) — that plugin only actually drives sign-in on native
+      iOS/Android (see AuthRepository's doc comment: web always uses signInWithPopup directly),
+      but Flutter web still auto-registers and initializes every plugin declared for the web
+      platform regardless of whether the app calls it, so this load happens unconditionally on
+      every page and was previously just failing silently.
   -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self' https://*.firebaseapp.com https://*.web.app;
-    script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com https://*.firebaseio.com https://apis.google.com;
+    script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://appleid.cdn-apple.com https://www.gstatic.com https://*.firebaseio.com https://apis.google.com https://accounts.google.com;
     connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://www.gstatic.com https://fonts.gstatic.com https://dealfinder-swr5.onrender.com https://www.ecb.europa.eu https://cdn.simpleicons.org https://apis.google.com;
     frame-src 'self' https://appleid.apple.com https://*.firebaseapp.com https://accounts.google.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -64,7 +70,7 @@
   <!-- SEO -->
   <title>Sign up for Superdeals | PrisPuls</title>
   <meta name="description"
-    content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox. Never miss a great price again!">
+    content="Jämför priser i realtid och hitta bästa pris på elektronik & hemprodukter. Nya prissänkningar varje dag – missa inte morgondagens fynd.">
   <link rel="canonical" href="https://prispuls.com" />
 
   <!-- Open Graph / Facebook -->

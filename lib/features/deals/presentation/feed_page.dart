@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,6 +20,7 @@ import '../../../widgets/glass_container.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../newsletter/presentation/newsletter_signup_section.dart';
+import '../domain/brand_landing.dart';
 // Deferred: Settings (+ its Account/Preferences/Data & Privacy/Danger Zone
 // subtree, cloud_functions, and the legal pages it links to) is a full-page
 // navigation behind an icon tap, not part of the initial feed render — no
@@ -338,6 +340,18 @@ class _FeedPageState extends ConsumerState<FeedPage> {
   }
 
   void _onBrandTap(String brandName) {
+    // A brand tile for a store with a dedicated SEO landing page (see
+    // BrandLanding/brandLandingFor) sends the shopper straight there —
+    // that page is real, crawlable, and gives the click a shareable URL,
+    // instead of just quietly filtering the current feed like a plain
+    // catalog-wide brand tile has to (most brands here don't have their
+    // own landing page, only specific tracked-inventory store feeds do).
+    final landing = brandLandingFor(brandName, ref.read(regionProvider));
+    if (landing != null) {
+      context.go('/brands/${landing.slug}');
+      return;
+    }
+
     cancelPendingSearchUpdate(ref);
     _searchController.text = brandName;
     _searchController.selection = TextSelection.fromPosition(
@@ -438,7 +452,13 @@ class _FeedPageState extends ConsumerState<FeedPage> {
 
     _isRefreshing.value = true;
     ref.invalidate(pagedDealsProvider);
-    await ref.read(dealFeedProvider.notifier).refresh();
+    // Only refresh dealFeedProvider's full-catalog fetch (multi-MB — see the
+    // comment in build()) when a search/category/favorites filter is active
+    // and actually depends on it; the default paged-browse grid never reads
+    // its result, so refreshing it there would just be wasted bandwidth.
+    if (!_isPagedBrowseMode(ref.read(feedFiltersProvider))) {
+      await ref.read(dealFeedProvider.notifier).refresh();
+    }
     _isRefreshing.value = false;
   }
 
