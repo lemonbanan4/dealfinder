@@ -69,7 +69,6 @@ Future<PagedDealsResult> pagedDeals(Ref ref) async {
   final region = ref.watch(regionProvider);
   final page = ref.watch(feedPageIndexProvider);
   final sort = ref.watch(feedFiltersProvider.select((f) => f.sort));
-  final timestamp = DateTime.now().millisecondsSinceEpoch;
 
   final sortParam = _sortParam(sort);
   final response = await apiGet(
@@ -78,7 +77,6 @@ Future<PagedDealsResult> pagedDeals(Ref ref) async {
       'region': region,
       'page': '$page',
       'limit': '$dealsPageSize',
-      't': '$timestamp',
       'sort': ?sortParam,
     },
   );

@@ -29,10 +29,9 @@ class DealFeedNotifier extends _$DealFeedNotifier {
 
   Future<List<Deal>> _fetchFromApi(String region) async {
     try {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final response = await apiGet(
         '/api/products',
-        queryParameters: {'region': region, 't': '$timestamp'},
+        queryParameters: {'region': region},
       );
 
       final List<dynamic> data = json.decode(response.body);
