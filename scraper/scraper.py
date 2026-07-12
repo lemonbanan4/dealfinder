@@ -747,19 +747,36 @@ def check_and_fire_price_alerts(supabase):
     
     server = None
     try:
-        # Fetch the password from Google Secret Manager
-        log.info("Fetching Gmail app password from Secret Manager...")
-        secret_payload = access_secret_version(
-            project_id="dealfinderpro-bc5be", secret_id="Scraper"
-        )
+        # This job actually runs on a schedule via GitHub Actions (see
+        # .github/workflows/scraper.yml) — a plain CI runner with no GCP
+        # identity, so access_secret_version() below always fails there with
+        # "Your default credentials were not found" (Secret Manager needs
+        # Application Default Credentials, which only exist automatically in
+        # a GCP execution context like Cloud Run). That failure was silently
+        # swallowed by this function's own try/except, so every single
+        # scheduled run has skipped sending price-drop emails entirely while
+        # still reporting an overall "success" — the GMAIL_APP_PASSWORD env
+        # var (set from a GitHub Actions secret) is the actual credential
+        # source in that environment; Secret Manager remains the fallback
+        # for any other execution context (e.g. a real Cloud Run deploy)
+        # that does have a working GCP identity.
+        env_password = os.environ.get("GMAIL_APP_PASSWORD")
+        if env_password:
+            log.info("Using Gmail app password from GMAIL_APP_PASSWORD env var.")
+            sender_password = env_password.strip()
+        else:
+            log.info("Fetching Gmail app password from Secret Manager...")
+            secret_payload = access_secret_version(
+                project_id="dealfinderpro-bc5be", secret_id="Scraper"
+            )
 
-        sender_password = secret_payload.strip()
-        if sender_password.startswith("SENDER_PASSWORD="):
-            sender_password = sender_password[len("SENDER_PASSWORD="):].strip()
-        if sender_password.startswith('"') and sender_password.endswith('"'):
-            sender_password = sender_password[1:-1]
-        elif sender_password.startswith("'") and sender_password.endswith("'"):
-            sender_password = sender_password[1:-1]
+            sender_password = secret_payload.strip()
+            if sender_password.startswith("SENDER_PASSWORD="):
+                sender_password = sender_password[len("SENDER_PASSWORD="):].strip()
+            if sender_password.startswith('"') and sender_password.endswith('"'):
+                sender_password = sender_password[1:-1]
+            elif sender_password.startswith("'") and sender_password.endswith("'"):
+                sender_password = sender_password[1:-1]
 
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()

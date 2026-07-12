@@ -28,5 +28,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          # This runner has no GCP identity, so scraper.py's Secret Manager
+          # fallback (access_secret_version) always fails here with "Your
+          # default credentials were not found" — every run was silently
+          # skipping price-drop alert emails. GMAIL_APP_PASSWORD must be
+          # added as a repo secret (Settings -> Secrets and variables ->
+          # Actions -> New repository secret) with the same Gmail App
+          # Password value already stored in GCP Secret Manager under
+          # project dealfinderpro-bc5be, secret "Scraper".
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         # If your scraper is in a folder called 'scraper', adjust the path below:
         run: python scraper/scraper.py
