@@ -306,6 +306,16 @@ class AppLocalizationsNb extends AppLocalizations {
   String get preferencesSection => 'Innstillinger';
 
   @override
+  String get favoritesLabel => 'Favoritter';
+
+  @override
+  String get myFavoritesTitle => 'Mine favoritter';
+
+  @override
+  String get noFavoritesYet =>
+      'Du har ikke lagret noen favoritter ennå.\nTrykk på hjertet på et tilbud for å lagre det!';
+
+  @override
   String get regionLabel => 'Region';
 
   @override

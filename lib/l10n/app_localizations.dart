@@ -658,6 +658,24 @@ abstract class AppLocalizations {
   /// **'Preferences'**
   String get preferencesSection;
 
+  /// No description provided for @favoritesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favoritesLabel;
+
+  /// No description provided for @myFavoritesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Favorites'**
+  String get myFavoritesTitle;
+
+  /// No description provided for @noFavoritesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t saved any favorites yet.\nTap the heart on a deal to save it!'**
+  String get noFavoritesYet;
+
   /// No description provided for @regionLabel.
   ///
   /// In en, this message translates to:

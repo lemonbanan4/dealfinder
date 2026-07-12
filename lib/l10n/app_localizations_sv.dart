@@ -307,6 +307,16 @@ class AppLocalizationsSv extends AppLocalizations {
   String get preferencesSection => 'Inställningar';
 
   @override
+  String get favoritesLabel => 'Favoriter';
+
+  @override
+  String get myFavoritesTitle => 'Mina favoriter';
+
+  @override
+  String get noFavoritesYet =>
+      'Du har inte sparat några favoriter än.\nTryck på hjärtat på ett erbjudande för att spara det!';
+
+  @override
   String get regionLabel => 'Region';
 
   @override

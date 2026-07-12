@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../deals/presentation/favorites_page.dart';
 import '../../../deals/presentation/feed_page.dart' show regionProvider;
 import '../../providers/settings_provider.dart';
 import 'section_label.dart';
@@ -9,6 +10,7 @@ import 'segmented_switch.dart';
 import 'setting_divider.dart';
 import 'setting_row.dart';
 import 'settings_card.dart';
+import 'tappable_setting_row.dart';
 
 const _supportedCurrencies = ['SEK', 'NOK', 'EUR', 'USD'];
 
@@ -30,6 +32,16 @@ class PreferencesSection extends ConsumerWidget {
         SettingsCard(
           child: Column(
             children: [
+              TappableSettingRow(
+                icon: Icons.favorite_border,
+                label: l10n.favoritesLabel,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const FavoritesPage(),
+                  ),
+                ),
+              ),
+              const SettingDivider(),
               SettingRow(
                 icon: Icons.public,
                 label: l10n.regionLabel,
