@@ -44,4 +44,32 @@ class AnalyticsService {
     if (!isEnabled) return;
     await _analytics?.logEvent(name: name, parameters: parameters);
   }
+
+  /// Fires GA4's `product_click` event — a user tapping a deal card or a
+  /// deal's "Get Deal" button, i.e. an outbound affiliate click. Takes
+  /// primitive fields rather than a `Deal` so this service (in `lib/services`)
+  /// doesn't need to depend on `lib/features/deals`' domain model.
+  Future<void> trackProductClick({
+    required String itemId,
+    required String itemName,
+    required String itemBrand,
+    required double price,
+    required String currency,
+  }) async {
+    await logEvent(
+      name: 'product_click',
+      parameters: {
+        'item_id': itemId,
+        'item_name': itemName,
+        'item_brand': itemBrand,
+        'price': price,
+        'currency': currency,
+      },
+    );
+  }
+
+  /// Fires GA4's `newsletter_signup` event on a successful signup submit.
+  Future<void> trackNewsletterSignup() async {
+    await logEvent(name: 'newsletter_signup');
+  }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../services/analytics_service.dart';
 import '../../../widgets/glass_card.dart';
 import '../../auth/providers/validators.dart';
 import '../data/newsletter_repository.dart';
@@ -41,6 +42,7 @@ class _NewsletterSignupSectionState
       await ref
           .read(newsletterRepositoryProvider)
           .subscribe(_emailController.text.trim());
+      AnalyticsService().trackNewsletterSignup();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

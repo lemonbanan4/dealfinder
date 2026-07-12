@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'widgets/adaptive_scaffold.dart';
 import 'features/deals/presentation/brand_landing_page.dart';
 import 'features/deals/presentation/feed_page.dart' show regionProvider;
+import 'features/deals/presentation/product_page.dart';
 import 'services/notification/fcm_service.dart';
 import 'features/settings/providers/cookie_consent_provider.dart';
 import 'services/analytics_service.dart';
@@ -20,11 +21,12 @@ import 'l10n/app_localizations.dart';
 /// Top-level routes. `/` is the existing AppShell (Feed/Alerts tabs,
 /// Settings/Login/Legal all still reached via imperative Navigator.push
 /// from within it — unchanged, go_router coexists fine with that for
-/// navigation that doesn't need its own URL). `/brands/:slug` is the only
-/// other real route today: SEO landing pages (see BrandLandingPage) —
-/// the whole reason this app needed real path-based routing at all, since
-/// a Firebase Hosting rewrite rule (or a search crawler) can only ever see
-/// the request path, never Flutter's previous in-memory-only navigation.
+/// navigation that doesn't need its own URL). `/brands/:slug` and
+/// `/products/:id` are real routes for SEO landing pages (see
+/// BrandLandingPage/ProductPage) — the whole reason this app needed real
+/// path-based routing at all, since a Firebase Hosting rewrite rule (or a
+/// search crawler) can only ever see the request path, never Flutter's
+/// previous in-memory-only navigation.
 final _router = GoRouter(
   navigatorKey: FCMService.navigatorKey,
   observers: [
@@ -37,6 +39,11 @@ final _router = GoRouter(
       path: '/brands/:slug',
       builder: (context, state) =>
           BrandLandingPage(slug: state.pathParameters['slug']!),
+    ),
+    GoRoute(
+      path: '/products/:id',
+      builder: (context, state) =>
+          ProductPage(id: state.pathParameters['id']!),
     ),
   ],
 );

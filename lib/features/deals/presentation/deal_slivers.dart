@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../services/analytics_service.dart';
 import '../../../widgets/deal_card.dart';
 import '../../settings/presentation/currency_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../domain/deal.dart';
+import '../domain/store_display_names.dart';
 import '../providers/recently_viewed_provider.dart';
 import '../providers/favorites_provider.dart';
 
@@ -143,6 +145,13 @@ class DealsSliver extends ConsumerWidget {
   // Bug 7 fix: await launchUrl and handle errors gracefully
   Future<void> _onDealTap(WidgetRef ref, Deal deal) async {
     ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
+    AnalyticsService().trackProductClick(
+      itemId: deal.id,
+      itemName: deal.title,
+      itemBrand: storeDisplayName(deal.source),
+      price: deal.currentPrice,
+      currency: deal.currency,
+    );
     final uri = Uri.tryParse(deal.url);
     if (uri == null) return;
     try {
