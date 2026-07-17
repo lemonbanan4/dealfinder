@@ -15,6 +15,41 @@ class AppLocalizationsNb extends AppLocalizations {
   String get navAlerts => 'Varslinger';
 
   @override
+  String get heroHeadline =>
+      'Se om prisen faktisk sank — ikke bare påstås å ha gjort det';
+
+  @override
+  String get heroSubheading =>
+      'Vi overvåker priser døgnet rundt hos flere butikker slik at du slipper – og varsler så snart en pris synker.';
+
+  @override
+  String get howItWorksHeading => 'Slik fungerer det';
+
+  @override
+  String get howItWorksSubheading => 'Tre steg. Ingen konto kreves for å bla.';
+
+  @override
+  String get howItWorksStep1Title => 'Bla blant produkter vi sporer';
+
+  @override
+  String get howItWorksStep1Body =>
+      'Elektronikk og hjemmeartikler hos et voksende antall svenske og norske forhandlere — oppdatert flere ganger daglig.';
+
+  @override
+  String get howItWorksStep2Title => 'Se den ekte prishistorikken';
+
+  @override
+  String get howItWorksStep2Body =>
+      'Hvert produkt har sin egen priskurve. Er \"-40%\" et ekte prisfall eller bare en oppblåst opprinnelig pris? Nå ser du det med en gang.';
+
+  @override
+  String get howItWorksStep3Title => 'Sett et prisvarsel (valgfritt)';
+
+  @override
+  String get howItWorksStep3Body =>
+      'Vil du heller slippe å sjekke selv? Angi ønsket pris, så sender vi deg en e-post når den går under grensen.';
+
+  @override
   String get searchHint => 'Søk produkter eller merker...';
 
   @override
@@ -435,7 +470,7 @@ class AppLocalizationsNb extends AppLocalizations {
 
   @override
   String get aboutWhoWeAreBody =>
-      'PrisPuls er en skandinavisk tjeneste for prissammenligning og tilbud, bygget for å hjelpe forbrukere med å finne de beste prisene på elektronikk, hjemmeartikler, mote og mer — alt på ett sted.\n\nPlattformen vår samler tilbud fra hundrevis av forhandlere, oppdatert flere ganger daglig, slik at du alltid har de mest oppdaterte prisene lett tilgjengelig.';
+      'Jeg ble lei av \"tilbud\" som viser seg å være ren bløff — en butikk setter en rød \"-40%\"-lapp på en pris som stille ble hevet uken før, uten noen enkel måte å sjekke på.\n\nSå jeg laget PrisPuls for å gjøre den kjedelige, men nyttige jobben: faktisk spore priser over tid, på tvers av butikker, og vise den ekte historikken — ikke bare dagens prislapp. Er et tilbud et ekte prisfall, ser du det i kurven. Er det ikke det, ser du det også.\n\nDet er tidlig, og det er bygget av én person. Akkurat nå dekker det elektronikk og hjemmeartikler hos et voksende antall svenske og norske forhandlere, med prisvarsler hvis du heller slipper å sjekke selv.';
 
   @override
   String get aboutMissionHeading => 'Vårt oppdrag';
@@ -449,11 +484,11 @@ class AppLocalizationsNb extends AppLocalizations {
       'PrisPuls deltar i ulike affiliateprogrammer, noe som betyr at vi kan motta provisjon på redaksjonelt utvalgte produkter kjøpt gjennom våre lenker til forhandleres nettsteder.\n\nNår du klikker på en produktlenke og gjennomfører et kjøp, kan PrisPuls motta en liten provisjon fra forhandleren, uten ekstra kostnad for deg. Disse provisjonene hjelper oss å vedlikeholde og kontinuerlig forbedre tjenesten.\n\nVåre redaksjonelle beslutninger — inkludert hvilke produkter og tilbud vi fremhever — tas uavhengig av eventuelle affiliate-relasjoner. Vi er forpliktet til å gi ærlig og upartisk prisinformasjon, uavhengig av om det foreligger et kommersielt forhold til en gitt forhandler.';
 
   @override
-  String get aboutTeamHeading => 'Vårt team';
+  String get aboutTeamHeading => 'Bare meg (foreløpig)';
 
   @override
   String get aboutTeamBody =>
-      'PrisPuls bygges og driftes av et lite, engasjert team dedikert til forbrukertransparens og rettferdige priser. Vi har hovedkontor i Norge og betjener brukere i hele Norden.';
+      'PrisPuls bygges og driftes av én person — ikke noe kontor, ikke noe team, bare noen som ble irritert på falske rabatter og bestemte seg for å fikse det. Hvis noe er forvirrende, ødelagt, eller du savner en butikk du skulle ønske ble sporet, hører jeg gjerne fra deg.';
 
   @override
   String get aboutContactBody =>

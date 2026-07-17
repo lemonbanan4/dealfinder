@@ -15,6 +15,42 @@ class AppLocalizationsSv extends AppLocalizations {
   String get navAlerts => 'Aviseringar';
 
   @override
+  String get heroHeadline =>
+      'Se om priset faktiskt sjönk — inte bara påstås ha gjort det';
+
+  @override
+  String get heroSubheading =>
+      'Vi bevakar priser dygnet runt hos flera butiker så du slipper – och slår larm så fort ett pris sjunker.';
+
+  @override
+  String get howItWorksHeading => 'Så fungerar det';
+
+  @override
+  String get howItWorksSubheading =>
+      'Tre steg. Inget konto krävs för att bläddra.';
+
+  @override
+  String get howItWorksStep1Title => 'Bläddra bland bevakade produkter';
+
+  @override
+  String get howItWorksStep1Body =>
+      'Elektronik och hemartiklar hos ett växande antal svenska och norska återförsäljare — uppdaterat flera gånger om dagen.';
+
+  @override
+  String get howItWorksStep2Title => 'Se den riktiga prishistoriken';
+
+  @override
+  String get howItWorksStep2Body =>
+      'Varje produkt har en egen priskurva. Är \"-40%\" en riktig sänkning eller bara en uppskruvad ursprungsprissättning? Nu ser du det direkt.';
+
+  @override
+  String get howItWorksStep3Title => 'Sätt ett prislarm (valfritt)';
+
+  @override
+  String get howItWorksStep3Body =>
+      'Vill du hellre slippa kolla själv? Ange ditt önskepris så mejlar vi dig när det går under gränsen.';
+
+  @override
   String get searchHint => 'Sök produkter eller varumärken...';
 
   @override
@@ -437,7 +473,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get aboutWhoWeAreBody =>
-      'PrisPuls är en skandinavisk tjänst för prisjämförelse och erbjudanden, byggd för att hjälpa konsumenter hitta de bästa priserna på elektronik, hemartiklar, mode och mer — allt på ett och samma ställe.\n\nVår plattform samlar erbjudanden från hundratals återförsäljare, uppdaterade flera gånger om dagen, så att du alltid har de senaste priserna nära till hands.';
+      'Jag blev trött på \"erbjudanden\" som visar sig vara rena påhitt — en butik sätter en röd \"-40%\"-skylt på ett pris som tyst höjdes veckan innan, utan något enkelt sätt att kolla.\n\nSå jag byggde PrisPuls för att göra det tråkiga men användbara jobbet: faktiskt spåra priser över tid, hos flera butiker, och visa den riktiga historiken — inte bara dagens prislapp. Är ett erbjudande en riktig sänkning ser du det i kurvan. Är det inte det, ser du det också.\n\nDet är tidigt, och det är byggt av en person. Just nu täcker det elektronik och hemartiklar hos ett växande antal svenska och norska återförsäljare, med prislarm om du hellre slipper kolla själv.';
 
   @override
   String get aboutMissionHeading => 'Vårt uppdrag';
@@ -451,11 +487,11 @@ class AppLocalizationsSv extends AppLocalizations {
       'PrisPuls deltar i olika affiliateprogram, vilket innebär att vi kan få provision på redaktionellt utvalda produkter som köps via våra länkar till återförsäljares webbplatser.\n\nNär du klickar på en produktlänk och genomför ett köp kan PrisPuls få en mindre provision från återförsäljaren, utan extra kostnad för dig. Dessa provisioner hjälper oss att underhålla och kontinuerligt förbättra vår tjänst.\n\nVåra redaktionella beslut — inklusive vilka produkter och erbjudanden vi lyfter fram — fattas oberoende av eventuella affiliate-relationer. Vi strävar efter att alltid ge ärlig och opartisk prisinformation, oavsett om det finns en kommersiell relation med en viss återförsäljare eller inte.';
 
   @override
-  String get aboutTeamHeading => 'Vårt team';
+  String get aboutTeamHeading => 'Bara jag (för nu)';
 
   @override
   String get aboutTeamBody =>
-      'PrisPuls byggs och underhålls av ett litet, engagerat team dedikerat till transparens för konsumenter och rättvisa priser. Vi har huvudkontor i Norge och betjänar användare i hela Norden.';
+      'PrisPuls byggs och underhålls av en person — inget kontor, inget team, bara någon som blev irriterad på falska rabatter och bestämde sig för att fixa det. Om något är förvirrande, trasigt, eller om du saknar en butik du önskar bevakades, hör gärna av dig.';
 
   @override
   String get aboutContactBody =>

@@ -15,6 +15,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navAlerts => 'Alerts';
 
   @override
+  String get heroHeadline =>
+      'See if the price actually dropped — not just claimed to';
+
+  @override
+  String get heroSubheading =>
+      'We track prices around the clock across multiple stores so you don\'t have to — and alert you the moment a price drops.';
+
+  @override
+  String get howItWorksHeading => 'How It Works';
+
+  @override
+  String get howItWorksSubheading =>
+      'Three steps. No account needed to browse.';
+
+  @override
+  String get howItWorksStep1Title => 'Browse tracked products';
+
+  @override
+  String get howItWorksStep1Body =>
+      'Electronics and home goods across a growing list of Swedish and Norwegian retailers — updated multiple times a day.';
+
+  @override
+  String get howItWorksStep2Title => 'See the real price history';
+
+  @override
+  String get howItWorksStep2Body =>
+      'Every product has its own price curve. Is \"-40%\" a real drop or just an inflated original price? Now you can see it instantly.';
+
+  @override
+  String get howItWorksStep3Title => 'Set a price alert (optional)';
+
+  @override
+  String get howItWorksStep3Body =>
+      'Would rather not check yourself? Set your target price and we\'ll email you when it drops below it.';
+
+  @override
   String get searchHint => 'Search products or brands...';
 
   @override
@@ -435,7 +471,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutWhoWeAreBody =>
-      'PrisPuls is a Scandinavian price-comparison and deal-discovery service built to help consumers find the best prices on electronics, home goods, fashion, and more — all in one place.\n\nOur platform aggregates offers from hundreds of retailers, refreshed multiple times a day, so you always have the most current pricing at your fingertips.';
+      'I got tired of \"deals\" that turn out to be nothing of the sort — a store slaps a red \"-40%\" badge on a price that was quietly raised the week before, with no easy way to check.\n\nSo I built PrisPuls to do the boring, useful thing: actually track prices over time, across stores, and show the real history — not just today\'s sticker price. If a deal is a genuine drop, you\'ll see the line go down. If it isn\'t, you\'ll see that too.\n\nIt\'s early, and it\'s built by one person. Right now it covers electronics and home goods across a growing list of Swedish and Norwegian retailers, with price alerts if you\'d rather not check back yourself.';
 
   @override
   String get aboutMissionHeading => 'Our Mission';
@@ -449,11 +485,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'PrisPuls participates in various affiliate marketing programs, which means we may get paid commissions on editorially chosen products purchased through our links to retailer sites.\n\nWhen you click on a product link and complete a purchase, PrisPuls may earn a small commission from the retailer at no additional cost to you. These commissions help us maintain and continuously improve our service.\n\nOur editorial decisions — including which products and deals we feature — are made independently of any affiliate relationship. We are committed to providing honest, unbiased pricing information regardless of whether a commercial relationship exists with a given retailer.';
 
   @override
-  String get aboutTeamHeading => 'Our Team';
+  String get aboutTeamHeading => 'Just Me (For Now)';
 
   @override
   String get aboutTeamBody =>
-      'PrisPuls is built and maintained by a small, passionate team dedicated to consumer transparency and fair pricing. We are headquartered in Norway and serve users across the Nordic region.';
+      'PrisPuls is built and maintained by one person — no office, no team, just someone who got annoyed by fake discounts and decided to fix it. If something\'s confusing, broken, or missing a store you wish it tracked, I\'d genuinely like to hear about it.';
 
   @override
   String get aboutContactBody =>

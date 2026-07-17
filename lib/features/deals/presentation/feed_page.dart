@@ -17,6 +17,7 @@ import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
 import '../../../widgets/app_logo.dart';
+import '../../../widgets/glass_card.dart';
 import '../../../widgets/glass_container.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -286,13 +287,14 @@ class _HeroIntro extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.sizeOf(context).width >= 720;
+    final l10n = AppLocalizations.of(context)!;
 
     final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Jämför priser i realtid, hitta bästa fyndet',
+          l10n.heroHeadline,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             color: GlassColors.textHeading,
             fontWeight: FontWeight.w700,
@@ -300,8 +302,7 @@ class _HeroIntro extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Vi bevakar priser dygnet runt hos flera butiker så du slipper – '
-          'och slår larm så fort ett pris sjunker.',
+          l10n.heroSubheading,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: GlassColors.textBody,
           ),
@@ -333,6 +334,127 @@ class _HeroIntro extends StatelessWidget {
                 text,
               ],
             ),
+    );
+  }
+}
+
+/// Three-step "how it works" explainer shown right under [_HeroIntro] — a
+/// first-time visitor arrives on a live grid with no walkthrough of what
+/// the product actually does; this closes that gap without requiring a
+/// separate page.
+class _HowItWorksSection extends StatelessWidget {
+  const _HowItWorksSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isWide = MediaQuery.sizeOf(context).width >= 720;
+
+    final steps = [
+      (
+        icon: Icons.search_rounded,
+        title: l10n.howItWorksStep1Title,
+        body: l10n.howItWorksStep1Body,
+      ),
+      (
+        icon: Icons.show_chart_rounded,
+        title: l10n.howItWorksStep2Title,
+        body: l10n.howItWorksStep2Body,
+      ),
+      (
+        icon: Icons.notifications_active_outlined,
+        title: l10n.howItWorksStep3Title,
+        body: l10n.howItWorksStep3Body,
+      ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        borderRadius: 20,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.howItWorksHeading,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: GlassColors.textHeading,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.howItWorksSubheading,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: GlassColors.textMuted),
+            ),
+            const SizedBox(height: 20),
+            isWide
+                ? IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final step in steps) ...[
+                          Expanded(child: _HowItWorksStep(step: step)),
+                          if (step != steps.last) const SizedBox(width: 24),
+                        ],
+                      ],
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (final step in steps) ...[
+                        _HowItWorksStep(step: step),
+                        if (step != steps.last) const SizedBox(height: 20),
+                      ],
+                    ],
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HowItWorksStep extends StatelessWidget {
+  const _HowItWorksStep({required this.step});
+
+  final ({IconData icon, String title, String body}) step;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: GlassColors.sky400.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(step.icon, color: GlassColors.sky400, size: 18),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          step.title,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: GlassColors.textHeading,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          step.body,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: GlassColors.textMuted),
+        ),
+      ],
     );
   }
 }
@@ -639,6 +761,22 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                     ),
                                     sliver: const SliverToBoxAdapter(
                                       child: _HeroIntro(),
+                                    ),
+                                  ),
+                                // ---- "How it works" 3-step explainer,
+                                // same visibility gating as the hero intro
+                                // above it. ----
+                                if (filters.searchQuery.isEmpty &&
+                                    !filters.showFavoritesOnly)
+                                  SliverPadding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      _heroHorizontalPadding(context),
+                                      0,
+                                      _heroHorizontalPadding(context),
+                                      0,
+                                    ),
+                                    sliver: const SliverToBoxAdapter(
+                                      child: _HowItWorksSection(),
                                     ),
                                   ),
                                 // ---- Live status banner: a slim, centered
