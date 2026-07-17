@@ -358,7 +358,8 @@ def get_products(
                 if not id_list:
                     return []
                 cursor.execute(
-                    "SELECT * FROM products WHERE product_id = ANY(%s) AND price > 0",
+                    "SELECT * FROM products WHERE product_id = ANY(%s) AND price > 0"
+                    " AND last_updated >= now() - interval '7 days'",
                     (id_list,),
                 )
                 return cursor.fetchall()
@@ -372,7 +373,13 @@ def get_products(
             # without this they sort to the very top of every "biggest
             # discount" ordering as a permanent, fake "100% off" deal, and to
             # the top of "Price: Low to High" too.
-            conditions = ["price > 0"]
+            #
+            # last_updated excludes products whose scraper has stopped
+            # succeeding — otherwise a dead feed's stale rows stay listed
+            # (and rankable) forever, since staleness was previously only
+            # ever reported (get_stats' "live status" count below), never
+            # enforced on what's actually shown.
+            conditions = ["price > 0", "last_updated >= now() - interval '7 days'"]
 
             # Filter by region if requested (matches "all_se" or "all_no")
             if region:
@@ -471,6 +478,7 @@ def get_biggest_drops(
                     LIMIT 1
                 ) ph ON true
                 WHERE ph.price > p.price AND p.price > 0
+                  AND p.last_updated >= now() - interval '7 days'
                 {where_region}
                 ORDER BY ((ph.price - p.price) / ph.price) DESC
                 LIMIT %s
@@ -507,6 +515,7 @@ def get_top_discounts(
                 WHERE p.price > 0
                   AND p.retail_price > p.price
                   AND (p.retail_price - p.price) / p.retail_price >= %s
+                  AND p.last_updated >= now() - interval '7 days'
                 {where_region}
                 ORDER BY (p.retail_price - p.price) / p.retail_price DESC
                 LIMIT %s
@@ -540,6 +549,7 @@ def get_deals_by_store(
                 """
                 SELECT * FROM products
                 WHERE feed_region = %s AND price > 0
+                  AND last_updated >= now() - interval '7 days'
                 ORDER BY
                     CASE
                         WHEN retail_price > price THEN (retail_price - price) / retail_price

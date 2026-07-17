@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../theme/glass_colors.dart';
+import '../../../widgets/glass_text_field.dart';
 import '../domain/user.dart' as domain;
 import '../providers/auth_provider.dart';
 
@@ -263,7 +264,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     return Scaffold(
+      backgroundColor: GlassColors.background,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: GlassColors.textHeading,
         title: Text(state.isLogin ? l10n.loginTitle : l10n.signUpTitle),
       ),
       body: SingleChildScrollView(
@@ -273,27 +277,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
+              GlassTextField(
                 controller: _emailController,
-                decoration: InputDecoration(labelText: l10n.emailLabel),
+                label: l10n.emailLabel,
+                icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) =>
                     (value?.isEmpty ?? true) ? l10n.pleaseEnterEmail : null,
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              GlassTextField(
                 controller: _passwordController,
+                label: l10n.passwordLabel,
+                icon: Icons.lock_outline,
                 obscureText: state.obscurePass,
-                decoration: InputDecoration(
-                  labelText: l10n.passwordLabel,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      state.obscurePass
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: notifier.toggleObscure,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    state.obscurePass
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                    color: Colors.white.withAlpha(140),
                   ),
+                  onPressed: notifier.toggleObscure,
                 ),
                 validator: (value) {
                   if (value?.isEmpty ?? true) {

@@ -389,6 +389,18 @@ def send_price_alert(req: https_fn.CallableRequest) -> any:
             message="The 'user_id' parameter is required."
         )
 
+    if req.auth is None or not req.auth.uid:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="User must be authenticated to send an alert."
+        )
+
+    if req.auth.uid != user_id:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.PERMISSION_DENIED,
+            message="Cannot send an alert to a different user."
+        )
+
     db = firestore.client()
     user_ref = db.collection("users").document(user_id)
     user_doc = user_ref.get()

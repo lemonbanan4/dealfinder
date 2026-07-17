@@ -71,6 +71,8 @@ class DealCard extends ConsumerWidget {
                   ? CachedNetworkImage(
                       imageUrl: deal.imageUrl!,
                       fit: BoxFit.cover,
+                      memCacheWidth: 220,
+                      memCacheHeight: 220,
                       placeholder: (context, url) => Container(
                         color: Theme.of(context).colorScheme.secondary,
                       ),
@@ -190,6 +192,8 @@ class _GridCard extends ConsumerWidget {
                       ? CachedNetworkImage(
                           imageUrl: deal.imageUrl!,
                           fit: BoxFit.cover,
+                          memCacheWidth: 200,
+                          memCacheHeight: 200,
                           errorWidget: (context, url, err) => ColoredBox(
                             color: Theme.of(context).colorScheme.surface,
                             child: Center(
@@ -276,6 +280,8 @@ class _GridCard extends ConsumerWidget {
                   displayOriginalPrice:
                       displayOriginalPrice ?? deal.originalPrice,
                 ),
+                const SizedBox(height: 8),
+                _GetDealButton(onPressed: onTap),
               ],
             ),
           ),
@@ -332,6 +338,49 @@ class _GridCard extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The primary, explicit call-to-action on a grid deal card. Previously the
+/// only way to act on a deal was tapping anywhere on the card — this makes
+/// that action visible and legible rather than implicit.
+class _GetDealButton extends StatelessWidget {
+  const _GetDealButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 34,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [GlassColors.blue500, GlassColors.indigo600],
+          ),
+          borderRadius: BorderRadius.circular(17),
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(17),
+            onTap: onPressed,
+            child: const Center(
+              child: Text(
+                'Get Deal',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

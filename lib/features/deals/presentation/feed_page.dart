@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -275,6 +276,66 @@ final _heroDecoration = BoxDecoration(
     ),
   ],
 );
+
+/// First-time-visitor value prop shown above the live-status banner: a
+/// headline/subheading paired with a hand-authored SVG illustration, so the
+/// page opens with a reason to trust it before the product grid starts.
+class _HeroIntro extends StatelessWidget {
+  const _HeroIntro();
+
+  @override
+  Widget build(BuildContext context) {
+    final isWide = MediaQuery.sizeOf(context).width >= 720;
+
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Jämför priser i realtid, hitta bästa fyndet',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: GlassColors.textHeading,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Vi bevakar priser dygnet runt hos flera butiker så du slipper – '
+          'och slår larm så fort ett pris sjunker.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: GlassColors.textBody,
+          ),
+        ),
+      ],
+    );
+
+    final illustration = SvgPicture.asset(
+      'assets/images/hero_illustration.svg',
+      height: isWide ? 200 : 140,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: isWide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: text),
+                const SizedBox(width: 24),
+                illustration,
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: illustration),
+                const SizedBox(height: 16),
+                text,
+              ],
+            ),
+    );
+  }
+}
 
 class FeedPage extends ConsumerStatefulWidget {
   const FeedPage({super.key});
@@ -562,6 +623,24 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                           : CustomScrollView(
                               controller: _scrollController,
                               slivers: [
+                                // ---- First-time-visitor hero intro:
+                                // headline + illustration, hidden while
+                                // searching/filtering so it doesn't push
+                                // results down when the visitor is already
+                                // mid-task. ----
+                                if (filters.searchQuery.isEmpty &&
+                                    !filters.showFavoritesOnly)
+                                  SliverPadding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      _heroHorizontalPadding(context),
+                                      16,
+                                      _heroHorizontalPadding(context),
+                                      0,
+                                    ),
+                                    sliver: const SliverToBoxAdapter(
+                                      child: _HeroIntro(),
+                                    ),
+                                  ),
                                 // ---- Live status banner: a slim, centered
                                 // glass pill (plus the "Live Market Price
                                 // Tracker" hero headline above it) floating

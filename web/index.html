@@ -17,6 +17,12 @@
   -->
   <base href="$FLUTTER_BASE_HREF">
 
+  <!-- Warm up the connection before google_fonts fetches Inter/Space Grotesk
+       at runtime, so the DNS/TLS handshake isn't on the critical path once
+       the font request actually fires. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -68,7 +74,7 @@
     object-src 'none';">
 
   <!-- SEO -->
-  <title>Sign up for Superdeals | PrisPuls</title>
+  <title>PrisPuls – Jämför priser & hitta bästa fynd i realtid</title>
   <meta name="description"
     content="Jämför priser i realtid och hitta bästa pris på elektronik & hemprodukter. Nya prissänkningar varje dag – missa inte morgondagens fynd.">
   <link rel="canonical" href="https://prispuls.com" />
@@ -76,17 +82,17 @@
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://prispuls.com">
-  <meta property="og:title" content="Sign up for Superdeals | PrisPuls">
+  <meta property="og:title" content="PrisPuls – Jämför priser & hitta bästa fynd i realtid">
   <meta property="og:description"
-    content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox.">
+    content="Jämför priser i realtid och hitta bästa pris på elektronik & hemprodukter. Nya prissänkningar varje dag – missa inte morgondagens fynd.">
   <meta property="og:image" content="https://prispuls.com/icons/Icon-512.png">
 
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://prispuls.com">
-  <meta property="twitter:title" content="Sign up for Superdeals | PrisPuls">
+  <meta property="twitter:title" content="PrisPuls – Jämför priser & hitta bästa fynd i realtid">
   <meta property="twitter:description"
-    content="Sign up for PrisPuls to get the best superdeals on products you love, delivered right to your inbox.">
+    content="Jämför priser i realtid och hitta bästa pris på elektronik & hemprodukter. Nya prissänkningar varje dag – missa inte morgondagens fynd.">
   <meta property="twitter:image" content="https://prispuls.com/icons/Icon-512.png">
 
 

@@ -7,6 +7,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../utils/error_formatting.dart';
+import '../../../widgets/glass_text_field.dart';
 import '../domain/deal.dart';
 import 'price_alert_provider.dart';
 
@@ -127,14 +128,11 @@ class _PriceAlertBottomSheetState extends ConsumerState<PriceAlertBottomSheet> {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            GlassTextField(
               controller: _priceController,
-              decoration: InputDecoration(
-                labelText: 'Notify me when price is below',
-                hintText: 'e.g., ${displayPrice.toStringAsFixed(0)}',
-                prefixText: '${settings.displayCurrency} ',
-                border: const OutlineInputBorder(),
-              ),
+              label: 'Notify me when price is below',
+              hintText: 'e.g., ${displayPrice.toStringAsFixed(0)}',
+              prefixText: '${settings.displayCurrency} ',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),

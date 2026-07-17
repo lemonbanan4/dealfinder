@@ -182,6 +182,7 @@ class _BrandLogoImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: url,
       fit: BoxFit.contain,
+      memCacheWidth: 210,
       fadeInDuration: const Duration(milliseconds: 150),
       placeholder: (context, _) => const _LogoPlaceholder(),
       errorWidget: (context, _, _) =>

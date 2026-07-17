@@ -143,7 +143,7 @@ STORES: list[StoreConfig] = [
         name="Acer Sweden",
         currency="SEK",
         awin=AwinConfig(
-            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/62983/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/62983/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,product_price_old,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
             currency_filter="SEK",
             column_map={
             "id": "merchant_product_id",
@@ -438,13 +438,13 @@ STORES: list[StoreConfig] = [
         name="Samsung NO",
         currency="NOK",
         awin=AwinConfig(
-            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/no/fid/84515/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/no/fid/84515/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,product_price_old,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
             currency_filter="NOK",
             column_map={
             "id": "merchant_product_id",
             "title": "product_name",
             "price": "search_price",
-            "original_price": "product_price_old", 
+            "original_price": "product_price_old",
             "link": "aw_deep_link",
             "image": "aw_image_url"
             }

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class GlassTextField extends StatelessWidget {
   const GlassTextField({
     super.key,
     this.controller,
     this.label,
+    this.hintText,
+    this.prefixText,
     this.icon,
     this.obscureText = false,
     this.keyboardType,
@@ -12,11 +15,14 @@ class GlassTextField extends StatelessWidget {
     this.suffixIcon,
     this.validator,
     this.onFieldSubmitted,
+    this.inputFormatters,
     this.autofocus = false,
   });
 
   final TextEditingController? controller;
   final String? label;
+  final String? hintText;
+  final String? prefixText;
   final IconData? icon;
   final bool obscureText;
   final TextInputType? keyboardType;
@@ -24,6 +30,7 @@ class GlassTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final void Function(String)? onFieldSubmitted;
+  final List<TextInputFormatter>? inputFormatters;
   final bool autofocus;
 
   @override
@@ -35,10 +42,15 @@ class GlassTextField extends StatelessWidget {
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
       validator: validator,
+      inputFormatters: inputFormatters,
       autofocus: autofocus,
       style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
+        hintText: hintText,
+        hintStyle: TextStyle(color: Colors.white.withAlpha(90), fontSize: 13),
+        prefixText: prefixText,
+        prefixStyle: const TextStyle(color: Colors.white, fontSize: 14),
         labelStyle: TextStyle(color: Colors.white.withAlpha(140), fontSize: 13),
         prefixIcon: icon != null
             ? Icon(icon, color: Colors.white.withAlpha(140), size: 18)

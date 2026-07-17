@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/seo/document_meta.dart';
 import '../../../services/analytics_service.dart';
+import '../../../theme/glass_colors.dart';
 import '../../settings/presentation/currency_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../providers/favorites_provider.dart';
@@ -150,6 +151,7 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
     );
 
     return Scaffold(
+      backgroundColor: GlassColors.background,
       // Using CustomScrollView to create a collapsing app bar effect
       body: CustomScrollView(
         slivers: [
@@ -182,19 +184,20 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
                   ? CachedNetworkImage(
                       imageUrl: deal.imageUrl!,
                       fit: BoxFit.cover,
+                      memCacheWidth: 800,
                       placeholder: (context, url) => const Center(
                         child: CircularProgressIndicator.adaptive(),
                       ),
                       errorWidget: (context, url, error) => Container(
-                        color: Colors.grey.shade200,
+                        color: GlassColors.surface,
                         child: const Icon(
                           Icons.image_not_supported_outlined,
                           size: 64,
-                          color: Colors.grey,
+                          color: GlassColors.textMuted,
                         ),
                       ),
                     )
-                  : Container(color: Colors.grey.shade300),
+                  : Container(color: GlassColors.surface),
             ),
             actions: [
               IconButton(
@@ -202,6 +205,7 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
                   isFavorite ? Icons.favorite : Icons.favorite_border,
                   color: isFavorite ? theme.colorScheme.primary : null,
                 ),
+                tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
                 onPressed: () => ref
                     .read(favoritesProvider.notifier)
                     .handleFavoriteTap(context, deal),
