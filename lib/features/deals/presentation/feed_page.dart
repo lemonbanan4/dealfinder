@@ -1016,7 +1016,14 @@ class GlassTopNavBar extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
               children: [
-                const AppLogo(iconSize: 28, fontSize: 21),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onDestinationSelected(0),
+                    child: const AppLogo(iconSize: 28, fontSize: 21),
+                  ),
+                ),
                 const SizedBox(width: 32),
                 for (int i = 0; i < destinations.length; i++)
                   _TopNavItem(

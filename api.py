@@ -391,14 +391,25 @@ def get_products(
             if sort in _SORT_ORDER_CLAUSES:
                 order_clause = f" ORDER BY {_SORT_ORDER_CLAUSES[sort]}"
             else:
-                # Default: biggest percentage discounts first, then newest items
+                # Default: biggest percentage discounts first, then a shuffled
+                # order for everything else (most products have no RRP data
+                # at all, so they all tie at "0 discount" — tie-breaking that
+                # by last_updated DESC let whichever store happened to be
+                # scraped most recently dominate every page of ties, and a
+                # store with a much larger catalog than everyone else's
+                # combined would then fill most of those pages by itself.
+                # md5(product_id || today's date) is a stable-within-a-day
+                # pseudo-random order: pagination stays consistent (same
+                # page 2 request always returns the same rows, no
+                # duplicates/skips), but which products land near the top
+                # reshuffles daily instead of being pinned to one store.
                 order_clause = """
                     ORDER BY
                     CASE
                         WHEN retail_price > price THEN (retail_price - price) / retail_price
                         ELSE 0
                     END DESC,
-                    last_updated DESC
+                    md5(product_id::text || to_char(current_date, 'YYYY-MM-DD'))
                 """
 
             if page is None:
