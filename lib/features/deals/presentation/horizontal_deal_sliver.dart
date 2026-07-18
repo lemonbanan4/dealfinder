@@ -10,6 +10,22 @@ import '../../settings/providers/settings_provider.dart';
 import '../domain/deal.dart';
 import '../providers/recently_viewed_provider.dart';
 
+/// Shared, safe deal-tap handler for this file's two grid-tile `onTap`
+/// callbacks — `deal.url` is scraped/backend-sourced, not validated
+/// client-side, so a raw `Uri.parse` can throw synchronously on a
+/// malformed URL and crash the tap handler. Matches the guarded pattern
+/// already used correctly in deal_slivers.dart's `_onDealTap`.
+Future<void> _launchDeal(WidgetRef ref, Deal deal) async {
+  ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
+  final uri = Uri.tryParse(deal.url);
+  if (uri == null) return;
+  try {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } catch (_) {
+    // URL could not be launched (no browser or invalid scheme) — fail silently
+  }
+}
+
 class HorizontalDealSliver extends ConsumerWidget {
   const HorizontalDealSliver({
     super.key,
@@ -208,13 +224,7 @@ class _FadingHorizontalDealListState
                     targetCurrency,
                   ),
             currency: targetCurrency,
-            onTap: () {
-              ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
-              launchUrl(
-                Uri.parse(deal.url),
-                mode: LaunchMode.externalApplication,
-              );
-            },
+            onTap: () => _launchDeal(ref, deal),
           ),
         );
       },
@@ -300,13 +310,7 @@ class _DealGridView extends ConsumerWidget {
                       targetCurrency,
                     ),
               currency: targetCurrency,
-              onTap: () {
-                ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
-                launchUrl(
-                  Uri.parse(deal.url),
-                  mode: LaunchMode.externalApplication,
-                );
-              },
+              onTap: () => _launchDeal(ref, deal),
             );
           },
         );

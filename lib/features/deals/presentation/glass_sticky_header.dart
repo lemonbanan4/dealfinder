@@ -49,7 +49,19 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              const GlassCategoriesMenu(),
+              // Capped width — GlassCategoriesMenu's button has no flex
+              // sibling of its own, so once a long category name is
+              // selected (some Swedish category labels run long), its
+              // full-text natural width was a hard demand that could
+              // squeeze the Expanded search field next to it down to a
+              // few unusable pixels on a narrow phone. The button's own
+              // label already has TextOverflow.ellipsis, but ellipsis only
+              // ever engages once the button itself has a bounded width to
+              // truncate within.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 130),
+                child: const GlassCategoriesMenu(),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: GlassSearchField(

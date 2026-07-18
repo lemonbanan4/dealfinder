@@ -27,10 +27,19 @@ class SettingRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
-          trailing,
+          const SizedBox(width: 8),
+          // Flexible (not a bare child) — trailing (e.g. the 4-segment
+          // currency SegmentedSwitch) previously had no flex sibling of its
+          // own, so its full intrinsic width was a hard, non-negotiable
+          // demand on the Row; on a narrow phone with SEK/NOK/EUR/USD all
+          // shown, that's a real RenderFlex overflow risk. Flexible lets it
+          // shrink instead of forcing a crash.
+          Flexible(child: trailing),
         ],
       ),
     );
