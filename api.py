@@ -392,24 +392,27 @@ def get_products(
                 query_where = where_clause
                 order_clause = f" ORDER BY {_SORT_ORDER_CLAUSES[sort]}"
             else:
-                # Default "Best Deals": real discounts first, then a
-                # store-diverse, date-seeded shuffle for everything else.
-                # Most products have no RRP data at all, so they all tie at
-                # "0 discount" — a plain shuffle among ties still lets a
-                # store with a much bigger catalog than everyone else's
-                # dominate any given page just by sheer row count (e.g. one
-                # store contributing half of every 200-item sample purely
-                # because it's ~10x the size of the next-largest tied
-                # store). ROW_NUMBER() PARTITION BY feed_region gives every
-                # store's own 1st-ranked item before any store's 2nd, its
-                # 2nd before any 3rd, and so on — genuine round-robin
-                # fairness across stores regardless of catalog size, not
-                # just randomness. md5(product_id || today's date) is a
-                # stable-within-a-day pseudo-random tiebreak inside each
-                # store's own ranking and as the final sort key, so
-                # pagination stays consistent through a full day (no
-                # duplicate/skipped rows as someone pages through) while
-                # reshuffling day to day.
+                # Default "Best Deals": every store's own best pick (real
+                # discounts prioritized within each store) before any store
+                # gets a second slot, then everyone's 2nd-best, and so on.
+                #
+                # An earlier version sorted by discount_pct DESC globally
+                # with round-robin only as a tiebreak — but discount % is a
+                # continuous value, virtually never tied across stores, so
+                # that tiebreak never actually engaged: whichever single
+                # store happened to have the most/biggest real discounts
+                # (~100 Samsung TVs) filled the entire discounted tier by
+                # itself, before any other store's products — discounted or
+                # not — ever appeared. Computing _store_rank via ROW_NUMBER()
+                # PARTITION BY feed_region ordered by discount_pct DESC (not
+                # globally, but within a store's own catalog) and sorting
+                # the outer query by _store_rank first means every store's
+                # own best deal surfaces on page 1 alongside Samsung's,
+                # instead of Samsung's 2nd/3rd/4th-best TV crowding out
+                # every other store's genuine #1 pick. md5(product_id ||
+                # today's date) is a stable-within-a-day pseudo-random
+                # tiebreak, so pagination stays consistent through a full
+                # day (no duplicate/skipped rows) while reshuffling daily.
                 query = f"""
                     SELECT * FROM (
                         SELECT *,
@@ -419,7 +422,12 @@ def get_products(
                             END AS _discount_pct,
                             ROW_NUMBER() OVER (
                                 PARTITION BY feed_region
-                                ORDER BY md5(product_id::text || to_char(current_date, 'YYYY-MM-DD'))
+                                ORDER BY
+                                    CASE
+                                        WHEN retail_price > price THEN (retail_price - price) / retail_price
+                                        ELSE 0
+                                    END DESC,
+                                    md5(product_id::text || to_char(current_date, 'YYYY-MM-DD'))
                             ) AS _store_rank
                         FROM products
                         {where_clause}
@@ -428,8 +436,8 @@ def get_products(
                 query_where = ""
                 order_clause = """
                     ORDER BY
-                    _discount_pct DESC,
                     _store_rank,
+                    _discount_pct DESC,
                     md5(product_id::text || to_char(current_date, 'YYYY-MM-DD'))
                 """
 
