@@ -21,6 +21,7 @@ class GlassCard extends StatefulWidget {
     this.borderRadius = 16,
     this.padding,
     this.margin,
+    this.enableBlur = true,
   });
 
   final Widget child;
@@ -28,6 +29,13 @@ class GlassCard extends StatefulWidget {
   final double borderRadius;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
+
+  /// Set false on highly-repeated instances (e.g. every card in a scrolling
+  /// grid) — `BackdropFilter` is a real offscreen render pass per instance,
+  /// and N of them live-blurring on every scroll frame is a known source of
+  /// mobile jank. Fill/border/shadow stay identical either way so it still
+  /// reads as glass, just without the live blur sampling underneath it.
+  final bool enableBlur;
 
   @override
   State<GlassCard> createState() => _GlassCardState();
@@ -62,36 +70,38 @@ class _GlassCardState extends State<GlassCard> {
             ))
         : Matrix4.identity();
 
-    Widget content = ClipRRect(
-      borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: GlassColors.glassBlurSigma,
-          sigmaY: GlassColors.glassBlurSigma,
+    final card = AnimatedContainer(
+      duration: GlassColors.glassHoverDuration,
+      curve: GlassColors.glassHoverCurve,
+      transform: transform,
+      transformAlignment: Alignment.center,
+      margin: widget.margin,
+      padding: widget.padding,
+      decoration: BoxDecoration(
+        color: GlassColors.glassFill,
+        borderRadius: radius,
+        border: Border.all(
+          color: hovering
+              ? GlassColors.glowBorderHover
+              : GlassColors.glowBorder,
         ),
-        child: AnimatedContainer(
-          duration: GlassColors.glassHoverDuration,
-          curve: GlassColors.glassHoverCurve,
-          transform: transform,
-          transformAlignment: Alignment.center,
-          margin: widget.margin,
-          padding: widget.padding,
-          decoration: BoxDecoration(
-            color: GlassColors.glassFill,
-            borderRadius: radius,
-            border: Border.all(
-              color: hovering
-                  ? GlassColors.glowBorderHover
-                  : GlassColors.glowBorder,
-            ),
-            boxShadow: hovering
-                ? GlassColors.glassHoverShadow
-                : GlassColors.glassShadow,
-          ),
-          child: widget.child,
-        ),
+        boxShadow: hovering ? GlassColors.glassHoverShadow : GlassColors.glassShadow,
       ),
+      child: widget.child,
     );
+
+    Widget content = widget.enableBlur
+        ? ClipRRect(
+            borderRadius: radius,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: GlassColors.glassBlurSigma,
+                sigmaY: GlassColors.glassBlurSigma,
+              ),
+              child: card,
+            ),
+          )
+        : ClipRRect(borderRadius: radius, child: card);
 
     if (interactive) {
       content = Material(

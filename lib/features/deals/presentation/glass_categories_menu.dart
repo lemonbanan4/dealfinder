@@ -177,7 +177,7 @@ class _GlassCategoriesMenuState extends ConsumerState<GlassCategoriesMenu> {
             label: Text(activeLabel, overflow: TextOverflow.ellipsis),
             style: OutlinedButton.styleFrom(
               foregroundColor: filters.category != 'All'
-                  ? const Color(0xFF00B4FF)
+                  ? GlassColors.purple400
                   : Colors.white70,
               side: BorderSide(
                 color: filters.category != 'All'
@@ -324,7 +324,7 @@ class _CategoryRow extends StatelessWidget {
       onPressed: onTap,
       style: ButtonStyle(
         foregroundColor: WidgetStatePropertyAll(
-          selected ? const Color(0xFF00B4FF) : GlassColors.textBody,
+          selected ? GlassColors.purple400 : GlassColors.textBody,
         ),
         shape: const WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -333,10 +333,10 @@ class _CategoryRow extends StatelessWidget {
       leadingIcon: Icon(
         icon ?? Icons.circle,
         size: icon != null ? 17 : 5,
-        color: selected ? const Color(0xFF00B4FF) : GlassColors.textMuted,
+        color: selected ? GlassColors.purple400 : GlassColors.textMuted,
       ),
       trailingIcon: selected
-          ? const Icon(Icons.check, size: 16, color: Color(0xFF00B4FF))
+          ? const Icon(Icons.check, size: 16, color: GlassColors.purple400)
           : null,
       child: Text(
         label,

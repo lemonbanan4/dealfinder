@@ -11,16 +11,16 @@ class GlassColors {
   GlassColors._();
 
   // ─── Background ─────────────────────────────────────────────────────────
-  // A flat, solid backdrop (not a gradient) — Tailwind slate-950.
-  static const background = Color(0xFF0A0F1E);
+  // A flat, solid backdrop (not a gradient) — deep purple-black.
+  static const background = Color(0xFF120B22);
 
   /// One step lighter than [background] — used where a surface needs to
   /// read as "elevated" with a solid (non-translucent) color, e.g. the
   /// mobile bottom nav bar or a dropdown menu's own backdrop.
-  static const surface = Color(0xFF0F172A);
+  static const surface = Color(0xFF1C1233);
 
   // ─── Glass card (base) ──────────────────────────────────────────────────
-  static const glassFill = Color.fromRGBO(8, 12, 28, 0.45);
+  static const glassFill = Color.fromRGBO(26, 15, 46, 0.45);
   static const glassFillHover = glassFill; // fill doesn't change on hover
   static const glassBorder = Color.fromRGBO(255, 255, 255, 0.08);
   static const glassBlurSigma = 16.0;
@@ -38,8 +38,8 @@ class GlassColors {
   static const glowBorder = glassBorder;
 
   // ─── Glass card (hover) ──────────────────────────────────────────────────
-  // border-color: rgba(56, 189, 248, 0.25) — sky-400 glow.
-  static const glowBorderHover = Color.fromRGBO(56, 189, 248, 0.25);
+  // border-color: rgba(168, 85, 247, 0.35) — purple-500 glow.
+  static const glowBorderHover = Color.fromRGBO(168, 85, 247, 0.35);
   static const glassHoverShadow = [
     BoxShadow(
       color: Color.fromRGBO(0, 0, 0, 0.7),
@@ -47,7 +47,7 @@ class GlassColors {
       blurRadius: 40,
       spreadRadius: -15,
     ),
-    BoxShadow(color: Color.fromRGBO(56, 189, 248, 0.12), blurRadius: 20),
+    BoxShadow(color: Color.fromRGBO(168, 85, 247, 0.16), blurRadius: 20),
   ];
   static const glassHoverLift = Offset(0, -3);
   static const glassHoverScale = 1.01;
@@ -63,8 +63,22 @@ class GlassColors {
   static const rose500 = Color(0xFFF43F5E);
   static const sky400 = Color(0xFF38BDF8);
 
+  /// Purple — the primary brand accent (nav hover glow, focus rings,
+  /// primary CTA gradient start).
+  static const purple400 = Color(0xFFC084FC);
+  static const purple500 = Color(0xFFA855F7);
+  static const purple600 = Color(0xFF9333EA);
+  static const violet700 = Color(0xFF6D28D9);
+
+  /// Orange — the secondary brand accent, paired with purple on primary
+  /// interactive elements (CTA gradient end, hot-deal highlights).
+  static const orange400 = Color(0xFFFB923C);
+  static const orange500 = Color(0xFFF97316);
+
   /// Money/price accent — emerald reads as "good news" (price drop) at a
   /// glance, matching the sparkline/price-text color used across deal cards.
+  /// Kept independent of the purple/orange brand accents since it's a
+  /// functional (up/down) signal, not a decorative one.
   static const priceAccent = emerald400;
 
   // ─── Neon glow utilities ────────────────────────────────────────────────
@@ -79,6 +93,14 @@ class GlassColors {
   static const neonBorderRose = Color.fromRGBO(244, 63, 94, 0.2);
   static const neonGlowRose = [
     BoxShadow(color: Color.fromRGBO(244, 63, 94, 0.1), blurRadius: 15),
+  ];
+  static const neonBorderPurple = Color.fromRGBO(168, 85, 247, 0.25);
+  static const neonGlowPurple = [
+    BoxShadow(color: Color.fromRGBO(168, 85, 247, 0.15), blurRadius: 15),
+  ];
+  static const neonBorderOrange = Color.fromRGBO(249, 115, 22, 0.25);
+  static const neonGlowOrange = [
+    BoxShadow(color: Color.fromRGBO(249, 115, 22, 0.15), blurRadius: 15),
   ];
   static const neonTextBlue = [
     Shadow(color: Color.fromRGBO(56, 189, 248, 0.4), blurRadius: 8),

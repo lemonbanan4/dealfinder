@@ -10,25 +10,33 @@ footer, ...). There used to be a second, divergent token file (`AppStyles`) that
 read from; it's gone now specifically because that split caused visible inconsistencies (the top
 nav bar's own background reading as a different surface than the page/cards behind it). Don't
 reintroduce a second token source — add new tokens to `GlassColors` instead.
-- **Theme**: Dark-mode only. **Flat** background, `#0A0F1E` (`GlassColors.background`) — not a
-  gradient. (An earlier version of this app used a diagonal `#0A192F → #112240` gradient; that's
-  what caused the inconsistency above, since a translucent glass fill tinted differently depending
-  on *where* on the gradient it sat. A flat backdrop means every glass surface's fill reads
-  identically regardless of position on screen.)
+- **Theme**: Dark-mode only. **Flat** background, `#120B22` (`GlassColors.background`) — a deep
+  purple-black, not a gradient. (An earlier version of this app used a diagonal `#0A192F → #112240`
+  gradient; that's what caused the inconsistency above, since a translucent glass fill tinted
+  differently depending on *where* on the gradient it sat. A flat backdrop means every glass surface's
+  fill reads identically regardless of position on screen. The background was originally a flat navy
+  slate `#0A0F1E`, shifted to purple as a deliberate brand refresh — see purple/orange accents below.)
 - **Aesthetic**: Glassmorphism ("glass-card"). `BackdropFilter` blur (`GlassColors.glassBlurSigma`,
-  16px) + a translucent dark-navy fill (`GlassColors.glassFill`, `rgba(8,12,28,0.45)`) + a soft
+  16px) + a translucent dark-purple fill (`GlassColors.glassFill`, `rgba(26,15,46,0.45)`) + a soft
   white 8%-alpha border (`GlassColors.glowBorder`) + a soft black drop shadow
   (`GlassColors.glassShadow`) for every card/bar. On hover/interactive surfaces: border shifts to a
-  sky-blue glow (`GlassColors.glowBorderHover`, `rgba(56,189,248,0.25)`), plus a lift
-  (`translateY(-3px) scale(1.01)`) and a combined black+sky glow shadow
+  purple glow (`GlassColors.glowBorderHover`, `rgba(168,85,247,0.35)`), plus a lift
+  (`translateY(-3px) scale(1.01)`) and a combined black+purple glow shadow
   (`GlassColors.glassHoverShadow`) — see `GlassCard`.
 - **Accents** (Tailwind hex, used as plain named colors — no compliance/region meaning attached):
-  `blue500 #3B82F6`, `indigo600 #4F46E5`, `emerald400 #34D399` (also `priceAccent` — money/price
-  text and sparklines), `blue400 #60A5FA`, `amber400 #FBBF24`, `rose500 #F43F5E` (danger/alerts),
-  `sky400 #38BDF8` (neon glow / hover border).
-- **Neon glow utilities**: `neonBorderBlue`/`neonGlowBlue`, `neonBorderEmerald`/`neonGlowEmerald`,
-  `neonBorderRose`/`neonGlowRose`, `neonTextBlue` (text shadow) — subtle glow accents, not the
-  primary border treatment (that's `glowBorder`/`glowBorderHover` above).
+  `purple400 #C084FC` / `purple500 #A855F7` / `purple600 #9333EA` / `violet700 #6D28D9` (primary
+  brand accent — hover glow, focus rings, one half of the primary CTA gradient), `orange400 #FB923C`
+  / `orange500 #F97316` (secondary brand accent, the other half of the primary CTA gradient —
+  `_GetDealButton` and `_GradientAuthButton` both use `[purple600, orange500]`), `emerald400 #34D399`
+  (`priceAccent` — money/price text and sparklines; kept independent of the purple/orange brand
+  accents since it's a functional up/down signal, not decorative). Legacy tokens `blue500`,
+  `indigo600`, `blue400`, `amber400`, `rose500` (danger/alerts), `sky400` still exist and are used in
+  a few places but are no longer the primary accent — prefer purple/orange for new interactive
+  elements.
+- **Neon glow utilities**: `neonBorderPurple`/`neonGlowPurple`, `neonBorderOrange`/`neonGlowOrange`,
+  `neonBorderBlue`/`neonGlowBlue`, `neonBorderEmerald`/`neonGlowEmerald`, `neonBorderRose`/
+  `neonGlowRose`, `neonTextBlue` (text shadow) — subtle glow accents, not the primary border
+  treatment (that's `glowBorder`/`glowBorderHover` above).
 - **Typography**: Inter (body/label text) + Space Grotesk 500–700 (display/headline/title text),
   loaded via `google_fonts` and assembled once in `app.dart`'s `_appTextTheme`. Text-scale colors:
   `GlassColors.textHeading` (slate-100), `textBody` (slate-300), `textMuted` (slate-400),

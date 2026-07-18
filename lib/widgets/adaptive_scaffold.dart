@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -94,16 +96,45 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
     if (width >= 720) {
       return Scaffold(
         backgroundColor: GlassColors.background,
-        body: Column(
+        // A Stack (not a Column) so the nav bar floats over page content
+        // instead of owning its own separate row of layout space — content
+        // needs to actually scroll underneath it for its glass blur to show
+        // anything through it rather than just a flat backdrop. Pages give
+        // their own scrollable content a matching top clearance (see
+        // kGlassNavBarClearance in feed_page.dart) so nothing starts out
+        // hidden behind the bar.
+        body: Stack(
           children: [
-            GlassTopNavBar(
-              selectedIndex: selectedIndex,
-              unreadAlerts: unreadAlerts,
-              onDestinationSelected: (i) => ref
-                  .read(appShellIndexProvider.notifier)
-                  .onDestinationSelected(context, ref, i),
+            Positioned.fill(child: _pages[selectedIndex]),
+            // A full-width, softly-blurred fade behind the nav bar pill —
+            // without this, only the pill's own rounded-rect gets blurred,
+            // so scrolled content shows a hard, sharp-edged seam at the
+            // pill's exact boundary instead of an atmospheric transition.
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _TopScrim(),
             ),
-            Expanded(child: _pages[selectedIndex]),
+            // Positioned (not a bare Stack child) so it hugs the top edge
+            // with its own natural height — GlassTopNavBar centers its
+            // content internally via a Center widget, which shrink-wraps
+            // under the unbounded height a Column used to give it, but
+            // expands to fill all available height (vertically centering
+            // the bar on the whole page) if just dropped into a Stack with
+            // bounded height and no Positioned constraint.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: GlassTopNavBar(
+                selectedIndex: selectedIndex,
+                unreadAlerts: unreadAlerts,
+                onDestinationSelected: (i) => ref
+                    .read(appShellIndexProvider.notifier)
+                    .onDestinationSelected(context, ref, i),
+              ),
+            ),
           ],
         ),
       );
@@ -139,6 +170,71 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
               label: label,
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Full-width backdrop blur + top-to-transparent fade sitting behind
+/// [GlassTopNavBar]'s own pill — see the call site's comment for why this
+/// exists. Height matches [kGlassNavBarClearance] (feed_page.dart) exactly,
+/// since that's the same measurement pages use to keep content clear of the
+/// bar; this way the fade's bottom edge lines up with where content clears.
+class _TopScrim extends StatelessWidget {
+  const _TopScrim();
+
+  // A single BackdropFilter blurs uniformly across its whole clipped region
+  // and then stops dead at that region's exact edge — the blur itself has a
+  // hard boundary, not just whatever color/opacity is layered on top of it,
+  // so one blur layer always shows a visible sharp/blurred seam no matter
+  // how soft its color gradient is. Stacking a few layers of decreasing
+  // height *and* decreasing blur strength approximates a gradual falloff
+  // instead — each layer's edge is hidden under the still-blurred layer
+  // above it. Cheap here since it's one static region, not per-card.
+  static const _layers = [
+    (heightFactor: 1.0, sigma: 14.0, tint: 0.55),
+    (heightFactor: 0.7, sigma: 8.0, tint: 0.4),
+    (heightFactor: 0.4, sigma: 4.0, tint: 0.25),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: SizedBox(
+        height: kGlassNavBarClearance,
+        child: Stack(
+          children: [
+            for (final layer in _layers)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: kGlassNavBarClearance * layer.heightFactor,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: layer.sigma,
+                      sigmaY: layer.sigma,
+                    ),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            GlassColors.background.withValues(
+                              alpha: layer.tint,
+                            ),
+                            GlassColors.background.withValues(alpha: 0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

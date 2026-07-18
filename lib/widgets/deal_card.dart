@@ -54,6 +54,11 @@ class DealCard extends ConsumerWidget {
 
     // LIST VIEW
     return GlassCard(
+      // Deal cards are the highest-repetition glass surface in the app (up
+      // to two dozen live on screen at once, more as you scroll) — a live
+      // BackdropFilter blur per card is a real mobile scroll-jank source.
+      // Fill/border/shadow are unchanged, so it still reads as glass.
+      enableBlur: false,
       borderRadius: 16,
       onTap: onTap,
       padding: const EdgeInsets.all(12),
@@ -174,6 +179,9 @@ class _GridCard extends ConsumerWidget {
     );
 
     return GlassCard(
+      // See the list-view GlassCard above for why blur is off here too —
+      // this is the primary 2-column grid card, the most-repeated of all.
+      enableBlur: false,
       borderRadius: 12,
       onTap: onTap,
       padding: const EdgeInsets.all(12),
@@ -359,7 +367,7 @@ class _GetDealButton extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [GlassColors.blue500, GlassColors.indigo600],
+            colors: [GlassColors.purple600, GlassColors.orange500],
           ),
           borderRadius: BorderRadius.circular(17),
         ),

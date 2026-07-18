@@ -355,16 +355,19 @@ class _HowItWorksSection extends StatelessWidget {
         icon: Icons.search_rounded,
         title: l10n.howItWorksStep1Title,
         body: l10n.howItWorksStep1Body,
+        accentColor: GlassColors.purple400,
       ),
       (
         icon: Icons.show_chart_rounded,
         title: l10n.howItWorksStep2Title,
         body: l10n.howItWorksStep2Body,
+        accentColor: GlassColors.orange400,
       ),
       (
         icon: Icons.notifications_active_outlined,
         title: l10n.howItWorksStep3Title,
         body: l10n.howItWorksStep3Body,
+        accentColor: GlassColors.purple400,
       ),
     ];
 
@@ -422,7 +425,7 @@ class _HowItWorksSection extends StatelessWidget {
 class _HowItWorksStep extends StatelessWidget {
   const _HowItWorksStep({required this.step});
 
-  final ({IconData icon, String title, String body}) step;
+  final ({IconData icon, String title, String body, Color accentColor}) step;
 
   @override
   Widget build(BuildContext context) {
@@ -434,10 +437,10 @@ class _HowItWorksStep extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: GlassColors.sky400.withValues(alpha: 0.12),
+            color: step.accentColor.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: Icon(step.icon, color: GlassColors.sky400, size: 18),
+          child: Icon(step.icon, color: step.accentColor, size: 18),
         ),
         const SizedBox(height: 10),
         Text(
@@ -717,7 +720,11 @@ class _FeedPageState extends ConsumerState<FeedPage> {
             children: [
               // ─── Main Content ──────────────────────────────────────────────────
               Expanded(
-                child: Stack(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: isWide ? kGlassNavBarClearance : 0,
+                  ),
+                  child: Stack(
                   children: [
                     RefreshIndicator(
                       onRefresh: _handleRefresh,
@@ -926,6 +933,7 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                     ),
                   ],
                 ),
+                ),
               ),
             ],
           ),
@@ -959,6 +967,14 @@ List<(String, IconData, IconData)> navDestinations(AppLocalizations l10n) => [
   (l10n.navFeed, Icons.storefront_outlined, Icons.storefront),
   (l10n.navAlerts, Icons.notifications_outlined, Icons.notifications),
 ];
+
+/// [GlassTopNavBar]'s total rendered height on wide screens (its own
+/// vertical padding + [GlassContainer] padding + row content) — used to
+/// give page content the right top clearance now that the nav bar floats
+/// in a [Stack] over the content instead of sitting in its own [Column]
+/// slot, which is what makes its glass blur actually show scrolled content
+/// through it instead of just a flat backdrop.
+const double kGlassNavBarClearance = 100;
 
 class GlassTopNavBar extends ConsumerWidget {
   const GlassTopNavBar({
@@ -1049,7 +1065,7 @@ class _TopNavItem extends StatelessWidget {
   final VoidCallback onTap;
   final int badgeCount;
 
-  static const _selectedColor = Color(0xFF00B4FF);
+  static const _selectedColor = GlassColors.orange400;
   static const _unselectedColor = Color(0xFF8A8AA0);
   static const _pillRadius = 20.0;
 

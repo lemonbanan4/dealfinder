@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/glass_colors.dart';
+
 class GlassTextField extends StatelessWidget {
   const GlassTextField({
     super.key,
@@ -64,7 +66,10 @@ class GlassTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF00B4FF), width: 1.5),
+          borderSide: const BorderSide(
+            color: GlassColors.purple400,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

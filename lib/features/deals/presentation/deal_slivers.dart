@@ -233,8 +233,11 @@ Widget responsiveDealGrid({
           crossAxisCount: columns,
           // Cards are now a horizontal row (thumbnail + details), matching
           // the reference design — much shorter than the old image-on-top
-          // layout, hence the smaller fixed extent.
-          mainAxisExtent: 160,
+          // layout, hence the smaller fixed extent. 210 (not 160) since the
+          // _GetDealButton CTA added ~42px to the details column; a fixed
+          // mainAxisExtent doesn't grow with content, so undersizing this
+          // clips the button instead of the card overflowing safely.
+          mainAxisExtent: 210,
           crossAxisSpacing: 20,
           mainAxisSpacing: 20,
         ),

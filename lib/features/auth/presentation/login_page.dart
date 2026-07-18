@@ -324,9 +324,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [GlassColors.blue500, GlassColors.indigo600],
+                  colors: [GlassColors.purple600, GlassColors.orange500],
                 ),
-                glowColor: GlassColors.sky400,
+                glowColor: GlassColors.purple400,
                 onPressed: state.loading
                     ? null
                     : () => notifier.submit(
