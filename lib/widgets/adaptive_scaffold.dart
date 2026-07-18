@@ -150,6 +150,19 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
             .onDestinationSelected(context, ref, i),
         backgroundColor: GlassColors.surface,
         indicatorColor: const Color(0xFF1E2035),
+        // Explicit, same as the desktop nav bar's selected color — the
+        // default Material 3 selected tint here is subtle enough to read
+        // as barely-there next to GlassTopNavBar's clearly orange
+        // selected tab, which looks like an inconsistency between the two
+        // rather than a deliberate design choice.
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            color: states.contains(WidgetState.selected)
+                ? GlassColors.orange400
+                : GlassColors.textMuted,
+          ),
+        ),
         destinations: [
           for (final (i, (label, icon, selected)) in navDestinations(
             AppLocalizations.of(context)!,
@@ -158,15 +171,15 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
               icon: i == 1 && unreadAlerts > 0
                   ? Badge(
                       label: Text(unreadAlerts.toString()),
-                      child: Icon(icon),
+                      child: Icon(icon, color: GlassColors.textMuted),
                     )
-                  : Icon(icon),
+                  : Icon(icon, color: GlassColors.textMuted),
               selectedIcon: i == 1 && unreadAlerts > 0
                   ? Badge(
                       label: Text(unreadAlerts.toString()),
-                      child: Icon(selected),
+                      child: Icon(selected, color: GlassColors.orange400),
                     )
-                  : Icon(selected),
+                  : Icon(selected, color: GlassColors.orange400),
               label: label,
             ),
         ],

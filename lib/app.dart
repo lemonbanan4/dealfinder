@@ -161,7 +161,7 @@ class _PrisPulsAppState extends ConsumerState<PrisPulsApp>
         ),
         colorScheme:
             ColorScheme.fromSeed(
-              seedColor: GlassColors.blue500,
+              seedColor: GlassColors.purple500,
               brightness: Brightness.dark,
             ).copyWith(
               surface: GlassColors.background,
