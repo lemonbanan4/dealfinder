@@ -27,7 +27,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 import pandas as pd
 import requests
@@ -119,6 +119,15 @@ class HtmlConfig:
     image_selector: Optional[str] = None
     # Prepended to relative hrefs (leave empty for absolute hrefs)
     base_url: str = ""
+    # For a merchant that only offers Awin deep-link creation (no bulk CSV
+    # feed) — wraps each scraped product URL in Awin's standard click-
+    # redirect format (https://www.awin1.com/cread.php?awinmid=...&ued=...)
+    # instead of linking to the bare product page. awinmid (merchant ID)
+    # and awinaffid (your publisher ID) come from any deep link Awin's UI
+    # generates for that merchant — both stay constant across every
+    # product, only the `ued` (url-encoded destination) changes.
+    awin_mid: Optional[str] = None
+    awin_affid: Optional[str] = None
 
 
 @dataclass
@@ -568,6 +577,67 @@ STORES: list[StoreConfig] = [
     #         base_url="https://www.earfun.com",
     #     ),
     # ),
+
+    StoreConfig(
+        id="xiaomi_se",
+        name="Xiaomi Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/110674/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id",
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+    StoreConfig(
+        id="didriksons_se",
+        name="Didriksons Sweden",
+        currency="SEK",
+        awin=AwinConfig(
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/115770/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
+            currency_filter="SEK",
+            column_map={
+                "id": "merchant_product_id",
+                "title": "product_name",
+                "price": "search_price",
+                "link": "aw_deep_link",
+                "image": "aw_image_url",
+            }
+        ),
+    ),
+
+    # ── Voghion — SE store, no bulk Awin feed available for this merchant, ──────
+    # only deep-link creation, so this scrapes se.voghion.com directly (Nuxt
+    # SSR — product data is present in the raw server-rendered HTML, no
+    # headless browser needed) and wraps each scraped product URL in Awin's
+    # standard click-redirect format via awin_mid/awin_affid (see HtmlConfig)
+    # instead of a per-product feed column. Homepage's "Just For You" section
+    # is the only part of the site with product cards embedded in the initial
+    # HTML (category/campaign pages fetch their listings client-side) — it's
+    # somewhat personalized/rotating, so which ~29 products show up will vary
+    # run to run, which is fine for a price-tracking scraper.
+    StoreConfig(
+        id="voghion_se",
+        name="Voghion Sweden",
+        currency="SEK",
+        html=HtmlConfig(
+            url="https://se.voghion.com",
+            list_selector="a.just-for-you-item",
+            title_selector="h3",
+            current_price_selector=".text-18.font-bold",
+            link_selector="self",
+            image_selector="img",
+            base_url="https://se.voghion.com",
+            awin_mid="44635",
+            awin_affid="2903781",
+        ),
+    ),
 ]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────────
@@ -1057,7 +1127,12 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
     for item in items:
         title_el = item.select_one(cfg.title_selector)
         price_el = item.select_one(cfg.current_price_selector)
-        link_el = item.select_one(cfg.link_selector)
+        # `select_one` only searches descendants of `item`, never `item`
+        # itself — fine for a card that's a wrapper (<li>/<div>) around a
+        # nested <a>, but some sites' card markup makes the <a> the card
+        # itself (no separate link element to select). link_selector="self"
+        # opts into using `item`'s own href in that case.
+        link_el = item if cfg.link_selector == "self" else item.select_one(cfg.link_selector)
 
         if not (title_el and price_el and link_el):
             continue
@@ -1079,6 +1154,13 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
             href = cfg.base_url + href
         if not href:
             continue
+
+        if cfg.awin_mid and cfg.awin_affid:
+            href = (
+                "https://www.awin1.com/cread.php"
+                f"?awinmid={cfg.awin_mid}&awinaffid={cfg.awin_affid}"
+                f"&ued={quote(href, safe='')}"
+            )
 
         original_price: Optional[float] = None
         if cfg.original_price_selector:

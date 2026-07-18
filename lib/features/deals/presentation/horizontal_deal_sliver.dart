@@ -69,16 +69,19 @@ class HorizontalDealSliver extends ConsumerWidget {
   }
 }
 
-// Grid-mode tiles (e.g. "Insane Deals") host the wide, horizontal `_GridCard`
-// row layout (thumbnail + title/source/sparkline/price + action-button
-// column) — this needs to stay wide enough for that content or it'll
-// overflow, unlike the old vertical image-on-top layout these were sized for.
-const _gridTileWidth = 280.0;
-// 230 (not 180) — this hosts the same _GridCard as the main feed grid,
-// whose mainAxisExtent needed the same +50 bump to fit the _GetDealButton
-// CTA added later without clipping it (see responsiveDealGrid in
-// deal_slivers.dart for the matching fix and its full explanation).
-const _gridTileHeight = 230.0;
+// Grid-mode tiles (e.g. "Insane Deals") host the exact same `_GridCard` row
+// layout (thumbnail + title/source/sparkline/price + action-button column,
+// including the _GetDealButton CTA) as the main feed grid's
+// responsiveDealGrid (deal_slivers.dart) — so this uses that same height
+// (210) and the same column-count breakpoint (2 columns at >=420 logical
+// px, else 1) instead of its own separately-tuned fixed pixel width. They
+// used to diverge: a fixed 280px tile width made these cards noticeably
+// wider than the main grid's on narrow phones (nearly full-bleed at 1
+// column vs. the main grid's own narrower 1-column width), which read as
+// an unintentional size mismatch between the "trending" shelf and the main
+// feed right below it, rather than a deliberately distinct shelf design.
+const _gridTileHeight = 210.0;
+const _gridNarrowBreakpoint = 420.0;
 
 // List-mode tiles (e.g. "Recently Viewed") host `DealCard`'s horizontal list
 // layout (110x110 image + Expanded title/source/sparkline/price column). A
@@ -87,6 +90,27 @@ const _gridTileHeight = 230.0;
 // internal `Expanded` gets an unbounded width constraint and throws.
 const _listTileWidth = 320.0;
 const _listTileHeight = 140.0;
+
+const _gridHorizontalPadding = 16.0;
+const _gridSpacing = 10.0;
+
+/// Single source of truth for the grid-mode column count, shared by
+/// [_DealSliverContent] (which needs it to pre-compute a container height —
+/// GridView.builder needs bounded height when nested, non-scrollable, inside
+/// a sliver ancestor) and [_DealGridView]'s own layout. These used to be two
+/// separately-maintained copies of the same formula: this one worked from
+/// `MediaQuery.of(context).size.width` (the *raw screen* width), the other
+/// from its actual `LayoutBuilder` constraints (screen width minus the hero
+/// panel's own horizontal padding, which this file has no way to know about
+/// from a screen-width figure alone). They agreed often enough to look fine
+/// in casual testing, but diverged at plenty of real device widths — the
+/// container-height guess would predict fewer rows than the grid actually
+/// needed, clipping the last row/card. Computing from the same
+/// `constraints.maxWidth` in both places makes that divergence impossible.
+int _gridCrossAxisCount(double maxWidth) {
+  final availableWidth = maxWidth - (_gridHorizontalPadding * 2);
+  return availableWidth >= _gridNarrowBreakpoint ? 2 : 1;
+}
 
 class _DealSliverContent extends StatelessWidget {
   const _DealSliverContent({required this.deals, required this.view});
@@ -97,28 +121,24 @@ class _DealSliverContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final isGrid = view == DealCardView.grid;
 
-    // For grid, calculate height dynamically based on available width
-    double containerHeight = _listTileHeight + 20; // Default for list view
-    if (isGrid) {
-      final screenWidth = MediaQuery.of(context).size.width;
-      const horizontalPadding = 16.0;
-      const spacing = 10.0;
-      final availableWidth = screenWidth - (horizontalPadding * 2);
-      final crossAxisCount =
-          ((availableWidth + spacing) ~/ (_gridTileWidth + spacing)).clamp(
-            1,
-            10,
-          );
-      final rowCount = (deals.length / crossAxisCount).ceil();
-      containerHeight =
-          rowCount * _gridTileHeight + (rowCount - 1) * spacing + 20;
+    if (!isGrid) {
+      return SizedBox(
+        height: _listTileHeight + 20,
+        child: _FadingHorizontalDealList(deals: deals, view: view),
+      );
     }
 
-    return SizedBox(
-      height: containerHeight,
-      child: isGrid
-          ? _DealGridView(deals: deals)
-          : _FadingHorizontalDealList(deals: deals, view: view),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = _gridCrossAxisCount(constraints.maxWidth);
+        final rowCount = (deals.length / crossAxisCount).ceil();
+        final containerHeight =
+            rowCount * _gridTileHeight + (rowCount - 1) * _gridSpacing + 20;
+        return SizedBox(
+          height: containerHeight,
+          child: _DealGridView(deals: deals),
+        );
+      },
     );
   }
 }
@@ -271,25 +291,28 @@ class _DealGridView extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        const double horizontalPadding = 16.0;
-        const double spacing = 10.0;
+        final crossAxisCount = _gridCrossAxisCount(constraints.maxWidth);
 
-        final crossAxisCount =
-            ((constraints.maxWidth - horizontalPadding * 2 + spacing) ~/
-                    (_gridTileWidth + spacing))
-                .clamp(1, 10);
+        // Column width is derived (available width / column count), not a
+        // fixed pixel value — matches the main feed grid, whose cards are
+        // just however wide a 1- or 2-column SliverGrid cell comes out to.
+        final columnWidth =
+            (constraints.maxWidth -
+                _gridHorizontalPadding * 2 -
+                _gridSpacing * (crossAxisCount - 1)) /
+            crossAxisCount;
 
         return GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
+            horizontal: _gridHorizontalPadding,
             vertical: 10,
           ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-            childAspectRatio: _gridTileWidth / _gridTileHeight,
+            crossAxisSpacing: _gridSpacing,
+            mainAxisSpacing: _gridSpacing,
+            childAspectRatio: columnWidth / _gridTileHeight,
           ),
           itemCount: deals.length,
           itemBuilder: (context, index) {

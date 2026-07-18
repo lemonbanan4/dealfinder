@@ -704,12 +704,6 @@ class _FeedPageState extends ConsumerState<FeedPage> {
         },
         child: Scaffold(
           backgroundColor: Colors.transparent,
-          // The app-level top nav bar (adaptive_scaffold.dart) already covers
-          // logo/tabs/categories/search/auth on wide screens, so the feed's own
-          // header is only needed on narrow/mobile screens (no top nav bar
-          // there). Refresh lives in the floating button below instead of a
-          // toolbar row on either layout.
-          appBar: isWide ? null : const GlassStickyHeader(),
           // No background decoration here — the app shell (adaptive_scaffold.dart)
           // already paints one continuous gradient behind the top nav bar and
           // this page's content together. Painting a second, independent
@@ -718,6 +712,21 @@ class _FeedPageState extends ConsumerState<FeedPage> {
           // directly under the nav bar.
           body: Column(
             children: [
+              // The app-level top nav bar (adaptive_scaffold.dart) already
+              // covers logo/tabs/categories/search/auth on wide screens, so
+              // the feed's own header is only needed on narrow/mobile
+              // screens (no top nav bar there). A plain Column child (not
+              // Scaffold's `appBar:` slot) — an AppBar forces its child into
+              // a fixed `preferredSize` height, which previously clipped
+              // this header's content (an IconButton's 48px minimum tap
+              // target and the search field's own height add up to more
+              // than a guessed constant on most devices, regardless of
+              // safe-area insets — web/index.html doesn't set
+              // viewport-fit=cover, so MediaQuery's safe-area padding is
+              // always 0 in a normal browser tab anyway). A Column sizes
+              // this to its actual content automatically, so there's no
+              // number to keep re-guessing.
+              if (!isWide) const GlassStickyHeader(),
               // ─── Main Content ──────────────────────────────────────────────────
               Expanded(
                 child: Padding(
