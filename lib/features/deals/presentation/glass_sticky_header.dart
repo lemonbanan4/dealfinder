@@ -53,6 +53,7 @@ class GlassStickyHeader extends ConsumerWidget implements PreferredSizeWidget {
                   cancelPendingSearchUpdate(ref);
                   searchController.clear();
                   ref.read(feedFiltersProvider.notifier).clear();
+                  ref.read(feedGoHomeSignalProvider.notifier).state++;
                 },
                 child: const AppLogo(),
               ),

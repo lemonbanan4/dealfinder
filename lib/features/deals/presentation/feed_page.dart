@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -106,6 +107,14 @@ void handleSearchChanged(WidgetRef ref, String value) {
 void cancelPendingSearchUpdate(WidgetRef ref) {
   ref.read(_searchDebouncerProvider).cancel();
 }
+
+/// Bumped by the "PrisPuls" logo tap (desktop [GlassTopNavBar] and mobile
+/// [GlassStickyHeader]) to mean "take me back to the start" — most sites'
+/// logo click resets filters/search AND scrolls back to the top, not just
+/// one or the other. [_FeedPageState] listens for changes and does both;
+/// a plain incrementing counter (rather than a bool) so tapping the logo
+/// twice in a row while already home still fires the listener each time.
+final feedGoHomeSignalProvider = StateProvider<int>((ref) => 0);
 
 @immutable
 class FeedFilters {
@@ -648,8 +657,22 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     _isRefreshing.value = false;
   }
 
+  void _goHome() {
+    cancelPendingSearchUpdate(ref);
+    _searchController.clear();
+    ref.read(feedFiltersProvider.notifier).clear();
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(feedGoHomeSignalProvider, (_, _) => _goHome());
     final filters = ref.watch(feedFiltersProvider);
     final isWide = MediaQuery.sizeOf(context).width >= 720;
     final isPagedBrowseMode = _isPagedBrowseMode(filters);
@@ -1020,7 +1043,10 @@ class GlassTopNavBar extends ConsumerWidget {
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => onDestinationSelected(0),
+                    onTap: () {
+                      onDestinationSelected(0);
+                      ref.read(feedGoHomeSignalProvider.notifier).state++;
+                    },
                     child: const AppLogo(iconSize: 28, fontSize: 21),
                   ),
                 ),
