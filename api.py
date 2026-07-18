@@ -389,26 +389,47 @@ def get_products(
             where_clause = " WHERE " + " AND ".join(conditions)
 
             if sort in _SORT_ORDER_CLAUSES:
+                query_where = where_clause
                 order_clause = f" ORDER BY {_SORT_ORDER_CLAUSES[sort]}"
             else:
-                # Default: biggest percentage discounts first, then a shuffled
-                # order for everything else (most products have no RRP data
-                # at all, so they all tie at "0 discount" — tie-breaking that
-                # by last_updated DESC let whichever store happened to be
-                # scraped most recently dominate every page of ties, and a
-                # store with a much larger catalog than everyone else's
-                # combined would then fill most of those pages by itself.
-                # md5(product_id || today's date) is a stable-within-a-day
-                # pseudo-random order: pagination stays consistent (same
-                # page 2 request always returns the same rows, no
-                # duplicates/skips), but which products land near the top
-                # reshuffles daily instead of being pinned to one store.
+                # Default "Best Deals": real discounts first, then a
+                # store-diverse, date-seeded shuffle for everything else.
+                # Most products have no RRP data at all, so they all tie at
+                # "0 discount" — a plain shuffle among ties still lets a
+                # store with a much bigger catalog than everyone else's
+                # dominate any given page just by sheer row count (e.g. one
+                # store contributing half of every 200-item sample purely
+                # because it's ~10x the size of the next-largest tied
+                # store). ROW_NUMBER() PARTITION BY feed_region gives every
+                # store's own 1st-ranked item before any store's 2nd, its
+                # 2nd before any 3rd, and so on — genuine round-robin
+                # fairness across stores regardless of catalog size, not
+                # just randomness. md5(product_id || today's date) is a
+                # stable-within-a-day pseudo-random tiebreak inside each
+                # store's own ranking and as the final sort key, so
+                # pagination stays consistent through a full day (no
+                # duplicate/skipped rows as someone pages through) while
+                # reshuffling day to day.
+                query = f"""
+                    SELECT * FROM (
+                        SELECT *,
+                            CASE
+                                WHEN retail_price > price THEN (retail_price - price) / retail_price
+                                ELSE 0
+                            END AS _discount_pct,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY feed_region
+                                ORDER BY md5(product_id::text || to_char(current_date, 'YYYY-MM-DD'))
+                            ) AS _store_rank
+                        FROM products
+                        {where_clause}
+                    ) _ranked
+                """
+                query_where = ""
                 order_clause = """
                     ORDER BY
-                    CASE
-                        WHEN retail_price > price THEN (retail_price - price) / retail_price
-                        ELSE 0
-                    END DESC,
+                    _discount_pct DESC,
+                    _store_rank,
                     md5(product_id::text || to_char(current_date, 'YYYY-MM-DD'))
                 """
 
@@ -416,13 +437,13 @@ def get_products(
                 # Legacy shape (bare array): still used by features that need
                 # full-catalog visibility client-side (category/search
                 # filtering, the "Insane Deals" ribbon, Recently Viewed).
-                cursor.execute(query + where_clause + order_clause, params)
+                cursor.execute(query + query_where + order_clause, params)
                 return cursor.fetchall()
 
             cursor.execute("SELECT COUNT(*) AS count FROM products" + where_clause, params)
             total_count = cursor.fetchone()["count"]
 
-            paged_query = query + where_clause + order_clause + " LIMIT %s OFFSET %s"
+            paged_query = query + query_where + order_clause + " LIMIT %s OFFSET %s"
             cursor.execute(paged_query, params + [limit, (page - 1) * limit])
             rows = cursor.fetchall()
 
