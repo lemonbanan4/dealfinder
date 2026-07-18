@@ -58,7 +58,11 @@ class HorizontalDealSliver extends ConsumerWidget {
 // column) — this needs to stay wide enough for that content or it'll
 // overflow, unlike the old vertical image-on-top layout these were sized for.
 const _gridTileWidth = 280.0;
-const _gridTileHeight = 180.0;
+// 230 (not 180) — this hosts the same _GridCard as the main feed grid,
+// whose mainAxisExtent needed the same +50 bump to fit the _GetDealButton
+// CTA added later without clipping it (see responsiveDealGrid in
+// deal_slivers.dart for the matching fix and its full explanation).
+const _gridTileHeight = 230.0;
 
 // List-mode tiles (e.g. "Recently Viewed") host `DealCard`'s horizontal list
 // layout (110x110 image + Expanded title/source/sparkline/price column). A
