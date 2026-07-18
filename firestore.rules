@@ -40,12 +40,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Public deal feed — anyone can browse, only authenticated users write
-    // (writes come from the Workmanager background scraper on signed-in devices).
-    match /deals/{dealId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
+    // The `deals` collection is dead: live deal data comes from the
+    // Supabase-backed FastAPI (api.py), not Firestore — FirestoreDealRepository
+    // and its dev-only seeder had zero real callers and were deleted. No
+    // match block here means the default-deny rule below covers it; if this
+    // collection is ever wired back up, add a scoped rule then rather than
+    // reopening public write access to it now for no functional benefit.
 
     match /users/{userId} {
       // A user can only read, write, and modify their own document
