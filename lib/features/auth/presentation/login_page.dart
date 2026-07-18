@@ -293,9 +293,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 obscureText: state.obscurePass,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    state.obscurePass
-                        ? Icons.visibility_off
-                        : Icons.visibility,
+                    state.obscurePass ? Icons.visibility_off : Icons.visibility,
                     color: Colors.white.withAlpha(140),
                   ),
                   onPressed: notifier.toggleObscure,

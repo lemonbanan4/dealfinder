@@ -85,7 +85,9 @@ class _GlassCardState extends State<GlassCard> {
               ? GlassColors.glowBorderHover
               : GlassColors.glowBorder,
         ),
-        boxShadow: hovering ? GlassColors.glassHoverShadow : GlassColors.glassShadow,
+        boxShadow: hovering
+            ? GlassColors.glassHoverShadow
+            : GlassColors.glassShadow,
       ),
       child: widget.child,
     );

@@ -76,11 +76,7 @@ class CookieConsentBanner extends ConsumerWidget {
             if (constraints.maxWidth < 560) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  text,
-                  const SizedBox(height: 12),
-                  buttons,
-                ],
+                children: [text, const SizedBox(height: 12), buttons],
               );
             }
             return Row(

@@ -110,12 +110,7 @@ class _AppShellMainState extends ConsumerState<_AppShellMain> {
             // without this, only the pill's own rounded-rect gets blurred,
             // so scrolled content shows a hard, sharp-edged seam at the
             // pill's exact boundary instead of an atmospheric transition.
-            const Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _TopScrim(),
-            ),
+            const Positioned(top: 0, left: 0, right: 0, child: _TopScrim()),
             // Positioned (not a bare Stack child) so it hugs the top edge
             // with its own natural height — GlassTopNavBar centers its
             // content internally via a Center widget, which shrink-wraps
