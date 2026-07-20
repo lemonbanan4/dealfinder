@@ -371,6 +371,89 @@ def prerender_product_page(req: https_fn.Request) -> https_fn.Response:
     )
 
 
+# The build-time web/sitemap.xml only ever listed the homepage + the 15
+# brand landing pages — zero individual product URLs, despite
+# prerender_product_page above already giving every /products/{id} page
+# real, crawlable, structured-data-bearing HTML. Google has no way to
+# *discover* those URLs on its own (this is a CanvasKit SPA — there are no
+# real <a href> elements for a crawler to follow), so with a static
+# 16-entry sitemap the entire product catalog was effectively invisible to
+# search, no matter how good the per-page SEO was. This serves a live
+# sitemap instead, seeded from the same "Best Deals" ordering the homepage
+# uses (already diverse across stores — see get_products in api.py), so it
+# grows and refreshes automatically as the catalog does.
+_sitemap_cache: dict[str, object] = {"xml": None, "fetched_at": 0.0}
+_SITEMAP_CACHE_TTL_SECONDS = 3600
+_SITEMAP_PRODUCT_PAGES = 5  # 5 x 200 = up to 1000 product URLs.
+
+
+def _sitemap_url_entry(loc: str, changefreq: str, priority: str) -> str:
+    return (
+        f"<url><loc>{html.escape(loc)}</loc>"
+        f"<changefreq>{changefreq}</changefreq><priority>{priority}</priority></url>"
+    )
+
+
+def _build_sitemap_xml() -> str:
+    entries = [_sitemap_url_entry(f"{SITE_BASE}/", "hourly", "1.0")]
+    for slug in BRAND_PAGES:
+        entries.append(
+            _sitemap_url_entry(f"{SITE_BASE}/brands/{slug}", "daily", "0.8")
+        )
+
+    seen_ids: set[str] = set()
+    for page in range(1, _SITEMAP_PRODUCT_PAGES + 1):
+        try:
+            resp = requests.get(
+                f"{API_BASE}/api/products",
+                params={"page": page, "limit": 200},
+                timeout=8,
+            )
+            resp.raise_for_status()
+            items = resp.json().get("items", [])
+        except requests.RequestException:
+            break
+        if not items:
+            break
+        for item in items:
+            product_id = item.get("product_id")
+            if not product_id or product_id in seen_ids:
+                continue
+            seen_ids.add(product_id)
+            entries.append(
+                _sitemap_url_entry(
+                    f"{SITE_BASE}/products/{product_id}", "daily", "0.6"
+                )
+            )
+
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        + "".join(entries)
+        + "</urlset>"
+    )
+
+
+@https_fn.on_request(region="europe-north1")
+def sitemap_xml(req: https_fn.Request) -> https_fn.Response:
+    """Firebase Hosting rewrites /sitemap.xml here (see firebase.json)."""
+    cached = _sitemap_cache["xml"]
+    age = time.time() - _sitemap_cache["fetched_at"]
+    if cached and age < _SITEMAP_CACHE_TTL_SECONDS:
+        return https_fn.Response(cached, content_type="application/xml")
+
+    try:
+        xml = _build_sitemap_xml()
+    except requests.RequestException:
+        if cached:
+            return https_fn.Response(cached, content_type="application/xml")
+        return https_fn.Response("Sitemap temporarily unavailable", status=503)
+
+    _sitemap_cache["xml"] = xml
+    _sitemap_cache["fetched_at"] = time.time()
+    return https_fn.Response(xml, content_type="application/xml")
+
+
 @https_fn.on_call(region="europe-north1")
 def send_price_alert(req: https_fn.CallableRequest) -> any:
     """

@@ -138,6 +138,13 @@
     ],
     "rewrites": [
       {
+        "source": "/sitemap.xml",
+        "function": {
+          "functionId": "sitemap_xml",
+          "region": "europe-north1"
+        }
+      },
+      {
         "source": "/brands/**",
         "function": {
           "functionId": "prerender_brand_page",
