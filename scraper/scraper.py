@@ -1271,26 +1271,33 @@ def write_deals(deals: list[dict], store_id: str) -> int:
     VALUES %s ON CONFLICT DO NOTHING;
     """
     
+    # A single `INSERT ... ON CONFLICT DO UPDATE` can't affect the same row
+    # twice — Postgres errors out the whole batch if `deal["id"]` repeats
+    # (e.g. a listing page that lists the same product in two sections, like
+    # Voghion's "just for you" carousel). De-duping here (last occurrence
+    # wins) keeps one bad duplicate from failing every product in the run.
+    deduped_deals = list({deal["id"]: deal for deal in deals}.values())
+
     product_values = [
         (
             deal["id"],
             store_id,
-            deal["title"], 
+            deal["title"],
             deal.get("brand", "unknown"),
             deal["currentPrice"],
             deal["originalPrice"],
-            deal["url"], 
+            deal["url"],
             deal["imageUrl"],
             deal.get("description", ""),
             "In Stock",
             str(deal.get("ean")) if deal.get("ean") else None
         )
-        for deal in deals
+        for deal in deduped_deals
     ]
-    
+
     history_values = [
         (deal["id"], deal["currentPrice"])
-        for deal in deals
+        for deal in deduped_deals
     ]
 
     try:
