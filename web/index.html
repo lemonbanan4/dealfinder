@@ -126,8 +126,28 @@
     <div class="loader"></div>
   </div>
 
-  <!-- Structured Data -->
-  <script type="application/ld+json" src="structured_data.json"></script>
+  <!-- Structured Data. Must be inlined, not loaded via src= — Google's
+       structured-data parser only reads JSON-LD that's directly inside the
+       <script> tag; a src= reference (what this was before) is silently
+       never fetched for indexing purposes, so this had no SEO effect at
+       all regardless of the JSON's content. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "PrisPuls",
+    "description": "Jämför priser i realtid och hitta bästa pris på elektronik & hemprodukter. Nya prissänkningar varje dag – missa inte morgondagens fynd.",
+    "url": "https://prispuls.com",
+    "publisher": {
+      "@type": "Organization",
+      "name": "PrisPuls",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://prispuls.com/icons/Icon-512.png"
+      }
+    }
+  }
+  </script>
 
   <!-- When a new service worker activates (skipWaiting fires), reload once so
        users immediately get the latest build instead of staying on old cached content. -->
