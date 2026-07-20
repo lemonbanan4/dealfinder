@@ -1155,6 +1155,15 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
         if not href:
             continue
 
+        # Doc ID must come from the real per-product page URL — every
+        # Awin cread.php redirect shares the exact same path (/cread.php);
+        # the actual product identity only lives in the `ued=` query
+        # string, which urlparse().path (see _make_doc_id) ignores. Wrapping
+        # first and hashing the wrapped URL made every product on a page
+        # resolve to the identical doc ID (all "{store}_cread_php"),
+        # silently collapsing an entire store's catalog down to one row.
+        doc_id = _make_doc_id(store.id, href)
+
         if cfg.awin_mid and cfg.awin_affid:
             href = (
                 "https://www.awin1.com/cread.php"
@@ -1182,7 +1191,6 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
             item.select_one(cfg.image_selector) if cfg.image_selector else None
         )
 
-        doc_id = _make_doc_id(store.id, href)
         deals.append({
             "id": doc_id,
             "title": title,
