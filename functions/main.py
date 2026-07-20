@@ -403,23 +403,34 @@ def _build_sitemap_xml() -> str:
 
     seen_ids: set[str] = set()
     for page in range(1, _SITEMAP_PRODUCT_PAGES + 1):
-        try:
-            # Render's free-tier backend can cold-start slowly after being
-            # idle — an 8s timeout here silently degraded the sitemap down
-            # to just the 16 static entries (homepage + brand pages) on the
-            # very first deploy, which then got cached for an hour with no
-            # error surfaced anywhere. 25s comfortably covers a cold start;
-            # the print on failure means a real outage is now visible in
-            # Cloud Logging instead of silently shipping a stale sitemap.
-            resp = requests.get(
-                f"{API_BASE}/api/products",
-                params={"page": page, "limit": 200},
-                timeout=25,
-            )
-            resp.raise_for_status()
-            items = resp.json().get("items", [])
-        except requests.RequestException as exc:
-            print(f"sitemap_xml: /api/products page {page} failed: {exc}")
+        items = None
+        last_exc: requests.RequestException | None = None
+        # One retry — confirmed live that Render's backend occasionally
+        # 502s transiently (not just cold-start slowness) under back-to-back
+        # requests from this loop. A single retry is enough to ride out a
+        # one-off blip without turning a flaky page into a truncated sitemap.
+        for attempt in range(2):
+            try:
+                # Render's free-tier backend can cold-start slowly after
+                # being idle — an 8s timeout here silently degraded the
+                # sitemap down to just the 16 static entries (homepage +
+                # brand pages) on the very first deploy, which then cached
+                # for an hour with no error surfaced anywhere. 25s
+                # comfortably covers a cold start; the print on failure
+                # means a real outage is now visible in Cloud Logging
+                # instead of silently shipping a stale sitemap.
+                resp = requests.get(
+                    f"{API_BASE}/api/products",
+                    params={"page": page, "limit": 200},
+                    timeout=25,
+                )
+                resp.raise_for_status()
+                items = resp.json().get("items", [])
+                break
+            except requests.RequestException as exc:
+                last_exc = exc
+        if items is None:
+            print(f"sitemap_xml: /api/products page {page} failed: {last_exc}")
             break
         if not items:
             break
