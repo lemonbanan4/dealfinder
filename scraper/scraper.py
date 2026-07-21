@@ -172,12 +172,18 @@ STORES: list[StoreConfig] = [
         currency="SEK",
         awin=AwinConfig(
             # Paste the specific feed URL you got from the Awin interface for this store
-            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/80731/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/", 
+            feed_url=f"https://productdata.awin.com/datafeed/download/apikey/{AWIN_API_KEY}/language/sv/fid/80731/rid/0/hasEnhancedFeeds/0/columns/aw_deep_link,product_name,aw_product_id,merchant_product_id,merchant_image_url,description,merchant_category,search_price,product_price_old,merchant_name,merchant_id,category_name,category_id,aw_image_url,currency,store_price,delivery_cost,merchant_deep_link,language,last_updated,display_price,data_feed_id/format/csv/delimiter/%2C/compression/gzip/adultcontent/1/",
             currency_filter="SEK",
             column_map={
                 "id": "merchant_product_id", # Verify these column names in your Awin feed
                 "title": "product_name",
                 "price": "search_price",
+                # Samsung Sweden populates product_price_old on genuine sales,
+                # same as Samsung Norway (samsung_no) whose data was verified
+                # clean — without requesting this column every Samsung SE
+                # product showed no discount badge / was ineligible for the
+                # "Insane Deals" shelf despite real markdowns existing.
+                "original_price": "product_price_old",
                 "link": "aw_deep_link",
                 "image": "aw_image_url",
             }
