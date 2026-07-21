@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../services/analytics_service.dart';
 import '../../../widgets/deal_card.dart';
 import '../../settings/presentation/currency_provider.dart';
 import '../../settings/presentation/top_deals_shimmer.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../domain/deal.dart';
+import '../domain/store_display_names.dart';
 import '../providers/recently_viewed_provider.dart';
 
 /// Shared, safe deal-tap handler for this file's two grid-tile `onTap`
@@ -17,6 +19,18 @@ import '../providers/recently_viewed_provider.dart';
 /// already used correctly in deal_slivers.dart's `_onDealTap`.
 Future<void> _launchDeal(WidgetRef ref, Deal deal) async {
   ref.read(recentlyViewedProvider.notifier).addDeal(deal.id);
+  // Fire the same GA4 product_click conversion event the main feed grid
+  // and deal-details page do — an affiliate click from a trending shelf
+  // ("Biggest Price Drops"/"Insane Deals") is just as much a conversion,
+  // and omitting it here silently undercounted clicks from these prominent
+  // above-the-fold surfaces.
+  AnalyticsService().trackProductClick(
+    itemId: deal.id,
+    itemName: deal.title,
+    itemBrand: storeDisplayName(deal.source),
+    price: deal.currentPrice,
+    currency: deal.currency,
+  );
   final uri = Uri.tryParse(deal.url);
   if (uri == null) return;
   try {
