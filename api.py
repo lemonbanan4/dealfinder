@@ -627,6 +627,7 @@ def get_stats(request: Request, region: str = Query(None, description="Region to
                     LIMIT 1
                 ) ph ON true
                 WHERE ph.price > p.price AND p.price > 0
+                  AND p.last_updated >= now() - interval '7 days'
                 {where_region}
                 """,
                 drop_params,
