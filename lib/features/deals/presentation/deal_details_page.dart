@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/seo/document_meta.dart';
 import '../../../services/analytics_service.dart';
+import '../../../services/share_service.dart';
 import '../../../theme/glass_colors.dart';
 import '../../settings/presentation/currency_provider.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -60,7 +62,7 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
     final deal = widget.deal;
     final storeName = storeDisplayName(deal.source);
     final isNorwegian = deal.currency.toUpperCase() == 'NOK';
-    final canonicalUrl = 'https://prispuls.com/products/${deal.id}';
+    final canonicalUrl = deal.canonicalUrl;
     final price = deal.currentPrice.toStringAsFixed(2);
 
     setDocumentTitle(
@@ -98,6 +100,18 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
         'seller': {'@type': 'Organization', 'name': storeName},
       },
     });
+  }
+
+  Future<void> _shareDeal() async {
+    final deal = widget.deal;
+    await ShareService.shareDeal(title: deal.title, url: deal.canonicalUrl);
+    // On web, ShareService copies the link to the clipboard rather than
+    // opening a native share sheet — surface that so the tap isn't silent.
+    if (kIsWeb && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link copied!')),
+      );
+    }
   }
 
   Future<void> _openDealUrl() async {
@@ -200,6 +214,11 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
                   : Container(color: GlassColors.surface),
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.ios_share_rounded),
+                tooltip: 'Share deal',
+                onPressed: _shareDeal,
+              ),
               IconButton(
                 icon: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,

@@ -12,7 +12,6 @@ import 'widgets/adaptive_scaffold.dart';
 import 'features/deals/presentation/brand_landing_page.dart';
 import 'features/deals/presentation/feed_page.dart' show regionProvider;
 import 'features/deals/presentation/product_page.dart';
-import 'services/notification/fcm_service.dart';
 import 'features/settings/providers/cookie_consent_provider.dart';
 import 'services/analytics_service.dart';
 import 'theme/glass_colors.dart';
@@ -27,8 +26,11 @@ import 'l10n/app_localizations.dart';
 /// path-based routing at all, since a Firebase Hosting rewrite rule (or a
 /// search crawler) can only ever see the request path, never Flutter's
 /// previous in-memory-only navigation.
+// A global key to reach the root navigator from outside the widget tree.
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final _router = GoRouter(
-  navigatorKey: FCMService.navigatorKey,
+  navigatorKey: _rootNavigatorKey,
   observers: [
     if (AnalyticsService().isEnabled)
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),

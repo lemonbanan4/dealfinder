@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/deals/domain/deal.dart';
@@ -8,6 +8,7 @@ import '../features/deals/domain/store_display_names.dart';
 import '../features/deals/presentation/price_alert_bottom_sheet.dart';
 import '../features/deals/providers/favorites_provider.dart';
 import '../features/settings/presentation/currency_provider.dart';
+import '../services/share_service.dart';
 import '../theme/glass_colors.dart';
 import '../utils/formatters.dart';
 import 'glass_card.dart';
@@ -294,7 +295,7 @@ class _GridCard extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 4),
-          // ── Action cluster: favorite, copy link, alert ────────────────
+          // ── Action cluster: favorite, share, alert ────────────────────
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -320,11 +321,16 @@ class _GridCard extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               _CardActionButton(
-                icon: Icons.copy_outlined,
-                tooltip: 'Copy link',
+                icon: Icons.ios_share_rounded,
+                tooltip: 'Share',
                 onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: deal.url));
-                  if (context.mounted) {
+                  await ShareService.shareDeal(
+                    title: deal.title,
+                    url: deal.canonicalUrl,
+                  );
+                  // On web, ShareService copies the link to the clipboard
+                  // rather than opening a native share sheet — surface that.
+                  if (kIsWeb && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Link copied!')),
                     );

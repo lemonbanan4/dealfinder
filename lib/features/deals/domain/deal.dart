@@ -30,3 +30,12 @@ extension DealDiscount on Deal {
     return (originalPrice! - currentPrice) / originalPrice! * 100;
   }
 }
+
+extension DealShareUrl on Deal {
+  /// The canonical PrisPuls product-page URL for this deal — this is what we
+  /// share (never the raw retailer [url]), so a shared link drives the
+  /// recipient back into the app and through its affiliate flow rather than
+  /// leaking a tracking URL. Mirrors the canonical/hreflang URL that
+  /// `DealDetailsPage` writes into the page's SEO meta.
+  String get canonicalUrl => 'https://prispuls.com/products/$id';
+}
