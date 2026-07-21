@@ -26,9 +26,8 @@ service cloud.firestore {
     function isValidUserDoc() {
       let data = request.resource.data;
       // Strict Schema: Ensure no unexpected fields can be injected
-      return data.keys().hasOnly(['favorites', 'fcmTokens']) &&
-             (!('favorites' in data) || isValidFavoritesList(data.favorites)) &&
-             (!('fcmTokens' in data) || (data.fcmTokens is list && data.fcmTokens.size() <= 10));
+      return data.keys().hasOnly(['favorites']) &&
+             (!('favorites' in data) || isValidFavoritesList(data.favorites));
     }
 
     // ===============================================================
