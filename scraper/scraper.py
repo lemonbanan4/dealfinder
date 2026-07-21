@@ -1208,23 +1208,25 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
 
 # ── Firestore writer ──────────────────────────────────────────────────────────────
 
-def _diff_price_history(cur, deals: list[dict]) -> list[dict]:
+def _diff_price_history(cur, deals: list[dict]) -> tuple[list[dict], dict[str, float]]:
     """
     Compares each deal's current feed price against the most recently
     recorded `price_history` entry for that product (before this run's own
     write), so a "price dropped" signal reflects an actual decrease rather
-    than just the fact that a price_history row was written — a row gets
-    written on every scrape run regardless of whether the price moved, so
-    without this diff there was no way to tell a real drop from a re-scrape
-    of an unchanged price.
+    than just the fact that a price_history row was written.
 
-    Returns the subset of `deals` whose current price is strictly lower than
-    their last recorded price_history price, each annotated with
-    previous_price/drop_pct.
+    Returns (drops, last_prices): `drops` is the subset of `deals` whose
+    current price is strictly lower than their last recorded price_history
+    price, each annotated with previous_price/drop_pct; `last_prices` is
+    reused by write_deals to skip writing a new price_history row when the
+    price hasn't actually changed (see its call site — `price_history`'s
+    only unique constraint is on its own surrogate `id`, so nothing else
+    ever deduped these, and every scrape run used to write a same-price row
+    for every product regardless of whether it moved).
     """
     product_ids = [deal["id"] for deal in deals]
     if not product_ids:
-        return []
+        return [], {}
 
     cur.execute(
         """
@@ -1249,7 +1251,7 @@ def _diff_price_history(cur, deals: list[dict]) -> list[dict]:
                 "current_price": current_price,
                 "drop_pct": _discount_pct(last_price, current_price),
             })
-    return drops
+    return drops, last_prices
 
 
 def write_deals(deals: list[dict], store_id: str) -> int:
@@ -1303,13 +1305,8 @@ def write_deals(deals: list[dict], store_id: str) -> int:
         for deal in deduped_deals
     ]
 
-    history_values = [
-        (deal["id"], deal["currentPrice"])
-        for deal in deduped_deals
-    ]
-
     try:
-        price_drops = _diff_price_history(cur, deals)
+        price_drops, last_prices = _diff_price_history(cur, deals)
         if price_drops:
             log.info(
                 "[%s] %d confirmed price drop(s) this run: %s",
@@ -1322,8 +1319,21 @@ def write_deals(deals: list[dict], store_id: str) -> int:
                 ),
             )
 
+        # Only write a price_history row when the price actually changed
+        # (or this product has never been seen before) — its only unique
+        # constraint is on its own surrogate `id`, so nothing ever deduped
+        # same-price rows here; every scrape run was writing a fresh row
+        # for every product regardless of whether the price moved at all,
+        # growing the table unboundedly for zero new information.
+        history_values = [
+            (deal["id"], deal["currentPrice"])
+            for deal in deduped_deals
+            if last_prices.get(deal["id"]) != deal["currentPrice"]
+        ]
+
         execute_values(cur, upsert_query, product_values)
-        execute_values(cur, price_history_query, history_values)
+        if history_values:
+            execute_values(cur, price_history_query, history_values)
         conn.commit()
     except Exception as e:
         conn.rollback()
