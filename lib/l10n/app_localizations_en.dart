@@ -51,7 +51,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Would rather not check yourself? Set your target price and we\'ll email you when it drops below it.';
 
   @override
-  String get searchHint => 'Search products or brands...';
+  String get searchHint => 'Search — or paste a product link...';
 
   @override
   String get clearSearch => 'Clear search';

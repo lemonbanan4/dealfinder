@@ -101,8 +101,10 @@ void main() {
       expect(find.text('200 USD'), findsOneWidget); // Original price
       expect(find.textContaining('-50%'), findsOneWidget);
       expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+      // The CTA is a custom brand-gradient InkWell (matching the deal
+      // cards' Get Deal button), not a stock Material button widget.
       expect(
-        find.widgetWithText(FilledButton, 'View on Retailer Site'),
+        find.widgetWithText(InkWell, 'View on Retailer Site'),
         findsOneWidget,
       );
     });

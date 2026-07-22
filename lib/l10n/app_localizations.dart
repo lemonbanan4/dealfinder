@@ -175,7 +175,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search products or brands...'**
+  /// **'Search — or paste a product link...'**
   String get searchHint;
 
   /// No description provided for @clearSearch.

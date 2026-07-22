@@ -584,6 +584,20 @@ def lookup_product_by_url(
                     if len(hinted) == 1:
                         return {"match": hinted[0]}
 
+            # Record the miss as demand signal: each row is a product page
+            # someone wanted tracked but we don't cover — aggregated by
+            # host, this is a ranked shopping list of which merchant feeds
+            # to add next. Guarded so a logging hiccup can never break the
+            # user-facing response.
+            try:
+                cursor.execute(
+                    "INSERT INTO lookup_misses (url, host) VALUES (%s, %s)",
+                    (raw[:2000], host[:200]),
+                )
+                conn.commit()
+            except Exception:
+                log.exception("lookup_misses insert failed")
+
             return {"match": None}
     except Exception:
         log.exception("lookup_product_by_url failed (url=%s)", url[:200])

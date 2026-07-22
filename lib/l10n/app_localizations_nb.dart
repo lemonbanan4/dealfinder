@@ -50,7 +50,7 @@ class AppLocalizationsNb extends AppLocalizations {
       'Vil du heller slippe å sjekke selv? Angi ønsket pris, så sender vi deg en e-post når den går under grensen.';
 
   @override
-  String get searchHint => 'Søk produkter eller merker...';
+  String get searchHint => 'Søk — eller lim inn en produktlenke...';
 
   @override
   String get clearSearch => 'Fjern søk';

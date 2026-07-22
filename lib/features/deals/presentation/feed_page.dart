@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/api_client.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../services/analytics_service.dart';
 import '../../../theme/glass_colors.dart';
 import '../../../widgets/affiliate_disclaimer.dart';
 import '../../../widgets/app_footer.dart';
@@ -696,6 +697,10 @@ class _FeedPageState extends ConsumerState<FeedPage> {
           (jsonDecode(response.body) as Map<String, dynamic>)['match'];
       if (match is Map<String, dynamic> && match['product_id'] is String) {
         final id = match['product_id'] as String;
+        AnalyticsService().logEvent(
+          name: 'url_lookup',
+          parameters: {'result': 'hit', 'product_id': id},
+        );
         // Clear the URL out of the search box so the feed isn't left
         // filtered down to zero results behind the product page.
         cancelPendingSearchUpdate(ref);
@@ -703,6 +708,10 @@ class _FeedPageState extends ConsumerState<FeedPage> {
         ref.read(feedFiltersProvider.notifier).clear();
         context.go('/products/$id');
       } else {
+        AnalyticsService().logEvent(
+          name: 'url_lookup',
+          parameters: {'result': 'miss'},
+        );
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,

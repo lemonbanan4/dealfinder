@@ -254,15 +254,49 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
                   // price history, not just today's sticker price.
                   PriceHistoryChart(deal: deal),
                   const SizedBox(height: 24),
+                  // Brand-gradient CTA matching the deal cards' _GetDealButton
+                  // — this is the single most important conversion button in
+                  // the app (the page shared links, search results, and the
+                  // sitemap all land on), so it gets the same purple→orange
+                  // treatment as every other primary action instead of a
+                  // default Material fill.
                   SizedBox(
                     width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _openDealUrl,
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('View on Retailer Site'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: theme.textTheme.titleMedium,
+                    height: 52,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            GlassColors.purple600,
+                            GlassColors.orange500,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(26),
+                          onTap: _openDealUrl,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.open_in_new,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'View on Retailer Site',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),

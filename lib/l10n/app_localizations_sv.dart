@@ -51,7 +51,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'Vill du hellre slippa kolla själv? Ange ditt önskepris så mejlar vi dig när det går under gränsen.';
 
   @override
-  String get searchHint => 'Sök produkter eller varumärken...';
+  String get searchHint => 'Sök — eller klistra in en produktlänk...';
 
   @override
   String get clearSearch => 'Rensa sökning';
