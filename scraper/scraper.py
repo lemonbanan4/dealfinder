@@ -1342,11 +1342,34 @@ def write_deals(deals: list[dict], store_id: str) -> int:
         # same-price rows here; every scrape run was writing a fresh row
         # for every product regardless of whether the price moved at all,
         # growing the table unboundedly for zero new information.
-        history_values = [
-            (deal["id"], deal["currentPrice"])
-            for deal in deduped_deals
-            if last_prices.get(deal["id"]) != deal["currentPrice"]
-        ]
+        #
+        # Also reject absurd downward outliers vs the last known price: a
+        # feed glitch once recorded ~949 NOK for hundreds of 30k+ Samsung
+        # TVs (a financing "kr/month" figure scraped as the price), which
+        # permanently polluted price_history and made the product page's
+        # "lowest tracked price" read as a fake 943 NOK. No real retail
+        # discount is >75% off (the catalog's genuine discounts top out
+        # ~40-60%), so a drop below 25% of the last price is a data error,
+        # not a deal. The `products` row itself self-heals — it's re-upserted
+        # fresh every run — so guarding the *permanent* history is what
+        # matters; a skipped glitch just leaves last run's good point standing.
+        glitches = 0
+        history_values = []
+        for deal in deduped_deals:
+            price = deal["currentPrice"]
+            last = last_prices.get(deal["id"])
+            if last == price:
+                continue  # unchanged — nothing to record
+            if last is not None and last > 0 and price < 0.25 * last:
+                glitches += 1
+                continue
+            history_values.append((deal["id"], price))
+        if glitches:
+            log.warning(
+                "[%s] skipped %d absurd price outlier(s) from price_history "
+                "(likely feed glitch, >75%% below last known price).",
+                store_id, glitches,
+            )
 
         execute_values(cur, upsert_query, product_values)
         if history_values:
