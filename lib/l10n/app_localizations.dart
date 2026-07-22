@@ -1047,6 +1047,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This is the lowest price we\'ve seen 🎉'**
   String get priceHistoryIsLowest;
+
+  /// No description provided for @linkNotTracked.
+  ///
+  /// In en, this message translates to:
+  /// **'We don\'t track that product yet — try searching by name, or check one of our covered stores.'**
+  String get linkNotTracked;
 }
 
 class _AppLocalizationsDelegate

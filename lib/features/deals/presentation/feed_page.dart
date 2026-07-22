@@ -670,9 +670,60 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     }
   }
 
+  bool _urlLookupInFlight = false;
+
+  /// "Paste a product link, see its price history": when the search text is
+  /// a URL (pasted, not typed — a real search never starts with a scheme or
+  /// www.), resolve it via /api/products/lookup and jump straight to that
+  /// product's detail page. A miss shows an honest "not tracked yet" note
+  /// instead of leaving the grid in a silent zero-results state (a URL never
+  /// matches any product title).
+  Future<void> _maybeLookupPastedUrl(String query) async {
+    final trimmed = query.trim();
+    final looksLikeUrl =
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('www.');
+    if (!looksLikeUrl || _urlLookupInFlight) return;
+    _urlLookupInFlight = true;
+    try {
+      final response = await apiGet(
+        '/api/products/lookup',
+        queryParameters: {'url': trimmed},
+      );
+      if (!mounted) return;
+      final match =
+          (jsonDecode(response.body) as Map<String, dynamic>)['match'];
+      if (match is Map<String, dynamic> && match['product_id'] is String) {
+        final id = match['product_id'] as String;
+        // Clear the URL out of the search box so the feed isn't left
+        // filtered down to zero results behind the product page.
+        cancelPendingSearchUpdate(ref);
+        _searchController.clear();
+        ref.read(feedFiltersProvider.notifier).clear();
+        context.go('/products/$id');
+      } else {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.linkNotTracked)));
+      }
+    } catch (_) {
+      // Network/API failure: keep quiet — the pasted text simply behaves
+      // like any other (non-matching) search term.
+    } finally {
+      _urlLookupInFlight = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<int>(feedGoHomeSignalProvider, (_, _) => _goHome());
+    ref.listen<FeedFilters>(feedFiltersProvider, (previous, next) {
+      if (previous?.searchQuery != next.searchQuery) {
+        _maybeLookupPastedUrl(next.searchQuery);
+      }
+    });
     final filters = ref.watch(feedFiltersProvider);
     final isWide = MediaQuery.sizeOf(context).width >= 720;
     final isPagedBrowseMode = _isPagedBrowseMode(filters);

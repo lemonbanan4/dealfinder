@@ -474,6 +474,91 @@ def _region_filter(region: str | None, params: list) -> str:
     return " AND p.feed_region LIKE %s"
 
 
+@app.get("/api/products/lookup")
+@limiter.limit("30/minute")
+def lookup_product_by_url(
+    request: Request,
+    url: str = Query(..., min_length=8, max_length=2000,
+                     description="A retailer product-page URL to resolve to a tracked product"),
+):
+    """Resolves a pasted merchant product URL ("paste a link, see its price
+    history") to the tracked product it belongs to. Two-stage match:
+
+    1. Direct match against products.merchant_url (the retailer's own page
+       URL from the Awin feed's merchant_deep_link column, stored since the
+       lookup feature shipped) — compared on normalized host+path so scheme,
+       www., query strings and trailing slashes don't break equality.
+    2. Fallback: SKU-ish tokens from the pasted URL's path (length >= 5,
+       containing a digit — e.g. Samsung's "TQ65QN990FTXXC", Dyson's
+       "448798-01") matched against product_id, which embeds each store's
+       merchant_product_id.
+
+    Returns {"match": <product row>} or {"match": null} — a miss is an
+    expected outcome (store we don't track), not an error.
+    """
+    from urllib.parse import unquote, urlparse
+    import re as _re
+
+    raw = unquote(url.strip())
+    if not raw.lower().startswith(("http://", "https://")):
+        raw = "https://" + raw
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        return {"match": None}
+    host = (parsed.hostname or "").removeprefix("www.")
+    path = parsed.path.rstrip("/")
+    if not host:
+        return {"match": None}
+    norm = f"{host}{path}".lower()
+
+    try:
+        with db_cursor(dict_cursor=True) as (conn, cursor):
+            fresh = "p.price > 0 AND p.last_updated >= now() - interval '7 days'"
+
+            # Stage 1: normalized merchant_url equality.
+            cursor.execute(
+                f"""
+                SELECT * FROM products p
+                WHERE p.merchant_url IS NOT NULL AND {fresh}
+                  AND lower(regexp_replace(
+                        split_part(p.merchant_url, '?', 1),
+                        '^https?://(www\\.)?', ''
+                      )) = ANY(ARRAY[%s, %s || '/'])
+                LIMIT 1
+                """,
+                (norm, norm),
+            )
+            row = cursor.fetchone()
+            if row:
+                return {"match": row}
+
+            # Stage 2: SKU-ish path tokens against product_id.
+            tokens = [
+                t for t in _re.split(r"[^a-zA-Z0-9-]+", path)
+                if len(t) >= 5 and any(c.isdigit() for c in t)
+            ]
+            for token in tokens[:5]:
+                cursor.execute(
+                    f"""
+                    SELECT * FROM products p
+                    WHERE p.product_id ILIKE %s AND {fresh}
+                    LIMIT 2
+                    """,
+                    (f"%{token}%",),
+                )
+                rows = cursor.fetchall()
+                # Only trust a token that identifies exactly one product —
+                # an ambiguous token (two products share it) proves nothing.
+                if len(rows) == 1:
+                    return {"match": rows[0]}
+
+            return {"match": None}
+    except Exception:
+        log.exception("lookup_product_by_url failed (url=%s)", url[:200])
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR)
+
+
 @app.get("/api/deals/biggest-drops")
 @limiter.limit("30/minute")
 def get_biggest_drops(

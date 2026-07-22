@@ -521,4 +521,8 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get priceHistoryIsLowest =>
       'Det här är det lägsta pris vi har sett 🎉';
+
+  @override
+  String get linkNotTracked =>
+      'Vi spårar inte den produkten än — prova att söka på namnet, eller kolla någon av våra butiker.';
 }

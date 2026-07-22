@@ -26,35 +26,46 @@ class PriceDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // One line, always: current price + (optional) struck-through original,
+    // side by side, scaled down if the column is narrow. Stacking them
+    // vertically (the previous layout) made every discounted card one text
+    // line taller than the grid's fixed tile height — the moment real
+    // discount data landed (Dyson/Samsung), their cards' "Get Deal" button
+    // was pushed outside the card bounds at phone widths.
     return currencyState.when(
-      data: (_) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${formatAmount(displayPrice)} $targetCurrency',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: GlassColors.priceAccent,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
-            ),
-          ),
-          if (displayOriginalPrice != null &&
-              displayOriginalPrice! > displayPrice) ...[
-            const SizedBox(height: 1),
+      data: (_) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
             Text(
-              '${formatAmount(displayOriginalPrice!)} $targetCurrency',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
-                ),
-                decoration: TextDecoration.lineThrough,
-                decorationColor: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
-                ),
+              '${formatAmount(displayPrice)} $targetCurrency',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: GlassColors.priceAccent,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
               ),
             ),
+            if (displayOriginalPrice != null &&
+                displayOriginalPrice! > displayPrice) ...[
+              const SizedBox(width: 6),
+              Text(
+                '${formatAmount(displayOriginalPrice!)} $targetCurrency',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.7,
+                  ),
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: theme.colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.7),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
       loading: () => Shimmer.fromColors(
         baseColor: theme.colorScheme.surfaceContainerHighest,

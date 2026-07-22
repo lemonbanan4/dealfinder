@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../features/deals/domain/deal.dart';
 import '../features/deals/domain/store_display_names.dart';
@@ -15,6 +16,34 @@ import 'price_display.dart';
 import 'price_sparkline.dart';
 
 enum DealCardView { grid, list }
+
+/// Makes a card's sparkline a tap-target for the product detail page (the
+/// full interactive price-history chart). The card's own tap/CTA goes
+/// straight to the retailer — this is the deliberate second path for "show
+/// me the whole history first". A nested GestureDetector wins the gesture
+/// arena over the surrounding card's InkWell within its own bounds, so the
+/// two taps coexist without special-casing.
+class _SparklineHistoryLink extends StatelessWidget {
+  const _SparklineHistoryLink({required this.dealId, required this.child});
+
+  final String dealId;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Tooltip(
+        message: 'Price history',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => context.go('/products/$dealId'),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
 
 class DealCard extends ConsumerWidget {
   const DealCard({
@@ -110,7 +139,10 @@ class DealCard extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const Spacer(),
-                PriceSparkline(productId: deal.id, height: 24),
+                _SparklineHistoryLink(
+                  dealId: deal.id,
+                  child: PriceSparkline(productId: deal.id, height: 24),
+                ),
                 const SizedBox(height: 2),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -279,7 +311,10 @@ class _GridCard extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                PriceSparkline(productId: deal.id, height: 28),
+                _SparklineHistoryLink(
+                  dealId: deal.id,
+                  child: PriceSparkline(productId: deal.id, height: 28),
+                ),
                 const SizedBox(height: 6),
                 PriceDisplay(
                   currencyState: currencyState,

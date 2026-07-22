@@ -1046,6 +1046,16 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
         original_price = float(rrp) if pd.notna(rrp) and float(rrp) > current_price else None
 
 
+        # The retailer's own product-page URL (as opposed to `url`, the Awin
+        # click-tracking link). Stored so /api/products/lookup can resolve a
+        # pasted merchant link back to its tracked product + price history.
+        merchant_url = row.get("merchant_deep_link")
+        merchant_url = (
+            str(merchant_url).strip()
+            if pd.notna(merchant_url) and str(merchant_url).strip()
+            else None
+        )
+
         deals.append({
             "id": _make_doc_id(store.id, url, fallback_key=raw_id),
             "title": title,
@@ -1055,6 +1065,7 @@ def fetch_awin_deals(store: StoreConfig) -> list[dict]:
             "currency": row.get(cfg.column_map.get("currency", "currency"), store.currency),
             "imageUrl": row.get(cfg.column_map["image"]),
             "originalPrice": original_price,
+            "merchantUrl": merchant_url,
             "description": row.get(cfg.column_map.get("description", "description"), ""),
             "ean": row.get(cfg.column_map.get("ean", "ean")),
             "brand": row.get("brand_name", "Unknown")
@@ -1180,6 +1191,9 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
         # resolve to the identical doc ID (all "{store}_cread_php"),
         # silently collapsing an entire store's catalog down to one row.
         doc_id = _make_doc_id(store.id, href)
+        # Keep the retailer's own URL before Awin-wrapping — same role as
+        # merchant_deep_link in the Awin CSV path (see fetch_awin_deals).
+        merchant_url = href
 
         if cfg.awin_mid and cfg.awin_affid:
             href = (
@@ -1217,6 +1231,7 @@ def fetch_html_deals(store: StoreConfig) -> list[dict]:
             "currency": store.currency,
             "imageUrl": image_url,
             "originalPrice": original_price,
+            "merchantUrl": merchant_url,
         })
 
     log.info("[%s] %d valid deals parsed.", store.name, len(deals))
@@ -1277,19 +1292,20 @@ def write_deals(deals: list[dict], store_id: str) -> int:
 
     upsert_query = """
     INSERT INTO products (
-        product_id, feed_region, title, brand, price, 
+        product_id, feed_region, title, brand, price,
         retail_price, tracking_url, image_url, description,
-        stock_status, ean_code
+        stock_status, ean_code, merchant_url
     ) VALUES %s
-    ON CONFLICT (product_id) 
-    DO UPDATE SET 
+    ON CONFLICT (product_id)
+    DO UPDATE SET
         price = EXCLUDED.price,
         tracking_url = EXCLUDED.tracking_url,
         image_url = EXCLUDED.image_url,
         retail_price = EXCLUDED.retail_price,
         stock_status = EXCLUDED.stock_status,
         description = EXCLUDED.description,
-        ean_code = EXCLUDED.ean_code, 
+        ean_code = EXCLUDED.ean_code,
+        merchant_url = EXCLUDED.merchant_url,
         last_updated = timezone('utc'::text, now());
     """
 
@@ -1317,7 +1333,8 @@ def write_deals(deals: list[dict], store_id: str) -> int:
             deal["imageUrl"],
             deal.get("description", ""),
             "In Stock",
-            str(deal.get("ean")) if deal.get("ean") else None
+            str(deal.get("ean")) if deal.get("ean") else None,
+            deal.get("merchantUrl"),
         )
         for deal in deduped_deals
     ]

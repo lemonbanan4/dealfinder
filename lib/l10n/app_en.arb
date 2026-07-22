@@ -220,5 +220,6 @@
       }
     }
   },
-  "priceHistoryIsLowest": "This is the lowest price we've seen 🎉"
+  "priceHistoryIsLowest": "This is the lowest price we've seen 🎉",
+  "linkNotTracked": "We don't track that product yet — try searching by name, or check one of our covered stores."
 }
