@@ -69,6 +69,13 @@ Future<PagedDealsResult> pagedDeals(Ref ref) async {
   final region = ref.watch(regionProvider);
   final page = ref.watch(feedPageIndexProvider);
   final sort = ref.watch(feedFiltersProvider.select((f) => f.sort));
+  // Search is server-side (v3): a query rides along on the same paged
+  // request instead of triggering the multi-MB full-catalog download the
+  // old client-side filter needed. Pasted URLs never reach here — the
+  // URL-lookup listener in feed_page intercepts those before this runs.
+  final searchQuery = ref.watch(
+    feedFiltersProvider.select((f) => f.searchQuery.trim()),
+  );
 
   final sortParam = _sortParam(sort);
   final response = await apiGet(
@@ -78,6 +85,7 @@ Future<PagedDealsResult> pagedDeals(Ref ref) async {
       'page': '$page',
       'limit': '$dealsPageSize',
       'sort': ?sortParam,
+      if (searchQuery.isNotEmpty) 'q': searchQuery,
     },
   );
 

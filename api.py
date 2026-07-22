@@ -350,6 +350,7 @@ def get_products(
     limit: int = Query(24, ge=1, le=200, description="Items per page"),
     sort: str = Query(None, description="price_asc | price_desc | newest; omit for the default best-deals order"),
     ids: str = Query(None, description="Comma-separated product_ids; when set, returns just those products (ignores region/page/sort)"),
+    q: str = Query(None, max_length=200, description="Server-side title search; paginates like any other browse"),
 ):
     try:
         with db_cursor(dict_cursor=True) as (conn, cursor):
@@ -385,6 +386,18 @@ def get_products(
             if region:
                 conditions.append("feed_region LIKE %s")
                 params.append(f"%{region.lower()}%")
+
+            # Server-side search: the client used to download the entire
+            # multi-MB catalog just to filter titles locally — unusable on
+            # mobile data. Mirrors the old client-side matcher exactly
+            # (filtered_deals_provider): every word must match the title OR
+            # the store feed id, so brand-tile taps ("Didriksons") keep
+            # matching via feed_region even when titles omit the brand.
+            if q:
+                for word in q.split()[:6]:
+                    conditions.append("(title ILIKE %s OR feed_region ILIKE %s)")
+                    like = f"%{word}%"
+                    params.extend([like, like])
 
             where_clause = " WHERE " + " AND ".join(conditions)
 

@@ -580,16 +580,15 @@ class _FeedPageState extends ConsumerState<FeedPage> {
     setState(() {}); // Rebuild to show/hide history overlay
   }
 
-  /// True when no search/category/favorites filter is active — the default
-  /// "browse everything" state, where the grid is paginated server-side
-  /// ([pagedDealsProvider]). Any filter switches to client-side pagination
-  /// over the full, already-fetched catalog (`filteredDealsPageProvider`),
-  /// since category/favorites matching is client-only logic the API can't
-  /// apply.
+  /// True when the grid can be served by the server-paginated pipeline
+  /// ([pagedDealsProvider]) — the default browse state AND (since v3)
+  /// plain text search, which the API now handles via its `q` param so a
+  /// search never triggers the multi-MB full-catalog download. Only the
+  /// client-only concepts — category (a title heuristic with no DB column)
+  /// and favorites — still switch to client-side pagination over the full
+  /// catalog (`filteredDealsPageProvider`).
   bool _isPagedBrowseMode(FeedFilters filters) {
-    return filters.searchQuery.isEmpty &&
-        filters.category == 'All' &&
-        !filters.showFavoritesOnly;
+    return filters.category == 'All' && !filters.showFavoritesOnly;
   }
 
   void _onPageChanged(WidgetRef ref, int page) {
