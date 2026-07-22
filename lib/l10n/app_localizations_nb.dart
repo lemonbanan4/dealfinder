@@ -522,4 +522,9 @@ class AppLocalizationsNb extends AppLocalizations {
   @override
   String get linkNotTracked =>
       'Vi sporer ikke det produktet ennå — prøv å søke på navnet, eller sjekk en av butikkene våre.';
+
+  @override
+  String moreFromStore(String store) {
+    return 'Flere fra $store';
+  }
 }

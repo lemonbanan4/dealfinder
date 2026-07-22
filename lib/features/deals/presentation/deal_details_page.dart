@@ -5,10 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/seo/document_meta.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../services/analytics_service.dart';
 import '../../../theme/glass_colors.dart';
+import '../../../widgets/glass_card.dart';
 import '../../settings/presentation/currency_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../providers/brand_landing_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../domain/deal.dart';
 import '../domain/store_display_names.dart';
@@ -304,7 +307,156 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
               ),
             ),
           ),
+          // "More from {store}" — keeps a visitor who landed here from a
+          // shared link/search inside the app instead of dead-ending at
+          // one product; mirrors the internal links the crawler version of
+          // this page gets in functions/main.py's prerender_product_page.
+          SliverToBoxAdapter(child: _MoreFromStoreSection(deal: deal)),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
+      ),
+    );
+  }
+}
+
+/// A compact horizontal shelf of other deals from the same store feed.
+/// Taps navigate to that product's own detail page (push, so back returns
+/// here) — this section exists to keep people browsing PrisPuls, unlike
+/// the card grids whose primary tap is the outbound affiliate click.
+class _MoreFromStoreSection extends ConsumerWidget {
+  const _MoreFromStoreSection({required this.deal});
+
+  final Deal deal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final relatedAsync = ref.watch(brandLandingDealsProvider(deal.source));
+
+    return relatedAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (deals) {
+        final related = deals.where((d) => d.id != deal.id).take(8).toList();
+        if (related.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+              child: Text(
+                l10n.moreFromStore(storeDisplayName(deal.source)),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: GlassColors.textHeading,
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: related.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final d = related[index];
+                  return _RelatedDealCard(deal: d);
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RelatedDealCard extends ConsumerWidget {
+  const _RelatedDealCard({required this.deal});
+
+  final Deal deal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final settings = ref.watch(appSettingsProvider);
+    final converter = ref.watch(currencyConverterProvider.notifier);
+    final price = ref.watch(
+      formattedPriceProvider(
+        price: converter.convert(
+          deal.currentPrice,
+          deal.currency,
+          settings.displayCurrency,
+        ),
+        currency: settings.displayCurrency,
+      ),
+    );
+
+    return SizedBox(
+      width: 150,
+      child: GlassCard(
+        enableBlur: false,
+        borderRadius: 14,
+        padding: const EdgeInsets.all(10),
+        onTap: () => context.push('/products/${deal.id}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                height: 90,
+                width: double.infinity,
+                child: deal.imageUrl != null && deal.imageUrl!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: deal.imageUrl!,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 300,
+                        placeholder: (context, _) =>
+                            Container(color: GlassColors.surface),
+                        errorWidget: (context, _, _) => Container(
+                          color: GlassColors.surface,
+                          child: const Icon(
+                            Icons.image_not_supported_outlined,
+                            color: GlassColors.textMuted,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: GlassColors.surface,
+                        child: const Icon(
+                          Icons.shopping_bag_outlined,
+                          color: GlassColors.textMuted,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Text(
+                deal.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: GlassColors.textBody,
+                ),
+              ),
+            ),
+            Text(
+              price,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: GlassColors.priceAccent,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

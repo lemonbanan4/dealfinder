@@ -1053,6 +1053,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We don\'t track that product yet — try searching by name, or check one of our covered stores.'**
   String get linkNotTracked;
+
+  /// No description provided for @moreFromStore.
+  ///
+  /// In en, this message translates to:
+  /// **'More from {store}'**
+  String moreFromStore(String store);
 }
 
 class _AppLocalizationsDelegate

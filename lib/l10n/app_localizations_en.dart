@@ -522,4 +522,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get linkNotTracked =>
       'We don\'t track that product yet — try searching by name, or check one of our covered stores.';
+
+  @override
+  String moreFromStore(String store) {
+    return 'More from $store';
+  }
 }

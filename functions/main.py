@@ -306,6 +306,8 @@ def _render_product_html(product: dict) -> str:
     # "</script>", which would otherwise break out of the script tag below.
     ).replace("</script>", "<\\/script>")
 
+    related_html = _render_related_links(product)
+
     original_price_html = (
         f"<p><s>{retail_price:.0f} {html.escape(currency)}</s></p>"
         if isinstance(retail_price, (int, float)) and retail_price > (price or 0)
@@ -336,9 +338,45 @@ def _render_product_html(product: dict) -> str:
 <p>{price_text} {html.escape(currency)}</p>
 {original_price_html}
 <p><a href="{html.escape(tracking_url, quote=True)}" rel="nofollow sponsored">View deal at {html.escape(source)}</a></p>
+{related_html}
 <p><a href="{SITE_BASE}/">Browse all deals on PrisPuls</a></p>
 </body>
 </html>"""
+
+
+def _render_related_links(product: dict) -> str:
+    """"More from this store" internal links for the crawler snapshot.
+
+    Without these, every prerendered product page was a crawl dead end
+    (one nofollow-sponsored outbound link + one link home), so Google
+    could only discover products via the 1000-URL sitemap. Followable
+    links between same-store products let the crawler walk the whole
+    catalog page-to-page. Best effort: an API hiccup just means this
+    snapshot renders without the section.
+    """
+    product_id = product.get("product_id", "")
+    store = product.get("feed_region") or ""
+    if not store:
+        return ""
+    try:
+        related = [
+            d for d in _fetch_brand_deals(store)
+            if d.get("product_id") and d["product_id"] != product_id
+        ][:8]
+    except requests.RequestException:
+        return ""
+    if not related:
+        return ""
+    source = _store_display_name(store)
+    items = "".join(
+        f'<li><a href="{SITE_BASE}/products/{html.escape(d["product_id"])}">'
+        f'{html.escape(d.get("title") or "Deal")}</a></li>'
+        for d in related
+    )
+    return (
+        f"<h2>More from {html.escape(source)}</h2>"
+        f"<ul>{items}</ul>"
+    )
 
 
 @https_fn.on_request(region="europe-north1")

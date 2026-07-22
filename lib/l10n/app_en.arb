@@ -221,5 +221,13 @@
     }
   },
   "priceHistoryIsLowest": "This is the lowest price we've seen 🎉",
-  "linkNotTracked": "We don't track that product yet — try searching by name, or check one of our covered stores."
+  "linkNotTracked": "We don't track that product yet — try searching by name, or check one of our covered stores.",
+  "moreFromStore": "More from {store}",
+  "@moreFromStore": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  }
 }

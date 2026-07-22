@@ -165,5 +165,13 @@
     }
   },
   "priceHistoryIsLowest": "Det här är det lägsta pris vi har sett 🎉",
-  "linkNotTracked": "Vi spårar inte den produkten än — prova att söka på namnet, eller kolla någon av våra butiker."
+  "linkNotTracked": "Vi spårar inte den produkten än — prova att söka på namnet, eller kolla någon av våra butiker.",
+  "moreFromStore": "Fler från {store}",
+  "@moreFromStore": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  }
 }
