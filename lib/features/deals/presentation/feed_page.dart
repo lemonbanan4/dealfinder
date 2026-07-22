@@ -826,11 +826,20 @@ class _FeedPageState extends ConsumerState<FeedPage> {
                                 message: 'ERROR: ${loadError.toString()}',
                                 onRetry: () => _handleRefresh(),
                               ) // Removed redundant handleRefresh call
-                            : feedIsEmpty
+                            : feedIsEmpty && filters.searchQuery.trim().isEmpty
                             ? EmptyState(onRefresh: () => _handleRefresh())
-                            : (filters.searchQuery.isNotEmpty ||
-                                      filters.showFavoritesOnly) &&
-                                  displayDeals.isEmpty
+                            // "No results for X": in paged mode (v3
+                            // server-side search) emptiness comes from the
+                            // paged response's totalCount — displayDeals is
+                            // always const [] there by design, so the old
+                            // displayDeals.isEmpty check made every server
+                            // search look empty regardless of its results.
+                            : (isPagedBrowseMode
+                                  ? (filters.searchQuery.trim().isNotEmpty &&
+                                        feedIsEmpty)
+                                  : (filters.searchQuery.isNotEmpty ||
+                                            filters.showFavoritesOnly) &&
+                                        displayDeals.isEmpty)
                             ? SearchEmptyState(
                                 query: filters.searchQuery,
                                 onClear: () {
