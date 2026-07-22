@@ -12,6 +12,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../domain/deal.dart';
 import '../domain/store_display_names.dart';
+import 'price_history_chart.dart';
 
 const _productJsonLdId = 'product-jsonld';
 
@@ -247,7 +248,12 @@ class _DealDetailsPageState extends ConsumerState<DealDetailsPage> {
                         _DiscountBadge(discount: deal.discountPercent!),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  // The core value prop, delivered on the page where a user
+                  // actually evaluates a specific deal: the real tracked
+                  // price history, not just today's sticker price.
+                  PriceHistoryChart(deal: deal),
+                  const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(

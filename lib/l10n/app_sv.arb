@@ -150,5 +150,19 @@
   "aboutAffiliateBody": "PrisPuls deltar i olika affiliateprogram, vilket innebär att vi kan få provision på redaktionellt utvalda produkter som köps via våra länkar till återförsäljares webbplatser.\n\nNär du klickar på en produktlänk och genomför ett köp kan PrisPuls få en mindre provision från återförsäljaren, utan extra kostnad för dig. Dessa provisioner hjälper oss att underhålla och kontinuerligt förbättra vår tjänst.\n\nVåra redaktionella beslut — inklusive vilka produkter och erbjudanden vi lyfter fram — fattas oberoende av eventuella affiliate-relationer. Vi strävar efter att alltid ge ärlig och opartisk prisinformation, oavsett om det finns en kommersiell relation med en viss återförsäljare eller inte.",
   "aboutTeamHeading": "Bara jag (för nu)",
   "aboutTeamBody": "PrisPuls byggs och underhålls av en person — inget kontor, inget team, bara någon som blev irriterad på falska rabatter och bestämde sig för att fixa det. Om något är förvirrande, trasigt, eller om du saknar en butik du önskar bevakades, hör gärna av dig.",
-  "aboutContactBody": "Har du en fråga, hittat ett felaktigt pris eller vill samarbeta med oss?\n\nE-post: support@prispuls.com\nWebbplats: prispuls.com\n\nVi svarar vanligtvis inom två arbetsdagar."
+  "aboutContactBody": "Har du en fråga, hittat ett felaktigt pris eller vill samarbeta med oss?\n\nE-post: support@prispuls.com\nWebbplats: prispuls.com\n\nVi svarar vanligtvis inom två arbetsdagar.",
+  "priceHistoryTitle": "Prishistorik",
+  "priceHistoryLowest": "Lägsta noterade",
+  "priceHistoryHighest": "Högsta noterade",
+  "priceHistoryCurrent": "Nu",
+  "priceHistoryNotEnough": "Inte tillräckligt med prishistorik än — vi har precis börjat följa den här produkten. Kom tillbaka snart för att se hur priset rör sig.",
+  "priceHistorySince": "Följs sedan {date}",
+  "@priceHistorySince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "priceHistoryIsLowest": "Det här är det lägsta pris vi har sett 🎉"
 }

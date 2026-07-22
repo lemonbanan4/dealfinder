@@ -206,5 +206,19 @@
   "aboutAffiliateBody": "PrisPuls participates in various affiliate marketing programs, which means we may get paid commissions on editorially chosen products purchased through our links to retailer sites.\n\nWhen you click on a product link and complete a purchase, PrisPuls may earn a small commission from the retailer at no additional cost to you. These commissions help us maintain and continuously improve our service.\n\nOur editorial decisions — including which products and deals we feature — are made independently of any affiliate relationship. We are committed to providing honest, unbiased pricing information regardless of whether a commercial relationship exists with a given retailer.",
   "aboutTeamHeading": "Just Me (For Now)",
   "aboutTeamBody": "PrisPuls is built and maintained by one person — no office, no team, just someone who got annoyed by fake discounts and decided to fix it. If something's confusing, broken, or missing a store you wish it tracked, I'd genuinely like to hear about it.",
-  "aboutContactBody": "Have a question, found an incorrect price, or want to partner with us?\n\nEmail: support@prispuls.com\nWebsite: prispuls.com\n\nWe typically respond within two business days."
+  "aboutContactBody": "Have a question, found an incorrect price, or want to partner with us?\n\nEmail: support@prispuls.com\nWebsite: prispuls.com\n\nWe typically respond within two business days.",
+  "priceHistoryTitle": "Price history",
+  "priceHistoryLowest": "Lowest tracked",
+  "priceHistoryHighest": "Highest tracked",
+  "priceHistoryCurrent": "Current",
+  "priceHistoryNotEnough": "Not enough price history yet — we've only just started tracking this product. Check back soon to see how its price moves.",
+  "priceHistorySince": "Tracked since {date}",
+  "@priceHistorySince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "priceHistoryIsLowest": "This is the lowest price we've seen 🎉"
 }

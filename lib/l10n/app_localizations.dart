@@ -1005,6 +1005,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Have a question, found an incorrect price, or want to partner with us?\n\nEmail: support@prispuls.com\nWebsite: prispuls.com\n\nWe typically respond within two business days.'**
   String get aboutContactBody;
+
+  /// No description provided for @priceHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Price history'**
+  String get priceHistoryTitle;
+
+  /// No description provided for @priceHistoryLowest.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowest tracked'**
+  String get priceHistoryLowest;
+
+  /// No description provided for @priceHistoryHighest.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest tracked'**
+  String get priceHistoryHighest;
+
+  /// No description provided for @priceHistoryCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get priceHistoryCurrent;
+
+  /// No description provided for @priceHistoryNotEnough.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough price history yet — we\'ve only just started tracking this product. Check back soon to see how its price moves.'**
+  String get priceHistoryNotEnough;
+
+  /// No description provided for @priceHistorySince.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracked since {date}'**
+  String priceHistorySince(String date);
+
+  /// No description provided for @priceHistoryIsLowest.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the lowest price we\'ve seen 🎉'**
+  String get priceHistoryIsLowest;
 }
 
 class _AppLocalizationsDelegate

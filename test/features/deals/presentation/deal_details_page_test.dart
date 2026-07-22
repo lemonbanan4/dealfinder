@@ -1,10 +1,14 @@
 import 'package:dealfinder_pro/features/deals/domain/deal.dart';
 import 'package:dealfinder_pro/features/deals/presentation/deal_details_page.dart';
+import 'package:dealfinder_pro/features/deals/providers/deals_provider.dart';
 import 'package:dealfinder_pro/features/deals/providers/favorites_provider.dart';
 import 'package:dealfinder_pro/features/settings/domain/app_settings.dart';
 import 'package:dealfinder_pro/features/settings/presentation/currency_provider.dart';
 import 'package:dealfinder_pro/features/settings/providers/settings_provider.dart';
+import 'package:dealfinder_pro/l10n/app_localizations.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -71,8 +75,18 @@ void main() {
           favoritesProvider.overrideWith(() => mockFavoritesNotifier),
           appSettingsProvider.overrideWith(FakeAppSettingsNotifier.new),
           currencyConverterProvider.overrideWith(FakeCurrencyConverter.new),
+          // Stub the price-history fetch so the new PriceHistoryChart on
+          // the detail page never hits Supabase in a widget test; an empty
+          // history renders its honest "not enough data yet" state.
+          priceHistoryProviderProvider(
+            mockDeal.id,
+          ).overrideWith((ref) async => <FlSpot>[]),
         ],
-        child: const MaterialApp(home: DealDetailsPage(deal: mockDeal)),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: DealDetailsPage(deal: mockDeal),
+        ),
       ),
     );
   }

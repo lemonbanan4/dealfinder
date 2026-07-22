@@ -496,4 +496,29 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get aboutContactBody =>
       'Har du en fråga, hittat ett felaktigt pris eller vill samarbeta med oss?\n\nE-post: support@prispuls.com\nWebbplats: prispuls.com\n\nVi svarar vanligtvis inom två arbetsdagar.';
+
+  @override
+  String get priceHistoryTitle => 'Prishistorik';
+
+  @override
+  String get priceHistoryLowest => 'Lägsta noterade';
+
+  @override
+  String get priceHistoryHighest => 'Högsta noterade';
+
+  @override
+  String get priceHistoryCurrent => 'Nu';
+
+  @override
+  String get priceHistoryNotEnough =>
+      'Inte tillräckligt med prishistorik än — vi har precis börjat följa den här produkten. Kom tillbaka snart för att se hur priset rör sig.';
+
+  @override
+  String priceHistorySince(String date) {
+    return 'Följs sedan $date';
+  }
+
+  @override
+  String get priceHistoryIsLowest =>
+      'Det här är det lägsta pris vi har sett 🎉';
 }
