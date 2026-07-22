@@ -533,11 +533,22 @@ def lookup_product_by_url(
             if row:
                 return {"match": row}
 
-            # Stage 2: SKU-ish path tokens against product_id.
-            tokens = [
-                t for t in _re.split(r"[^a-zA-Z0-9-]+", path)
-                if len(t) >= 5 and any(c.isdigit() for c in t)
-            ]
+            # Stage 2: SKU-ish path tokens against product_id. Hyphens are
+            # kept (Dyson SKUs look like "448798-01") but each hyphenated
+            # token's parts are also tried individually, since slugs often
+            # glue a model code to words ("TQ65QN990FTXXC-black-2025").
+            raw_tokens = _re.split(r"[^a-zA-Z0-9-]+", path)
+            candidates: list[str] = []
+            for t in raw_tokens:
+                candidates.append(t)
+                if "-" in t:
+                    candidates.extend(t.split("-"))
+            seen: set[str] = set()
+            tokens = []
+            for t in candidates:
+                if len(t) >= 5 and any(c.isdigit() for c in t) and t not in seen:
+                    seen.add(t)
+                    tokens.append(t)
             for token in tokens[:5]:
                 cursor.execute(
                     f"""
