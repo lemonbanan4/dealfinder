@@ -549,20 +549,40 @@ def lookup_product_by_url(
                 if len(t) >= 5 and any(c.isdigit() for c in t) and t not in seen:
                     seen.add(t)
                     tokens.append(t)
+            # The same model often exists in both regional feeds (e.g.
+            # samsung_se_X and samsung_no_X share one model code), which a
+            # bare uniqueness rule would reject as ambiguous. The URL itself
+            # carries the region — a .se/.no host TLD or a /se/ /no/ path
+            # segment — so use that hint to break exactly that tie.
+            path_segs = {s.lower() for s in path.split("/") if s}
+            region_hint = None
+            if host.endswith(".se") or "se" in path_segs:
+                region_hint = "_se"
+            elif host.endswith(".no") or {"no", "nb"} & path_segs:
+                region_hint = "_no"
+
             for token in tokens[:5]:
                 cursor.execute(
                     f"""
                     SELECT * FROM products p
                     WHERE p.product_id ILIKE %s AND {fresh}
-                    LIMIT 2
+                    LIMIT 5
                     """,
                     (f"%{token}%",),
                 )
                 rows = cursor.fetchall()
-                # Only trust a token that identifies exactly one product —
-                # an ambiguous token (two products share it) proves nothing.
+                # A token must identify exactly one product to be trusted —
+                # either outright, or after narrowing multi-region twins
+                # down with the URL's own region hint.
                 if len(rows) == 1:
                     return {"match": rows[0]}
+                if len(rows) > 1 and region_hint:
+                    hinted = [
+                        r for r in rows
+                        if r["feed_region"].lower().endswith(region_hint)
+                    ]
+                    if len(hinted) == 1:
+                        return {"match": hinted[0]}
 
             return {"match": None}
     except Exception:
